@@ -1,9 +1,13 @@
 // ===========================================================================
 // Cliente JobNimbus · SOLO LECTURA (read-only)
-//   - Únicamente GET a la API de JobNimbus.
-//   - Prohibido: crear, actualizar, eliminar jobs/contacts/estimados.
-//   - La API key debe tener perfil de solo lectura en JobNimbus.
 // ===========================================================================
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ZIP_CACHE_PATH = path.join(__dirname, "data", "zip-geo-cache.json");
+const GEO_CONCURRENCY = parseInt(process.env.JN_GEO_CONCURRENCY, 10) || 24;
 
 const JN_BASE = (process.env.JOBNIMBUS_API_URL || "https://app.jobnimbus.com/api1").replace(/\/$/, "");
 
@@ -28,6 +32,53 @@ const ZONE_STATES = {
 };
 
 const zipGeoCache = new Map();
+let zipCacheDirty = false;
+let zipCacheSaveTimer = null;
+
+(function loadZipGeoCache() {
+  try {
+    if (!fs.existsSync(ZIP_CACHE_PATH)) return;
+    const raw = JSON.parse(fs.readFileSync(ZIP_CACHE_PATH, "utf8"));
+    for (const [z, geo] of Object.entries(raw)) {
+      if (geo?.lat != null && geo?.lon != null) zipGeoCache.set(z, geo);
+    }
+    console.log(`✓ Caché zip geocoding: ${zipGeoCache.size} códigos`);
+  } catch (e) {
+    console.warn("⚠ Caché zip geocoding no cargada:", e.message);
+  }
+})();
+
+function scheduleZipCacheSave() {
+  if (zipCacheSaveTimer) return;
+  zipCacheSaveTimer = setTimeout(() => {
+    zipCacheSaveTimer = null;
+    if (!zipCacheDirty) return;
+    zipCacheDirty = false;
+    try {
+      fs.mkdirSync(path.dirname(ZIP_CACHE_PATH), { recursive: true });
+      fs.writeFileSync(ZIP_CACHE_PATH, JSON.stringify(Object.fromEntries(zipGeoCache)));
+    } catch (e) {
+      console.warn("⚠ No se pudo guardar caché zip:", e.message);
+    }
+  }, 2000);
+}
+
+function normalizeZip(zip) {
+  return String(zip || "").replace(/\D/g, "").slice(0, 5);
+}
+
+async function runPool(items, concurrency, fn) {
+  if (!items.length) return;
+  let idx = 0;
+  async function worker() {
+    while (idx < items.length) {
+      const i = idx++;
+      await fn(items[i], i);
+    }
+  }
+  const n = Math.min(concurrency, items.length);
+  await Promise.all(Array.from({ length: n }, worker));
+}
 
 async function jnFetch(endpoint, query = {}) {
   const key = process.env.JOBNIMBUS_API_KEY;
@@ -66,18 +117,23 @@ async function jnFetch(endpoint, query = {}) {
 }
 
 async function geocodeZip(zip) {
-  const z = String(zip || "").replace(/\D/g, "").slice(0, 5);
+  const z = normalizeZip(zip);
   if (z.length < 5) return null;
   if (zipGeoCache.has(z)) return zipGeoCache.get(z);
 
   try {
-    const r = await fetch(`https://api.zippopotam.us/us/${z}`);
+    const r = await fetch(`https://api.zippopotam.us/us/${z}`, {
+      signal: AbortSignal.timeout(8000)
+    });
     if (!r.ok) return null;
     const data = await r.json();
     const place = data.places?.[0];
     if (!place) return null;
     const geo = { lat: parseFloat(place.latitude), lon: parseFloat(place.longitude) };
+    if (!isFinite(geo.lat) || !isFinite(geo.lon)) return null;
     zipGeoCache.set(z, geo);
+    zipCacheDirty = true;
+    scheduleZipCacheSave();
     return geo;
   } catch {
     return null;
@@ -182,22 +238,35 @@ async function fetchRawJobsForStates(states, dateRange, dateField) {
   return all;
 }
 
-/** Enriquece jobs sin coordenadas usando el zip. */
+/** Geocodifica zips únicos en paralelo (antes: 1 HTTP por job, secuencial). */
 async function enrichCoords(jobs) {
-  const out = [];
+  const zipToGeo = new Map();
+  const pendingZips = new Set();
+
   for (const job of jobs) {
-    if (job.lat != null && job.lon != null) {
-      out.push(job);
-      continue;
-    }
-    const geo = await geocodeZip(job.zip);
-    if (geo) {
-      out.push({ ...job, lat: geo.lat, lon: geo.lon, _geocodedFromZip: true });
-    } else {
-      out.push(job);
-    }
+    if (job.lat != null && job.lon != null) continue;
+    const z = normalizeZip(job.zip);
+    if (z.length < 5) continue;
+    if (zipGeoCache.has(z)) zipToGeo.set(z, zipGeoCache.get(z));
+    else pendingZips.add(z);
   }
-  return out;
+
+  const zips = [...pendingZips];
+  if (zips.length) {
+    const t0 = Date.now();
+    await runPool(zips, GEO_CONCURRENCY, async (z) => {
+      const geo = await geocodeZip(z);
+      if (geo) zipToGeo.set(z, geo);
+    });
+    console.info(`[jn] geocoding ${zips.length} zips únicos en ${Date.now() - t0}ms`);
+  }
+
+  return jobs.map((job) => {
+    if (job.lat != null && job.lon != null) return job;
+    const geo = zipToGeo.get(normalizeZip(job.zip));
+    if (geo) return { ...job, lat: geo.lat, lon: geo.lon, _geocodedFromZip: true };
+    return job;
+  });
 }
 
 export async function fetchJobsForStormExport(zoneCode, options = {}) {
@@ -222,11 +291,21 @@ export async function fetchJobsForZone(zoneCode, options = {}) {
   if (!states) throw new Error(`Zona no válida: ${zone}`);
 
   const dateField = options.dateField === "date_created" ? "date_created" : "date_updated";
-  const dateRange = options.fromDate && options.toDate
+  let dateRange = options.fromDate && options.toDate
     ? parseDateRange(options.fromDate, options.toDate)
     : null;
 
+  const allMonths = parseInt(process.env.JN_ALL_MONTHS, 10);
+  if (!dateRange && allMonths > 0) {
+    const to = new Date();
+    const from = new Date(to);
+    from.setMonth(from.getMonth() - allMonths);
+    dateRange = parseDateRange(from.toISOString().slice(0, 10), to.toISOString().slice(0, 10));
+  }
+
+  const t0 = Date.now();
   const raw = await fetchRawJobsForStates(states, dateRange, dateField);
+  console.info(`[jn] ${zone} API ${raw.length} jobs en ${Date.now() - t0}ms`);
   let jobs = raw.map(normalizeJob);
   jobs = await enrichCoords(jobs);
 
@@ -246,7 +325,12 @@ export async function fetchJobsForZone(zoneCode, options = {}) {
     byStatus,
     jobs,
     dateFilter: dateRange
-      ? { from: dateRange.from, to: dateRange.to, field: dateField }
+      ? {
+          from: dateRange.from,
+          to: dateRange.to,
+          field: dateField,
+          capped: !options.fromDate && allMonths > 0 ? allMonths : null
+        }
       : null
   };
 }

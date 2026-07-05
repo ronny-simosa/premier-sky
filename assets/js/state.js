@@ -665,6 +665,8 @@
   let jnExpandedPhases = new Set();
   let jnSearchQuery = "";
   let jnDateOpts = null;
+  let jnListLimit = 80;
+  let jnMapBatchToken = 0;
 
   function jnJobDisplayDate(job) {
     const useCreated = jnDateFieldValue() === "date_created";
@@ -879,11 +881,25 @@
   function syncJnMapMarkers() {
     jobsLayer.clearLayers();
     jnMarkers.clear();
+    const toAdd = [];
     for (const job of jnJobsData) {
       if (job.lat == null || job.lon == null) continue;
       if (!jnJobMatchesFilter(job)) continue;
-      jnMarkers.set(job.jnid, jnJobMarker(job));
+      toAdd.push(job);
     }
+    const token = ++jnMapBatchToken;
+    const BATCH = 200;
+    let i = 0;
+    function addBatch() {
+      if (token !== jnMapBatchToken) return;
+      const end = Math.min(i + BATCH, toAdd.length);
+      for (; i < end; i++) {
+        const job = toAdd[i];
+        jnMarkers.set(job.jnid, jnJobMarker(job));
+      }
+      if (i < toAdd.length) requestAnimationFrame(addBatch);
+    }
+    if (toAdd.length) requestAnimationFrame(addBatch);
   }
 
   function jnRefreshUI() {
@@ -1053,6 +1069,8 @@
     const countEl = document.getElementById("jnJobCount");
     const visibleMap = filtered.filter((j) => j.lat != null && j.lon != null).length;
     const noCoords = filtered.filter((j) => j.lat == null || j.lon == null).length;
+    const show = filtered.slice(0, jnListLimit);
+    const remaining = filtered.length - show.length;
 
     countEl.textContent = jnJobsData.length
       ? `${filtered.length} de ${jnJobsData.length} · ${visibleMap} en mapa`
@@ -1072,7 +1090,7 @@
 
     const esc = JNP.escapeHtml;
     box.className = "jn-job-list";
-    box.innerHTML = filtered.map((j) => {
+    box.innerHTML = show.map((j) => {
       const addr = [j.address, j.city, j.state, j.zip].filter(Boolean).join(", ");
       const mapHint = (j.lat != null && j.lon != null) ? "" : '<span class="jn-no-geo">sin ubicación</span>';
       const dateLbl = jnJobDisplayDate(j);
@@ -1088,13 +1106,21 @@
           <div class="jn-status-line">${esc(j.status)}</div>
           <div class="jn-addr">${esc(addr || "—")}</div>
         </div>`;
-    }).join("") + (noCoords ? `<div class="jn-footnote">${noCoords} sin coordenadas en mapa</div>` : "");
+    }).join("")
+      + (remaining > 0
+        ? `<button type="button" class="btn secondary jn-load-more" style="width:100%;margin-top:10px">Mostrar ${Math.min(80, remaining)} más (${remaining} restantes)</button>`
+        : "")
+      + (noCoords ? `<div class="jn-footnote">${noCoords} sin coordenadas en mapa</div>` : "");
 
     box.querySelectorAll(".jn-job-item").forEach((el) => {
       el.addEventListener("click", () => {
         const job = jnJobsData.find((j) => j.jnid === el.dataset.jnid);
         if (job) focusJnJob(job);
       });
+    });
+    box.querySelector(".jn-load-more")?.addEventListener("click", () => {
+      jnListLimit += 80;
+      jnRefreshUI();
     });
   }
 
@@ -1107,6 +1133,7 @@
       const fld = filter.field === "date_created" ? "creación" : "actualización";
       const preset = mode === "month" ? "Este mes"
         : mode === "custom" ? "Rango personalizado"
+        : filter.capped ? `Últimos ${filter.capped} meses`
         : "Período";
       jnSetDateHint(`${preset} · ${fld}: ${filter.from} → ${filter.to}`);
     } else {
@@ -1149,6 +1176,7 @@
       }
       jnByStatus = data.byStatus || {};
       jnJobsData = (data.jobs || []).map(jnEnrichJob);
+      jnListLimit = 80;
       jnResetFilters();
       jnUpdateDateHint(data);
       jnRefreshUI();

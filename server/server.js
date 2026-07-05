@@ -110,7 +110,7 @@ app.use((req, res, next) => {
 
 // --- JobNimbus: jobs por zona (caché 3 min) · requiere sesión --------------
 const jnCache = {};
-const JN_CACHE_MS = 3 * 60 * 1000;
+const JN_CACHE_MS = 10 * 60 * 1000;
 
 function jnReadOnlyGuard(req, res) {
   if (req.method !== "GET") {
