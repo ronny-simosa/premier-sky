@@ -6,7 +6,7 @@
   <title>Premier Sky · Estado</title>
   <link rel="icon" type="image/svg+xml" href="assets/img/premier-logo.svg" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="assets/css/styles.css?v=35" />
+  <link rel="stylesheet" href="assets/css/styles.css?v=36" />
 </head>
 <body>
   <header class="site">
@@ -73,11 +73,12 @@
             <button type="button" class="storm-export-btn" data-export="alerts" disabled>🚨 Alertas activas</button>
             <label class="storm-export-format">
               <span>Formato</span>
-              <select id="stormCsvFormat" title="Excel Windows usa ; · Google Sheets usa comas">
-                <option value="excel">Excel (;)</option>
-                <option value="google">Google (,)</option>
+              <select id="stormCsvFormat" title="Excel (.xlsx) · Google Drive (.csv)">
+                <option value="excel">Excel (.xlsx)</option>
+                <option value="google">Google (.csv)</option>
               </select>
             </label>
+            <p class="rail-hint storm-export-format-hint">Excel: abre el .xlsx directo · Google: sube el -google.csv a Drive</p>
             <p id="stormExportStatus" class="storm-export-status"></p>
           </div>
           <div id="stormHistory" class="storm-history">
@@ -179,7 +180,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="assets/js/config.js?v=15"></script>
   <script src="assets/js/jn-phases.js?v=15"></script>
-  <script src="assets/js/api.js?v=36"></script>
+  <script src="assets/js/api.js?v=37"></script>
   <!-- Datasets de ZIP codes (centroides) cargados como globales window.ZIPDB_XX.
        Se incluyen como <script> para funcionar también con file:// (doble clic). -->
   <script src="assets/data/zips_IL.js?v=11"></script>
@@ -188,6 +189,6 @@
   <script src="assets/data/zips_WI.js?v=11"></script>
   <script src="assets/data/zips_MD.js?v=11"></script>
   <script src="assets/data/zips_FL.js?v=11"></script>
-  <script src="assets/js/state.js?v=38"></script>
+  <script src="assets/js/state.js?v=40"></script>
 </body>
 </html>

@@ -269,9 +269,10 @@ app.post("/api/export/storm", requireAuth, async (req, res) => {
       csvFormat: req.body?.csvFormat
     });
     if (!result.ok) return res.status(400).json({ ok: false, message: result.message });
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", `attachment; filename="${result.csv.filename}"`);
-    res.send(result.csv.content);
+    const file = result.file;
+    res.setHeader("Content-Type", file.contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${file.filename}"`);
+    res.send(Buffer.isBuffer(file.content) ? file.content : file.content);
   } catch (e) {
     console.error("Export", type, zone, e.message);
     res.status(500).json({ ok: false, message: e.message });

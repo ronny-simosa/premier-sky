@@ -249,6 +249,7 @@ header.site nav a:hover, header.site nav a.active { color: var(--text); border-c
   color: var(--muted);
 }
 .storm-export-format span { flex-shrink: 0; }
+.storm-export-format-hint { margin: 4px 0 0; font-size: 10px; opacity: 0.85; }
 .storm-export-format select {
   flex: 1;
   min-width: 0;

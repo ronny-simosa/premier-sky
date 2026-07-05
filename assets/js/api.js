@@ -511,11 +511,11 @@ async function exportStormList(type, zone, dateOpts = {}, csvFormat = "excel") {
     throw new Error("Sesión expirada");
   }
   const ct = res.headers.get("Content-Type") || "";
-  if (ct.includes("text/csv")) {
+  if (ct.includes("text/csv") || ct.includes("spreadsheetml")) {
     const blob = await res.blob();
     const disp = res.headers.get("Content-Disposition") || "";
     const m = disp.match(/filename="([^"]+)"/);
-    const filename = m ? m[1] : `premier-sky-${zone}-export.csv`;
+    const filename = m ? m[1] : `premier-sky-${zone}-export.${ct.includes("spreadsheetml") ? "xlsx" : "csv"}`;
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = filename;

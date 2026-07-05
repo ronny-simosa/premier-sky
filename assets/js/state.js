@@ -1900,7 +1900,9 @@
     sel.addEventListener("change", () => {
       localStorage.setItem("stormCsvFormat", sel.value);
       setStormExportStatus(
-        sel.value === "google" ? "Formato Google Sheets (comas)" : "Formato Excel Windows (;)",
+        sel.value === "google"
+          ? "Google: CSV con comas · …-google.csv · subir a Drive"
+          : "Excel: archivo .xlsx · columnas listas al abrir",
         "ok"
       );
     });
@@ -1912,8 +1914,8 @@
       btn.disabled = !hasJobs;
     });
     if (hasJobs) {
-      const fmt = stormCsvFormat() === "google" ? "comas · Google" : "punto y coma · Excel";
-      setStormExportStatus(`Listo · teléfono y email · CSV ${fmt}`);
+      const fmt = stormCsvFormat() === "google" ? "CSV Google" : "Excel .xlsx";
+      setStormExportStatus(`Listo · teléfono y email · ${fmt}`);
     }
   }
 
@@ -1924,8 +1926,12 @@
     btn.classList.add("busy");
     setStormExportStatus("Generando lista en servidor…");
     try {
-      const result = await API.exportStormList(kind, ST.code, stormDateOptsForExport(), stormCsvFormat());
-      setStormExportStatus(result.message, result.ok ? "ok" : "err");
+      const fmt = stormCsvFormat();
+      const result = await API.exportStormList(kind, ST.code, stormDateOptsForExport(), fmt);
+      const okMsg = fmt === "google"
+        ? "Descargado · …-google.csv · sube a Google Drive"
+        : "Descargado · …-excel.xlsx · abre en Excel o MobiSheets";
+      setStormExportStatus(result.ok ? okMsg : result.message, result.ok ? "ok" : "err");
     } catch (err) {
       setStormExportStatus(err.message || "Error al exportar", "err");
     } finally {
