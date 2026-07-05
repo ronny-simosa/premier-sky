@@ -833,6 +833,44 @@
     jnExpandedPhases = new Set();
   }
 
+  /** Clic en fase: alterna en el mapa (varias a la vez). Desde "todas", el 1er clic deja solo esa. */
+  function jnTogglePhase(phaseId) {
+    jnActiveStatuses = new Set();
+    const allIds = JNP.PHASES.map((p) => p.id);
+    const allActive = allIds.length > 0 && allIds.every((id) => jnActivePhases.has(id));
+
+    if (allActive) {
+      jnActivePhases = new Set([phaseId]);
+      return;
+    }
+    if (jnActivePhases.has(phaseId)) {
+      jnActivePhases.delete(phaseId);
+      if (!jnActivePhases.size) jnResetFilters();
+    } else {
+      jnActivePhases.add(phaseId);
+    }
+  }
+
+  /** Clic en fase: 1ª vez aísla; siguientes clics suman/quitan (multi-selección). */
+  function jnTogglePhase(id) {
+    jnActiveStatuses = new Set();
+    const allIds = JNP.PHASES.map((p) => p.id);
+    const allActive = allIds.length === jnActivePhases.size
+      && allIds.every((pid) => jnActivePhases.has(pid));
+
+    if (allActive) {
+      jnActivePhases = new Set([id]);
+      return;
+    }
+    if (jnActivePhases.has(id)) {
+      jnActivePhases.delete(id);
+      if (!jnActivePhases.size) jnResetFilters();
+    } else {
+      jnActivePhases.add(id);
+      if (jnActivePhases.size === allIds.length) jnResetFilters();
+    }
+  }
+
   function jnSyncLegendExpand(block) {
     if (!block) return;
     const id = block.dataset.phase;
@@ -931,13 +969,7 @@
 
     sideLeg.querySelectorAll(".jn-legend-row").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const id = btn.dataset.phase;
-        if (jnActivePhases.size === 1 && jnActivePhases.has(id) && !jnActiveStatuses.size) {
-          jnResetFilters();
-        } else {
-          jnActivePhases = new Set([id]);
-          jnActiveStatuses = new Set();
-        }
+        jnTogglePhase(btn.dataset.phase);
         jnRefreshUI();
       });
     });
@@ -948,8 +980,10 @@
         const status = btn.dataset.status;
         const phaseId = btn.dataset.phase;
         if (jnActiveStatuses.has(status)) jnActiveStatuses.delete(status);
-        else jnActiveStatuses.add(status);
-        if (jnActiveStatuses.size) jnActivePhases = new Set([phaseId]);
+        else {
+          jnActiveStatuses.add(status);
+          jnActivePhases.add(phaseId);
+        }
         jnRefreshUI();
       });
     });
@@ -1022,7 +1056,7 @@
                 <button type="button" class="jn-legend-toggle" aria-expanded="${jnExpandedPhases.has(g.phase.id) ? "true" : "false"}" aria-label="Desplegar ${g.phase.label}">
                   <span class="jn-chevron" aria-hidden="true"></span>
                 </button>
-                <button type="button" class="jn-legend-row${phaseOn && !jnActiveStatuses.size ? " active" : jnActiveStatuses.size && phaseOn ? " active" : phaseOn ? "" : " dim"}" data-phase="${g.phase.id}" style="--ph-color:${g.phase.color}">
+                <button type="button" class="jn-legend-row${phaseOn ? " active" : " dim"}" data-phase="${g.phase.id}" style="--ph-color:${g.phase.color}">
                   <span class="jn-legend-swatch"></span>
                   <span class="jn-legend-label">${g.phase.label}</span>
                   <span class="jn-legend-count">${g.count}</span>
@@ -1051,14 +1085,7 @@
 
     chips.querySelectorAll(".jn-phase-chip").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const id = btn.dataset.phase;
-        if (jnActivePhases.has(id) && jnActivePhases.size > 1) {
-          jnActivePhases.delete(id);
-        } else {
-          jnActivePhases = new Set([id]);
-        }
-        jnActiveStatuses = new Set();
-        if (!jnActivePhases.size) jnResetFilters();
+        jnTogglePhase(btn.dataset.phase);
         jnRefreshUI();
       });
     });
