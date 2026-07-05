@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Premier Sky · Monitor de tormentas NWS / NOAA / Open-Meteo</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/premier-logo.svg" />
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <header class="site">
+    <div class="brand"><img class="logo" src="assets/img/premier-logo.svg" alt="Premier" /> Premier Sky</div>
+    <nav id="nav"></nav>
+  </header>
+
+  <div class="container">
+    <section class="hero">
+      <h1>Monitor de tormentas en tiempo real</h1>
+      <p>
+        Sigue tormentas, granizo, lluvias y vientos por estado. Mapas con puntos calientes,
+        direcciones y zip codes para trackear el área afectada, además de una proyección
+        del clima a 7 días. Datos en vivo del Servicio Meteorológico Nacional de EE.UU.,
+        Open-Meteo y el Storm Prediction Center.
+      </p>
+      <div class="sources">
+        <span class="chip">NWS / NOAA · api.weather.gov</span>
+        <span class="chip">Open-Meteo</span>
+        <span class="chip">NOAA SPC · Storm Prediction Center</span>
+      </div>
+    </section>
+
+    <div class="state-grid" id="stateGrid"></div>
+  </div>
+
+  <footer class="site">
+    Datos: NOAA/NWS, Open-Meteo, NOAA SPC · Mapas © OpenStreetMap ·
+    Geocodificación Nominatim / Zippopotam. Uso informativo, no oficial para decisiones de emergencia.
+  </footer>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/api.js?v=34"></script>
+  <script src="assets/js/home.js"></script>
+</body>
+</html>

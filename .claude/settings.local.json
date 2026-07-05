@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --check server/server.js)",
+      "Bash(node --check assets/js/state.js)",
+      "Bash(node --check assets/js/api.js)",
+      "Bash(npm install:*)",
+      "Bash(pkill -f \"node server.js\")",
+      "Bash(node -e ':*)",
+      "Bash(node --check assets/js/config.js)",
+      "Bash(curl -s -A \"StormTracker test\" \"https://www.spc.noaa.gov/products/outlook/day1otlk_hail.nolyr.geojson\")",
+      "Bash(curl -s -A \"StormTracker test\" \"https://www.spc.noaa.gov/climo/reports/today_hail.csv\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"https://api.open-meteo.com/v1/forecast?latitude=40&longitude=-89.2&current=temperature_2m&temperature_unit=fahrenheit\")",
+      "Bash(curl -s --max-time 20 \"https://mesonet.agron.iastate.edu/geojson/lsr.geojson?sts=2024-05-01T00:00Z&ets=2024-05-31T00:00Z&states=IL\")",
+      "Bash(curl -s -I --max-time 20 \"https://mesonet.agron.iastate.edu/geojson/lsr.geojson?sts=2024-05-01T00:00Z&ets=2024-05-02T00:00Z&states=IL\")"
+    ]
+  }
+}

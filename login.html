@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Premier Sky · Acceso equipo</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/premier-logo.svg" />
+  <link rel="stylesheet" href="assets/css/styles.css?v=33" />
+  <style>
+    .login-wrap {
+      max-width: 420px;
+      margin: 48px auto 80px;
+      padding: 28px 24px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .login-wrap h1 { font-size: 22px; margin: 0 0 8px; }
+    .login-wrap p { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 0 0 20px; }
+    .login-wrap label { display: block; font-size: 13px; margin-bottom: 6px; color: var(--muted); }
+    .login-wrap input {
+      width: 100%;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      font-size: 15px;
+    }
+    .login-wrap .btn { width: 100%; margin-top: 4px; }
+    .login-msg { font-size: 13px; margin-top: 12px; min-height: 1.2em; }
+    .login-msg.ok { color: #36d399; }
+    .login-msg.err { color: #ff6b6b; }
+    #stepCode { display: none; }
+    .code-input { letter-spacing: 6px; font-size: 22px; text-align: center; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <div class="brand">
+      <img class="logo" src="assets/img/premier-logo.svg" alt="Premier" /> Premier Sky
+    </div>
+  </header>
+
+  <div class="container login-wrap">
+    <h1>Acceso equipo Premier</h1>
+    <p>Usa el correo <b>@premierchi.com</b> con el que entras a JobNimbus (ej. <code>sky@premierchi.com</code>). Revisa también <b>spam / correo no deseado</b>.</p>
+
+    <div id="stepEmail">
+      <label for="email">Correo electrónico</label>
+      <input type="email" id="email" placeholder="tu@premierchi.com" autocomplete="email" />
+      <button type="button" class="btn" id="btnSend">Enviar código</button>
+    </div>
+
+    <div id="stepCode">
+      <label for="code">Código de 6 dígitos</label>
+      <input type="text" id="code" class="code-input" maxlength="6" inputmode="numeric" autocomplete="one-time-code" />
+      <button type="button" class="btn" id="btnVerify">Entrar</button>
+      <button type="button" class="btn secondary" id="btnBack" style="margin-top:8px">Otro correo</button>
+    </div>
+
+    <p id="loginMsg" class="login-msg"></p>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const next = params.get("next") || "/index.html";
+    const msg = document.getElementById("loginMsg");
+
+    if (params.get("expired") === "1") {
+      msg.className = "login-msg err";
+      msg.textContent = "Tu sesión expiró (3 horas). Inicia sesión de nuevo.";
+    }
+
+    fetch("/api/auth/me", { credentials: "include" })
+      .then((r) => r.json())
+      .then((d) => { if (d.authenticated) location.href = next; })
+      .catch(() => {});
+
+    document.getElementById("btnSend").addEventListener("click", async () => {
+      const email = document.getElementById("email").value.trim();
+      msg.className = "login-msg";
+      msg.textContent = "Enviando…";
+      try {
+        const r = await fetch("/api/auth/request-code", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ email })
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || "Error");
+        msg.className = "login-msg ok";
+        msg.textContent = d.message;
+        document.getElementById("stepEmail").style.display = "none";
+        document.getElementById("stepCode").style.display = "block";
+        document.getElementById("code").focus();
+      } catch (e) {
+        msg.className = "login-msg err";
+        msg.textContent = e.message;
+      }
+    });
+
+    document.getElementById("btnVerify").addEventListener("click", verify);
+    document.getElementById("code").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") verify();
+    });
+
+    async function verify() {
+      const email = document.getElementById("email").value.trim();
+      const code = document.getElementById("code").value.trim();
+      msg.textContent = "Verificando…";
+      try {
+        const r = await fetch("/api/auth/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ email, code })
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || "Código inválido");
+        location.href = next;
+      } catch (e) {
+        msg.className = "login-msg err";
+        msg.textContent = e.message;
+      }
+    }
+
+    document.getElementById("btnBack").addEventListener("click", () => {
+      document.getElementById("stepCode").style.display = "none";
+      document.getElementById("stepEmail").style.display = "block";
+      msg.textContent = "";
+    });
+  </script>
+</body>
+</html>

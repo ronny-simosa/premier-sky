@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Premier Sky · Estado</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/premier-logo.svg" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="assets/css/styles.css?v=33" />
+</head>
+<body>
+  <header class="site">
+    <div class="brand"><a href="index.html" style="color:inherit;display:flex;align-items:center;gap:12px"><img class="logo" src="assets/img/premier-logo.svg" alt="Premier" /> Premier Sky</a></div>
+    <nav id="nav"></nav>
+  </header>
+
+  <div class="container">
+    <div class="hero" style="padding:20px 0 10px; text-align:left">
+      <h1 id="stateTitle">…</h1>
+      <p id="stateSub">Puntos calientes de tormentas, granizo, lluvia y viento · proyección a 7 días</p>
+    </div>
+
+    <div class="map-toolbar">
+      <input type="text" id="zipInput" placeholder="Buscar zip code (ej. 60601)" />
+      <button class="btn" id="zipBtn">Ir al zip</button>
+      <label class="toggle">Radio
+        <input type="range" id="radiusInput" min="1" max="25" value="5" style="width:110px;vertical-align:middle" />
+        <span id="radiusVal" style="color:var(--text);font-weight:600">5 mi</span>
+      </label>
+      <label class="toggle"><input type="checkbox" id="tglOffice" checked /> 🏠 Oficina Premier</label>
+      <label class="toggle"><input type="checkbox" id="tglAlerts" checked /> Alertas NWS</label>
+      <label class="toggle"><input type="checkbox" id="tglSPC" checked /> Riesgo SPC</label>
+      <label class="toggle"><input type="checkbox" id="tglHailRep" /> 🧊 Granizo reportado</label>
+      <label class="toggle"><input type="checkbox" id="tglHailFc" /> 🔮 Granizo pronosticado</label>
+      <label class="toggle"><input type="checkbox" id="tglJobs" checked /> 📋 Jobs JobNimbus</label>
+      <label class="toggle" title="Puntuación de tormenta (score)"><input type="checkbox" id="tglScore" checked /> 📊 Score tormenta</label>
+      <label class="toggle" title="Lluvia real reciente (RainViewer) sobre el mapa de arriba"><input type="checkbox" id="tglRadar" /> Radar lluvia</label>
+      <button class="btn secondary" id="radarPlay" style="display:none">⏸</button>
+      <input type="range" id="radarSlider" min="0" max="0" value="0" style="display:none;width:120px;vertical-align:middle" />
+      <span id="radarTime" style="font-size:12px;color:var(--muted)"></span>
+      <span class="muted" id="clickHint" style="font-size:12px;color:var(--muted)">Clic en el mapa = dirección + zip codes</span>
+    </div>
+
+    <div class="map-toolbar" style="margin-top:10px">
+      <label class="toggle">🕘 Histórico de granizo
+        <select id="histRange" style="margin-left:6px">
+          <option value="0">Desactivado</option>
+          <option value="30">Últimos 30 días</option>
+          <option value="90">Últimos 90 días</option>
+          <option value="custom">Rango de fechas…</option>
+        </select>
+      </label>
+      <span id="histCustom" style="display:none">
+        <input type="date" id="histFrom" />
+        <span class="muted" style="color:var(--muted)">a</span>
+        <input type="date" id="histTo" />
+        <button class="btn secondary" id="histApply">Ver</button>
+      </span>
+      <span id="histStatus" class="muted" style="font-size:12px;color:var(--muted)"></span>
+    </div>
+
+    <div class="map-layout">
+      <aside class="map-rail map-rail-left">
+        <div class="panel panel-rail">
+          <h2>🗺️ Capas del mapa</h2>
+          <p class="rail-hint">Colores de alertas, riesgo SPC y granizo</p>
+          <div id="legend" class="legend-panel"></div>
+          <div id="stormExports" class="storm-exports">
+            <h4>📥 Listas de llamada</h4>
+            <p class="rail-hint">Leads prioritarios por incidencia · CSV</p>
+            <button type="button" class="storm-export-btn" data-export="rain" disabled>🌧️ Lluvia fuerte</button>
+            <button type="button" class="storm-export-btn" data-export="hail" disabled>🧊 Granizo hoy</button>
+            <button type="button" class="storm-export-btn" data-export="alerts" disabled>🚨 Alertas activas</button>
+            <p id="stormExportStatus" class="storm-export-status"></p>
+          </div>
+          <div id="stormHistory" class="storm-history">
+            <h4>📂 Historial de tormentas</h4>
+            <p class="rail-hint" id="stormHistoryHint">Eventos con score ≥ umbral · PDF con leads afectados</p>
+            <div id="stormHistoryList" class="storm-history-list">
+              <p class="storm-history-empty">Cargando…</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <div class="map-center">
+        <div class="map-wrap map-wrap-clean">
+          <div id="map"></div>
+        </div>
+      </div>
+
+      <aside class="map-rail map-rail-right">
+        <div class="panel panel-rail jn-rail-panel">
+          <h2>📋 Jobs · fases</h2>
+          <div class="jn-date-toolbar jn-date-toolbar-rail">
+            <label class="jn-date-label">Período
+              <select id="jnDateMode">
+                <option value="month" selected>Este mes</option>
+                <option value="all">Todos los jobs</option>
+                <option value="custom">Rango personalizado…</option>
+              </select>
+            </label>
+            <label id="jnDateFieldWrap" class="jn-date-label">Por
+              <select id="jnDateField" title="Campo de fecha en JobNimbus">
+                <option value="date_updated" selected>Última actualización</option>
+                <option value="date_created">Fecha de creación</option>
+              </select>
+            </label>
+            <span id="jnDateCustom" class="jn-date-custom" style="display:none">
+              <input type="date" id="jnDateFrom" />
+              <span class="muted">a</span>
+              <input type="date" id="jnDateTo" />
+              <button type="button" class="btn secondary" id="jnDateApply">Aplicar</button>
+            </span>
+            <span id="jnDateHint" class="jn-date-hint"></span>
+          </div>
+          <p class="rail-hint">▸ despliega sub-estados · clic en la fase filtra el mapa</p>
+          <div id="jnSideLegend" class="jn-side-legend">
+            <div class="empty" style="font-size:12px">Cargando jobs…</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="state-layout">
+      <div>
+        <div class="panel">
+          <h2>📍 Punto seleccionado</h2>
+          <div id="locInfo" class="empty">Haz clic en el mapa o busca un zip code para ver dirección, zip y pronóstico oficial NWS de ese punto.</div>
+        </div>
+
+        <div class="panel">
+          <h2>🌤️ Clima actual <span class="count" id="currentLoc"></span></h2>
+          <div id="current" class="loading">Cargando condiciones actuales…</div>
+        </div>
+
+        <div class="panel">
+          <h2>📅 Proyección a 7 días <span class="count">Open-Meteo</span></h2>
+          <div id="forecast" class="loading">Cargando proyección…</div>
+        </div>
+
+        <div class="panel">
+          <h2>📈 Gráficas horarias <span class="count">próximas 48 h · Open-Meteo</span></h2>
+          <div style="margin-bottom:14px"><canvas id="chartTemp" height="120"></canvas></div>
+          <div><canvas id="chartPrecip" height="120"></canvas></div>
+        </div>
+      </div>
+
+      <aside>
+        <div class="panel jn-panel">
+          <h2>📋 Jobs JobNimbus <span class="count" id="jnJobCount"></span></h2>
+          <p id="jnDateHintPanel" class="jn-date-hint-panel"></p>
+          <div id="jnPhaseLegend" class="jn-phase-legend"></div>
+          <div id="jnStatusSummary" class="jn-phase-filters"></div>
+          <input type="search" id="jnJobSearch" class="jn-search" placeholder="Buscar por nombre, cliente o dirección…" autocomplete="off" />
+          <div id="jnJobs" class="loading">Cargando jobs de JobNimbus…</div>
+        </div>
+
+        <div class="panel">
+          <h2>🚨 Alertas activas <span class="count" id="alertCount"></span></h2>
+          <div id="alerts" class="loading">Cargando alertas del NWS…</div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <footer class="site">
+    Datos: NOAA/NWS · Open-Meteo · NOAA SPC · Mapas © OpenStreetMap · Geocodificación Nominatim/Zippopotam.
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="assets/js/config.js?v=15"></script>
+  <script src="assets/js/jn-phases.js?v=15"></script>
+  <script src="assets/js/api.js?v=36"></script>
+  <!-- Datasets de ZIP codes (centroides) cargados como globales window.ZIPDB_XX.
+       Se incluyen como <script> para funcionar también con file:// (doble clic). -->
+  <script src="assets/data/zips_IL.js?v=11"></script>
+  <script src="assets/data/zips_DC.js?v=11"></script>
+  <script src="assets/data/zips_VA.js?v=11"></script>
+  <script src="assets/data/zips_WI.js?v=11"></script>
+  <script src="assets/data/zips_MD.js?v=11"></script>
+  <script src="assets/data/zips_FL.js?v=11"></script>
+  <script src="assets/js/state.js?v=35"></script>
+</body>
+</html>
