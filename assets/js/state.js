@@ -1887,12 +1887,34 @@
     el.className = "storm-export-status" + (kind ? ` ${kind}` : "");
   }
 
+  function stormCsvFormat() {
+    const sel = document.getElementById("stormCsvFormat");
+    return sel?.value || localStorage.getItem("stormCsvFormat") || "excel";
+  }
+
+  (function initStormCsvFormat() {
+    const sel = document.getElementById("stormCsvFormat");
+    if (!sel) return;
+    const saved = localStorage.getItem("stormCsvFormat");
+    if (saved) sel.value = saved;
+    sel.addEventListener("change", () => {
+      localStorage.setItem("stormCsvFormat", sel.value);
+      setStormExportStatus(
+        sel.value === "google" ? "Formato Google Sheets (comas)" : "Formato Excel Windows (;)",
+        "ok"
+      );
+    });
+  })();
+
   function updateStormExportButtons() {
     const hasJobs = jnJobsData.length > 0;
     document.querySelectorAll(".storm-export-btn").forEach((btn) => {
       btn.disabled = !hasJobs;
     });
-    if (hasJobs) setStormExportStatus("Listo · incluye teléfono y email");
+    if (hasJobs) {
+      const fmt = stormCsvFormat() === "google" ? "comas · Google" : "punto y coma · Excel";
+      setStormExportStatus(`Listo · teléfono y email · CSV ${fmt}`);
+    }
   }
 
   document.getElementById("stormExports")?.addEventListener("click", async (e) => {
@@ -1902,7 +1924,7 @@
     btn.classList.add("busy");
     setStormExportStatus("Generando lista en servidor…");
     try {
-      const result = await API.exportStormList(kind, ST.code, stormDateOptsForExport());
+      const result = await API.exportStormList(kind, ST.code, stormDateOptsForExport(), stormCsvFormat());
       setStormExportStatus(result.message, result.ok ? "ok" : "err");
     } catch (err) {
       setStormExportStatus(err.message || "Error al exportar", "err");

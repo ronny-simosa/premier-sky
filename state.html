@@ -6,7 +6,7 @@
   <title>Premier Sky · Estado</title>
   <link rel="icon" type="image/svg+xml" href="assets/img/premier-logo.svg" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="assets/css/styles.css?v=33" />
+  <link rel="stylesheet" href="assets/css/styles.css?v=34" />
 </head>
 <body>
   <header class="site">
@@ -68,6 +68,13 @@
           <div id="stormExports" class="storm-exports">
             <h4>📥 Listas de llamada</h4>
             <p class="rail-hint">Leads prioritarios por incidencia · CSV</p>
+            <label class="storm-export-format">
+              Formato CSV
+              <select id="stormCsvFormat" title="Excel Windows usa ; · Google Sheets usa comas">
+                <option value="excel">Excel Windows (;)</option>
+                <option value="google">Google Sheets (,)</option>
+              </select>
+            </label>
             <button type="button" class="storm-export-btn" data-export="rain" disabled>🌧️ Lluvia fuerte</button>
             <button type="button" class="storm-export-btn" data-export="hail" disabled>🧊 Granizo hoy</button>
             <button type="button" class="storm-export-btn" data-export="alerts" disabled>🚨 Alertas activas</button>
@@ -181,6 +188,6 @@
   <script src="assets/data/zips_WI.js?v=11"></script>
   <script src="assets/data/zips_MD.js?v=11"></script>
   <script src="assets/data/zips_FL.js?v=11"></script>
-  <script src="assets/js/state.js?v=37"></script>
+  <script src="assets/js/state.js?v=38"></script>
 </body>
 </html>

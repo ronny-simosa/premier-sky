@@ -265,7 +265,9 @@ app.post("/api/export/storm", requireAuth, async (req, res) => {
     dateOpts.dateField = req.body.field === "date_created" ? "date_created" : "date_updated";
   }
   try {
-    const result = await buildStormExport(type, zone, dateOpts);
+    const result = await buildStormExport(type, zone, dateOpts, {
+      csvFormat: req.body?.csvFormat
+    });
     if (!result.ok) return res.status(400).json({ ok: false, message: result.message });
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", `attachment; filename="${result.csv.filename}"`);

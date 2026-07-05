@@ -493,8 +493,8 @@ async function logoutAuth() {
 }
 
 /** Exportación CSV en servidor (teléfono + email de clientes). */
-async function exportStormList(type, zone, dateOpts = {}) {
-  const body = { type, zone };
+async function exportStormList(type, zone, dateOpts = {}, csvFormat = "excel") {
+  const body = { type, zone, csvFormat };
   if (dateOpts.from && dateOpts.to) {
     body.from = dateOpts.from;
     body.to = dateOpts.to;

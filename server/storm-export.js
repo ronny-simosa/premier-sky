@@ -69,10 +69,17 @@ async function resolveCoords(job) {
   return null;
 }
 
-/** Separador CSV: Excel en Windows (español) usa `;`. Google Sheets detecta ambos. */
-const CSV_SEP = process.env.CSV_DELIMITER || ";";
+/** Separador CSV por defecto (Excel Windows español). */
+const CSV_SEP_DEFAULT = process.env.CSV_DELIMITER || ";";
 /** Columnas que Excel no debe convertir a número (teléfono, zip). */
 const CSV_TEXT_COLS = new Set([5, 9]);
+
+function resolveCsvSep(format) {
+  const f = String(format || "").toLowerCase();
+  if (f === "comma" || f === "google" || f === ",") return ",";
+  if (f === "semicolon" || f === "excel" || f === ";") return ";";
+  return CSV_SEP_DEFAULT;
+}
 
 function csvCell(v, colIndex = -1) {
   let s = String(v ?? "").replace(/"/g, '""');
@@ -80,9 +87,8 @@ function csvCell(v, colIndex = -1) {
   return /[",\n\r;]/.test(s) ? `"${s}"` : s;
 }
 
-function toCsv(filename, header, rows) {
+function toCsv(filename, header, rows, sep = CSV_SEP_DEFAULT) {
   const bom = "\uFEFF";
-  const sep = CSV_SEP;
   const fmtRow = (arr) => arr.map((c, i) => csvCell(c, i)).join(sep);
   const body = [fmtRow(header), ...rows.map(fmtRow)].join("\r\n");
   return { filename, content: bom + body };
@@ -217,7 +223,8 @@ export async function collectLeadsNearStorm(zone, lat, lon, dateOpts = {}) {
   }));
 }
 
-export async function buildStormExport(type, zone, dateOpts = {}) {
+export async function buildStormExport(type, zone, dateOpts = {}, exportOpts = {}) {
+  const csvSep = resolveCsvSep(exportOpts.csvFormat);
   const z = String(zone || "").toUpperCase();
   const bbox = ZONE_BBOX[z];
   if (!bbox) throw new Error("Zona no válida");
@@ -252,7 +259,7 @@ export async function buildStormExport(type, zone, dateOpts = {}) {
     if (!matches.length) return { ok: false, message: "Ningún job dentro de alertas activas." };
     const enriched = await enrichContacts(matches);
     const rows = finalizeRows(enriched);
-    return { ok: true, message: `${rows.length} lead(s) exportados.`, csv: toCsv(`premier-sky-${z}-alertas-${stamp}.csv`, CSV_HEADER, rows) };
+    return { ok: true, message: `${rows.length} lead(s) exportados.`, csv: toCsv(`premier-sky-${z}-alertas-${stamp}.csv`, CSV_HEADER, rows, csvSep) };
   }
 
   if (type === "hail") {
@@ -280,7 +287,7 @@ export async function buildStormExport(type, zone, dateOpts = {}) {
     if (!matches.length) return { ok: false, message: `Ningún job a ${HAIL_RADIUS_MI} mi del granizo.` };
     const enriched = await enrichContacts(matches);
     const rows = finalizeRows(enriched);
-    return { ok: true, message: `${rows.length} lead(s) exportados.`, csv: toCsv(`premier-sky-${z}-granizo-${stamp}.csv`, CSV_HEADER, rows) };
+    return { ok: true, message: `${rows.length} lead(s) exportados.`, csv: toCsv(`premier-sky-${z}-granizo-${stamp}.csv`, CSV_HEADER, rows, csvSep) };
   }
 
   if (type === "rain") {
@@ -312,7 +319,7 @@ export async function buildStormExport(type, zone, dateOpts = {}) {
     if (!matches.length) return { ok: false, message: "Ningún job cerca de lluvia fuerte pronosticada." };
     const enriched = await enrichContacts(matches);
     const rows = finalizeRows(enriched);
-    return { ok: true, message: `${rows.length} lead(s) exportados.`, csv: toCsv(`premier-sky-${z}-lluvia-${stamp}.csv`, CSV_HEADER, rows) };
+    return { ok: true, message: `${rows.length} lead(s) exportados.`, csv: toCsv(`premier-sky-${z}-lluvia-${stamp}.csv`, CSV_HEADER, rows, csvSep) };
   }
 
   throw new Error("Tipo de exportación no válido");

@@ -240,7 +240,23 @@ header.site nav a:hover, header.site nav a.active { color: var(--text); border-c
   letter-spacing: 0.04em;
   font-weight: 600;
 }
-.storm-export-btn {
+.storm-export-format {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.storm-export-format select {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 12px;
+}
   display: block;
   width: 100%;
   margin: 6px 0 0;
