@@ -69,14 +69,22 @@ async function resolveCoords(job) {
   return null;
 }
 
-function csvCell(v) {
-  const s = String(v ?? "").replace(/"/g, '""');
-  return /[",\n\r]/.test(s) ? `"${s}"` : s;
+/** Separador CSV: Excel en Windows (español) usa `;`. Google Sheets detecta ambos. */
+const CSV_SEP = process.env.CSV_DELIMITER || ";";
+/** Columnas que Excel no debe convertir a número (teléfono, zip). */
+const CSV_TEXT_COLS = new Set([5, 9]);
+
+function csvCell(v, colIndex = -1) {
+  let s = String(v ?? "").replace(/"/g, '""');
+  if (CSV_TEXT_COLS.has(colIndex) && s) s = "\t" + s;
+  return /[",\n\r;]/.test(s) ? `"${s}"` : s;
 }
 
 function toCsv(filename, header, rows) {
   const bom = "\uFEFF";
-  const body = [header.map(csvCell).join(","), ...rows.map((r) => r.map(csvCell).join(","))].join("\r\n");
+  const sep = CSV_SEP;
+  const fmtRow = (arr) => arr.map((c, i) => csvCell(c, i)).join(sep);
+  const body = [fmtRow(header), ...rows.map(fmtRow)].join("\r\n");
   return { filename, content: bom + body };
 }
 
