@@ -71,7 +71,7 @@
 
     if (params.get("expired") === "1") {
       msg.className = "login-msg err";
-      msg.textContent = "Tu sesión expiró (3 horas). Inicia sesión de nuevo.";
+      msg.textContent = "Tu sesión expiró. Inicia sesión de nuevo.";
     }
 
     fetch("/api/auth/me", { credentials: "include" })

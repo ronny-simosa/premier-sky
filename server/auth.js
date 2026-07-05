@@ -5,7 +5,7 @@ import crypto from "crypto";
 
 const SESSION_COOKIE = "premier_session";
 const CODE_TTL_MS = 10 * 60 * 1000;
-const SESSION_HOURS = parseInt(process.env.SESSION_HOURS, 10) || 3;
+const SESSION_HOURS = parseInt(process.env.SESSION_HOURS, 10) || 8;
 const SESSION_TTL_MS = SESSION_HOURS * 60 * 60 * 1000;
 const RATE_WINDOW_MS = 15 * 60 * 1000;
 const RATE_MAX = 5;
