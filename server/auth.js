@@ -187,7 +187,7 @@ export async function requestLoginCode(email, ip, sendMail) {
   } catch (e) {
     pendingCodes.delete(norm);
     console.error("Auth email error:", e.message);
-    return { ok: false, message: "No se pudo enviar el correo. Verifica SMTP en server/.env" };
+    return { ok: false, message: "No se pudo enviar el correo. Revisa RESEND_API_KEY o SMTP en server/.env" };
   }
 
   return { ok: true, message: genericMessage() };

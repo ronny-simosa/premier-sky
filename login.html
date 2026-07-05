@@ -88,10 +88,12 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ email })
+          body: JSON.stringify({ email }),
+          signal: AbortSignal.timeout(25000)
         });
         const d = await r.json();
         if (!r.ok) throw new Error(d.error || "Error");
+        if (d.ok === false) throw new Error(d.message || "No se pudo enviar el correo");
         msg.className = "login-msg ok";
         msg.textContent = d.message;
         document.getElementById("stepEmail").style.display = "none";
@@ -99,7 +101,9 @@
         document.getElementById("code").focus();
       } catch (e) {
         msg.className = "login-msg err";
-        msg.textContent = e.message;
+        msg.textContent = e.name === "TimeoutError"
+          ? "Tiempo agotado. Si usas Railway sin Resend, configura RESEND_API_KEY."
+          : e.message;
       }
     });
 

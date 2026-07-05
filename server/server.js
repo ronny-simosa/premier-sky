@@ -7,7 +7,6 @@
 // Requiere Node >= 18 (usa fetch nativo).
 // ===========================================================================
 import express from "express";
-import nodemailer from "nodemailer";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -23,6 +22,7 @@ import { evaluateAllZones, formatScoreEmail, getZoneStormScores, ZONE_BBOX } fro
 import {
   recordStormEvent, listStormHistory, getStormEvent, generateStormPdf
 } from "./storm-history.js";
+import { initMail, mailConfigured, mailProvider, sendMail } from "./mail.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
@@ -56,50 +56,18 @@ const app = express();
 app.use(express.json({ limit: "1mb" }));
 
 // --- Email (alertas + códigos de acceso) -----------------------------------
-let transporter = null;
-function createTransporter() {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER) return null;
-  const port = parseInt(process.env.SMTP_PORT) || 465;
-  const secure = process.env.SMTP_SECURE === "true" || port === 465;
-  return nodemailer.createTransport({
-    host: String(process.env.SMTP_HOST).trim(),
-    port,
-    secure,
-    auth: {
-      user: String(process.env.SMTP_USER).trim(),
-      pass: process.env.SMTP_PASS
-    },
-    tls: { servername: String(process.env.SMTP_HOST).trim() }
-  });
-}
-transporter = createTransporter();
-if (transporter) {
-  transporter.verify().then(
-    () => console.log("✓ SMTP listo (" + process.env.SMTP_HOST + ":" + (process.env.SMTP_PORT || 465) + ")"),
-    (e) => console.warn("⚠ SMTP no verifica:", e.message)
-  );
-} else {
-  console.warn("⚠ SMTP no configurado — códigos de acceso y alertas por email desactivados.");
-}
-
-function sendAuthMail(opts) {
-  if (!transporter) throw new Error("SMTP no configurado en server/.env");
-  return transporter.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
-    ...opts
-  });
-}
+initMail();
 
 // --- Autenticación (público) -----------------------------------------------
 app.post("/api/auth/request-code", async (req, res) => {
   res.set("Access-Control-Allow-Origin", req.headers.origin || "*");
   const email = req.body?.email;
   const ip = req.ip || req.socket.remoteAddress;
-  if (!transporter) {
+  if (!mailConfigured()) {
     return res.status(503).json({ error: "Correo no configurado. Contacta al administrador." });
   }
   try {
-    const result = await requestLoginCode(email, ip, sendAuthMail);
+    const result = await requestLoginCode(email, ip, sendMail);
     res.json(result);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -405,7 +373,7 @@ app.get("/api/monitor-status", (req, res) => {
   res.json({
     active: true,
     mode: "storm-score",
-    smtp: !!transporter,
+    mail: mailProvider(),
     alertTo: ALERT_TO,
     pollMinutes: POLL_MS / 60000,
     lastPoll,
@@ -425,18 +393,12 @@ async function notifyScore(event) {
     console.error("  ✗ Email bloqueado (formato antiguo NWS no permitido):", subject);
     return false;
   }
-  if (!transporter) {
-    console.log("  → SCORE (sin SMTP):", subject);
+  if (!mailConfigured()) {
+    console.log("  → SCORE (sin correo):", subject);
     return false;
   }
   try {
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
-      to: ALERT_TO,
-      subject,
-      text,
-      html
-    });
+    await sendMail({ to: ALERT_TO, subject, text, html });
     console.log("  ✉ Email alerta tormenta:", subject);
     return true;
   } catch (e) {
