@@ -10,7 +10,17 @@ const SESSION_TTL_MS = SESSION_HOURS * 60 * 60 * 1000;
 const RATE_WINDOW_MS = 15 * 60 * 1000;
 const RATE_MAX = 5;
 
-const sessions = new Map(); // sid -> { email, expires }
+function sessionSecret() {
+  return (
+    process.env.SESSION_SECRET ||
+    process.env.RESEND_API_KEY ||
+    process.env.JOBNIMBUS_API_KEY ||
+    "premier-sky-dev-only"
+  );
+}
+
+/** Sesiones firmadas en cookie — sobreviven reinicios de Railway (sin Redis). */
+const sessions = new Map(); // legacy sid -> { email, expires }
 const pendingCodes = new Map(); // email -> { code, expires, attempts }
 const rateBuckets = new Map(); // key -> { count, reset }
 
@@ -84,15 +94,50 @@ function getSessionId(req) {
   return parseCookies(req)[SESSION_COOKIE] || "";
 }
 
-export function getSession(req, res) {
-  const sid = getSessionId(req);
-  if (!sid) return null;
-  const s = sessions.get(sid);
-  if (!s || Date.now() > s.expires) {
-    invalidateSession(req, res);
+function signSessionToken(email, expiresMs) {
+  const payload = JSON.stringify({ email: normalizeEmail(email), exp: expiresMs });
+  const body = Buffer.from(payload).toString("base64url");
+  const sig = crypto.createHmac("sha256", sessionSecret()).update(body).digest("base64url");
+  return `${body}.${sig}`;
+}
+
+function verifySessionToken(token) {
+  if (!token || !token.includes(".")) return null;
+  const dot = token.indexOf(".");
+  const body = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+  const expected = crypto.createHmac("sha256", sessionSecret()).update(body).digest("base64url");
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  try {
+    const data = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
+    if (!data.email || typeof data.exp !== "number" || Date.now() > data.exp) return null;
+    return { email: data.email, expires: data.exp };
+  } catch {
     return null;
   }
-  return s;
+}
+
+function cookieSecure() {
+  if (process.env.COOKIE_SECURE === "true") return true;
+  if (process.env.COOKIE_SECURE === "false") return false;
+  return !!(process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === "production");
+}
+
+export function getSession(req, res) {
+  const token = getSessionId(req);
+  if (!token) return null;
+
+  const signed = verifySessionToken(token);
+  if (signed) return signed;
+
+  const legacy = sessions.get(token);
+  if (legacy && Date.now() <= legacy.expires) return legacy;
+
+  if (res) clearSessionCookie(res);
+  sessions.delete(token);
+  return null;
 }
 
 export function requireAuth(req, res, next) {
@@ -112,7 +157,7 @@ export function requireAuth(req, res, next) {
 }
 
 function setSessionCookie(res, sid) {
-  const secure = process.env.COOKIE_SECURE !== "false";
+  const secure = cookieSecure();
   const parts = [
     `${SESSION_COOKIE}=${encodeURIComponent(sid)}`,
     "Path=/",
@@ -125,7 +170,7 @@ function setSessionCookie(res, sid) {
 }
 
 function clearSessionCookie(res) {
-  const secure = process.env.COOKIE_SECURE !== "false";
+  const secure = cookieSecure();
   const parts = [
     `${SESSION_COOKIE}=`,
     "Path=/",
@@ -139,16 +184,12 @@ function clearSessionCookie(res) {
 
 function invalidateSession(req, res) {
   const sid = getSessionId(req);
-  if (sid) sessions.delete(sid);
+  if (sid && !sid.includes(".")) sessions.delete(sid);
   if (res) clearSessionCookie(res);
 }
 
 function generateCode() {
   return String(crypto.randomInt(100000, 999999));
-}
-
-function generateSessionId() {
-  return crypto.randomBytes(32).toString("hex");
 }
 
 export async function requestLoginCode(email, ip, sendMail) {
@@ -187,7 +228,10 @@ export async function requestLoginCode(email, ip, sendMail) {
   } catch (e) {
     pendingCodes.delete(norm);
     console.error("Auth email error:", e.message);
-    return { ok: false, message: "No se pudo enviar el correo. Revisa RESEND_API_KEY o SMTP en server/.env" };
+    const hint = String(e.message || "").includes("verify a domain")
+      ? " Verifica premierchi.com en resend.com/domains y usa RESEND_FROM=sky@premierchi.com"
+      : "";
+    return { ok: false, message: (e.message || "No se pudo enviar el correo.") + hint };
   }
 
   return { ok: true, message: genericMessage() };
@@ -214,8 +258,8 @@ export function verifyLoginCode(email, code) {
   }
 
   pendingCodes.delete(norm);
-  const sid = generateSessionId();
-  sessions.set(sid, { email: norm, expires: Date.now() + SESSION_TTL_MS });
+  const expires = Date.now() + SESSION_TTL_MS;
+  const sid = signSessionToken(norm, expires);
   return { ok: true, sid, email: norm };
 }
 
