@@ -68,6 +68,18 @@
     const params = new URLSearchParams(location.search);
     const next = params.get("next") || "/index.html";
     const msg = document.getElementById("loginMsg");
+    const CONTRACT_USER = "sharom@premierchi.com";
+    const CONTRACT_SEEN_KEY = "premier_contract_seen";
+
+    function postLoginRedirect(email) {
+      const norm = String(email || "").trim().toLowerCase();
+      if (norm === CONTRACT_USER && !localStorage.getItem(CONTRACT_SEEN_KEY)) {
+        localStorage.setItem(CONTRACT_SEEN_KEY, "1");
+        location.href = "/contract.html";
+        return;
+      }
+      location.href = next;
+    }
 
     if (params.get("expired") === "1") {
       msg.className = "login-msg err";
@@ -76,7 +88,7 @@
 
     fetch("/api/auth/me", { credentials: "include" })
       .then((r) => r.json())
-      .then((d) => { if (d.authenticated) location.href = next; })
+      .then((d) => { if (d.authenticated) postLoginRedirect(d.email); })
       .catch(() => {});
 
     document.getElementById("btnSend").addEventListener("click", async () => {
@@ -125,7 +137,7 @@
         });
         const d = await r.json();
         if (!r.ok) throw new Error(d.error || "Código inválido");
-        location.href = next;
+        postLoginRedirect(d.email);
       } catch (e) {
         msg.className = "login-msg err";
         msg.textContent = e.message;

@@ -376,4 +376,4 @@ export async function fetchContactPhonesEmail(contactId) {
   }
 }
 
-export { ZONE_STATES, parseDateRange, geocodeZip as jnGeocodeZip };
+export { ZONE_STATES, parseDateRange, geocodeZip as jnGeocodeZip, jnFetch };

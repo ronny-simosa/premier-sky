@@ -279,10 +279,22 @@ export function authCookieName() {
   return SESSION_COOKIE;
 }
 
+export function contractGeneratorEmails() {
+  return String(process.env.CONTRACT_GENERATOR_EMAILS || "sharom@premierchi.com")
+    .split(/[,;\s]+/)
+    .map(normalizeEmail)
+    .filter(Boolean);
+}
+
+export function canAccessContractGenerator(email) {
+  return contractGeneratorEmails().includes(normalizeEmail(email));
+}
+
 export function pageRequiresAuth(pathname) {
   if (pathname === "/login.html") return false;
   if (pathname === "/" || pathname === "/index.html" || pathname === "/state.html") return true;
   if (pathname.startsWith("/state.html")) return true;
+  if (pathname === "/contract.html") return true;
   return false;
 }
 

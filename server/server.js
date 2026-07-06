@@ -10,11 +10,11 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { fetchJobsForZone, jnConfigured, jnIsReadOnly } from "./jn.js";
+import { fetchJobsForZone, jnConfigured, jnIsReadOnly, jnFetch } from "./jn.js";
 import {
   requestLoginCode, verifyLoginCode, getSession, requireAuth,
   applySessionCookie, destroySession, pageRequiresAuth, redirectToLogin,
-  sessionDurationHours
+  sessionDurationHours, canAccessContractGenerator
 } from "./auth.js";
 import { buildStormExport } from "./storm-export.js";
 import { fetchOpenMeteoForecast, fetchPrecipGrid } from "./meteo.js";
@@ -126,6 +126,41 @@ app.get("/api/jn/status", requireAuth, (req, res) => {
   if (!jnReadOnlyGuard(req, res)) return;
   res.set("Access-Control-Allow-Origin", "*");
   res.json({ configured: jnConfigured(), readOnly: jnIsReadOnly() });
+});
+
+app.get("/api/jn/contract-access", requireAuth, (req, res) => {
+  if (!canAccessContractGenerator(req.user.email)) {
+    return res.status(403).json({ error: "No autorizado" });
+  }
+  res.json({ ok: true });
+});
+
+app.get("/api/jn/query", requireAuth, async (req, res) => {
+  if (!jnReadOnlyGuard(req, res)) return;
+  if (!canAccessContractGenerator(req.user.email)) {
+    return res.status(403).json({ error: "No tienes acceso al generador de contratos." });
+  }
+  res.set("Access-Control-Allow-Origin", "*");
+
+  if (!jnConfigured()) {
+    return res.status(503).json({
+      error: "JOBNIMBUS_API_KEY no configurada. Edita server/.env y reinicia el servidor."
+    });
+  }
+
+  const path = String(req.query.path || "").replace(/^\//, "").split("?")[0];
+  if (!path) return res.status(400).json({ error: "Parámetro path requerido." });
+
+  const query = { ...req.query };
+  delete query.path;
+
+  try {
+    const data = await jnFetch(path, query);
+    res.json(data);
+  } catch (e) {
+    console.error("JobNimbus query", path, e.message);
+    res.status(502).json({ error: e.message });
+  }
 });
 
 app.get("/api/jn/jobs", requireAuth, async (req, res) => {
