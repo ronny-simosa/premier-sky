@@ -447,7 +447,7 @@ const EMBEDDED_PDF_B64 = "JVBERi0xLjcNJeLjz9MNCjE5MSAwIG9iag08PC9MaW5lYXJpemVkID
 
 // ============= JOBNIMBUS API EN VIVO (optimizado) =============
 const JN_CONTACT_FIELDS = "display_name,first_name,last_name,email,home_phone,mobile_phone,work_phone,address_line1,address_line2,city,state_text,zip,jnid";
-const JN_JOB_FIELDS = "name,status_name,record_type_name,cf_string_6,address_line1,address_line2,city,state_text,zip,cf_string_15,cf_string_86,cf_string_12,cf_date_1,cf_date_7,cf_string_18,cf_string_3,primary";
+const JN_JOB_FIELDS = "name,status_name,record_type_name,sales_rep_name,cf_string_6,address_line1,address_line2,city,state_text,zip,cf_string_25,cf_string_29,cf_string_51,cf_string_52,cf_string_53,cf_date_1,cf_date_7,primary";
 const JN_CACHE_TTL_MS = 90000; // 90s en memoria (solo esta pestaña, no localStorage)
 let jnLastSearchResults = [];
 let jnSelectedContact = null;
@@ -659,6 +659,26 @@ function renderJobPicker(contact, jobs) {
   section.scrollIntoView({ block: "nearest" });
 }
 
+function pickDamageType(job) {
+  const cause = String(job.cf_string_29 || "").trim();
+  const detail = String(job.cf_string_25 || "").trim();
+  if (cause) return cause.slice(0, 20);
+  if (!detail) return "";
+  return detail.split(/[,;]/)[0].trim().slice(0, 20);
+}
+
+function pickCause(job) {
+  const cause = String(job.cf_string_29 || "").trim();
+  const detail = String(job.cf_string_25 || "").trim();
+  return (cause || detail).slice(0, 40);
+}
+
+function pickInsurer(job) {
+  const insurer = String(job.cf_string_51 || "").trim();
+  if (!insurer || /^to be decided$/i.test(insurer)) return "";
+  return insurer;
+}
+
 function applyJnJob(job, contact) {
   applyJnContact(contact);
   const jobAddress = formatJobAddress(job);
@@ -667,15 +687,23 @@ function applyJnJob(job, contact) {
     document.getElementById("location").value = jobAddress;
   }
   document.getElementById("feePercent").value = getCommissionForJob(job);
-  const damage = job.cf_string_15 || job.cf_string_86 || job.cf_string_12 || "";
-  if (damage) {
-    document.getElementById("damageType").value = damage.split(",")[0].slice(0, 20);
-    document.getElementById("cause").value = damage.slice(0, 40);
-  }
+
+  const damageType = pickDamageType(job);
+  if (damageType) document.getElementById("damageType").value = damageType;
+  const cause = pickCause(job);
+  if (cause) document.getElementById("cause").value = cause;
+
   const lossDate = unixToDateInput(job.cf_date_1 || job.cf_date_7);
   if (lossDate) document.getElementById("dateOfLoss").value = lossDate;
-  const insurer = job.cf_string_18 || job.cf_string_3 || "";
-  if (insurer && !document.getElementById("insurer").value) document.getElementById("insurer").value = insurer;
+
+  const insurer = pickInsurer(job);
+  if (insurer) document.getElementById("insurer").value = insurer;
+  const policy = String(job.cf_string_52 || "").trim();
+  if (policy) document.getElementById("policy").value = policy;
+
+  const salesRep = String(job.sales_rep_name || "").trim();
+  if (salesRep) document.getElementById("paName").value = salesRep;
+
   document.getElementById("jnJobSection").style.display = "none";
   closeContactList();
   const propType = getJobPropertyType(job);
