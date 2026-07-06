@@ -660,11 +660,11 @@ function renderJobPicker(contact, jobs) {
 }
 
 function pickDamageType(job) {
-  const cause = String(job.cf_string_29 || "").trim();
   const detail = String(job.cf_string_25 || "").trim();
+  const cause = String(job.cf_string_29 || "").trim();
+  if (detail) return detail.split(/[,;]/)[0].trim().slice(0, 20);
   if (cause) return cause.slice(0, 20);
-  if (!detail) return "";
-  return detail.split(/[,;]/)[0].trim().slice(0, 20);
+  return "";
 }
 
 function pickCause(job) {
