@@ -709,7 +709,6 @@ function applyJnJob(job, contact) {
   const searchInput = document.getElementById("jnSearchQuery");
   if (searchInput) searchInput.value = "";
   setJnSearchMessage("");
-  const propType = getJobPropertyType(job);
   const commission = getCommissionForJob(job);
   status(`✓ Job: ${job.name || "sin nombre"} (${commission}%)`);
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(collectFormData())); } catch (e) {}
