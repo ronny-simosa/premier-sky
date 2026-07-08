@@ -854,7 +854,8 @@ function initJobNimbusSearch() {
 
 // ============= FIELD COORDINATES =============
 // Coordinates are pdfplumber-style (y=0 at top). Converted to pdf-lib coords at draw time.
-const PDF_FONT_SIZE = 10;
+// Tamaño único para valores rellenados. 10pt desbordaba los huecos del PPA010 (~11pt alto).
+const PDF_FONT_SIZE = 8;
 const FIELDS = {
   insuredName:        { page: 1, x: 434, top: 144, bottom: 155 },
   address:            { page: 1, x: 361, top: 157, bottom: 168 },
@@ -1019,7 +1020,7 @@ async function generatePDF() {
       page.drawText(String(text), {
         x: coords.x,
         y: yPdfLib,
-        size: coords.size,
+        size: PDF_FONT_SIZE,
         font: font,
         color: PDFLib.rgb(0, 0, 0),
       });
