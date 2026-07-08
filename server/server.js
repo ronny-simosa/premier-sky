@@ -108,6 +108,18 @@ app.use((req, res, next) => {
   next();
 });
 
+// Usuarios del generador de contratos (ej. Sharom) → siempre contract.html
+app.use((req, res, next) => {
+  if (process.env.AUTH_DISABLED === "true") return next();
+  if (req.method !== "GET") return next();
+  const p = req.path.split("?")[0];
+  if (p === "/contract.html" || p === "/login.html") return next();
+  if (p !== "/" && p !== "/index.html" && p !== "/state.html" && !p.startsWith("/state.html")) return next();
+  const session = getSession(req, res);
+  if (!session || !canAccessContractGenerator(session.email)) return next();
+  return res.redirect(302, "/contract.html");
+});
+
 // --- JobNimbus: jobs por zona (caché 3 min) · requiere sesión --------------
 const jnCache = {};
 const JN_CACHE_MS = 10 * 60 * 1000;
