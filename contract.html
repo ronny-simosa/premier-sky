@@ -1016,7 +1016,7 @@ async function generatePDF() {
       // Convert pdfplumber y (top=0) to pdf-lib y (bottom=0)
       // pdf-lib draws text with baseline at given y. Baseline ≈ bottom - 2 in pdfplumber coords.
       const baselinePdfPlumber = coords.bottom - 2;
-      const yPdfLib = pageHeight - baselinePdfPlumber;
+      const yPdfLib = pageHeight - baselinePdfPlumber + PDF_Y_OFFSET;
 
       page.drawText(String(text), {
         x: coords.x,
