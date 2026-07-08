@@ -1051,7 +1051,6 @@ async function generatePDF() {
 
 
 // --- Premier Sky: sesión y acceso restringido ---
-const CONTRACT_SEEN_KEY = "premier_contract_seen";
 async function initContractAuth() {
   const res = await fetch("/api/auth/me", { credentials: "include" });
   const auth = await res.json().catch(() => ({ authenticated: false }));

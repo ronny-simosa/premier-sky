@@ -69,12 +69,10 @@
     const next = params.get("next") || "/index.html";
     const msg = document.getElementById("loginMsg");
     const CONTRACT_USER = "sharom@premierchi.com";
-    const CONTRACT_SEEN_KEY = "premier_contract_seen";
 
     function postLoginRedirect(email) {
       const norm = String(email || "").trim().toLowerCase();
-      if (norm === CONTRACT_USER && !localStorage.getItem(CONTRACT_SEEN_KEY)) {
-        localStorage.setItem(CONTRACT_SEEN_KEY, "1");
+      if (norm === CONTRACT_USER) {
         location.href = "/contract.html";
         return;
       }
