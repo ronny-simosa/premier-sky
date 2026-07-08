@@ -706,9 +706,11 @@ function applyJnJob(job, contact) {
 
   document.getElementById("jnJobSection").style.display = "none";
   closeContactList();
+  const searchInput = document.getElementById("jnSearchQuery");
+  if (searchInput) searchInput.value = "";
+  setJnSearchMessage("");
   const propType = getJobPropertyType(job);
   const commission = getCommissionForJob(job);
-  setJnSearchMessage(`✓ Job en vivo — ${propType} — Comisión ${commission}%`, "success");
   status(`✓ Job: ${job.name || "sin nombre"} (${commission}%)`);
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(collectFormData())); } catch (e) {}
 }
@@ -1035,7 +1037,9 @@ async function generatePDF() {
 
     downloadBytes(filledBytes, filename);
     status("✓ PDF descargado");
-    document.getElementById("successModal").classList.add("show");
+    const modal = document.getElementById("successModal");
+    modal.classList.add("show");
+    setTimeout(() => modal.classList.remove("show"), 2500);
 
     // Save data after successful generation
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(formData)); } catch(e){}
