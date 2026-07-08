@@ -1000,7 +1000,7 @@ async function generatePDF() {
     // Load PDF
     const pdfBytes = base64ToBytes(EMBEDDED_PDF_B64);
     const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
-    const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+    const font = await pdfDoc.embedFont(PDFLib.StandardFonts.TimesRoman);
     const pages = pdfDoc.getPages();
     const pageHeight = pages[0].getHeight(); // 792
 
