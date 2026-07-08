@@ -854,27 +854,27 @@ function initJobNimbusSearch() {
 
 // ============= FIELD COORDINATES =============
 // Coordinates are pdfplumber-style (y=0 at top). Converted to pdf-lib coords at draw time.
+const PDF_FONT_SIZE = 10;
 const FIELDS = {
-  insuredName:        { page: 1, x: 434, top: 144, bottom: 155, size: 10 },
-  address:            { page: 1, x: 361, top: 157, bottom: 168, size: 9 },
-  insurer:            { page: 1, x: 85,  top: 169, bottom: 180, size: 9 },
-  policy:             { page: 1, x: 253, top: 169, bottom: 180, size: 10 },
-  claimField:         { page: 1, x: 391, top: 169, bottom: 180, size: 10 },
-  paLicense:          { page: 1, x: 78,  top: 182, bottom: 193, size: 10 },
-  firmLicense:        { page: 1, x: 373, top: 182, bottom: 193, size: 10 },
-  damageType:         { page: 1, x: 170, top: 207, bottom: 218, size: 9 },
-  cause:              { page: 1, x: 274, top: 207, bottom: 218, size: 10 },
-  dateOfLoss:         { page: 1, x: 472, top: 207, bottom: 218, size: 10 },
-  timeOfLoss:         { page: 1, x: 102, top: 220, bottom: 231, size: 8 },
-  location:           { page: 1, x: 145, top: 220, bottom: 231, size: 10 },
-  services:           { page: 1, x: 108, top: 403, bottom: 414, size: 9 },
-  feePercent:         { page: 1, x: 378, top: 504, bottom: 515, size: 10 },
-  referredContractor: { page: 2, x: 183, top: 92,  bottom: 103, size: 10 },
-  contractorPct:      { page: 2, x: 359, top: 130, bottom: 141, size: 10 },
-  contractorFee:      { page: 2, x: 202, top: 142, bottom: 153, size: 10 },
-  // Signature block at bottom of page 2 (above labels)
-  paLicenseSig:       { page: 2, x: 254, top: 707, bottom: 718, size: 10 },
-  paPhoneSig:         { page: 2, x: 400, top: 670, bottom: 681, size: 10 },
+  insuredName:        { page: 1, x: 434, top: 144, bottom: 155 },
+  address:            { page: 1, x: 361, top: 157, bottom: 168 },
+  insurer:            { page: 1, x: 85,  top: 169, bottom: 180 },
+  policy:             { page: 1, x: 253, top: 169, bottom: 180 },
+  claimField:         { page: 1, x: 391, top: 169, bottom: 180 },
+  paLicense:          { page: 1, x: 78,  top: 182, bottom: 193 },
+  firmLicense:        { page: 1, x: 373, top: 182, bottom: 193 },
+  damageType:         { page: 1, x: 170, top: 207, bottom: 218 },
+  cause:              { page: 1, x: 274, top: 207, bottom: 218 },
+  dateOfLoss:         { page: 1, x: 472, top: 207, bottom: 218 },
+  timeOfLoss:         { page: 1, x: 102, top: 220, bottom: 231 },
+  location:           { page: 1, x: 145, top: 220, bottom: 231 },
+  services:           { page: 1, x: 108, top: 403, bottom: 414 },
+  feePercent:         { page: 1, x: 378, top: 504, bottom: 515 },
+  referredContractor: { page: 2, x: 183, top: 92,  bottom: 103 },
+  contractorPct:      { page: 2, x: 359, top: 130, bottom: 141 },
+  contractorFee:      { page: 2, x: 202, top: 142, bottom: 153 },
+  paLicenseSig:       { page: 2, x: 254, top: 707, bottom: 718 },
+  paPhoneSig:         { page: 2, x: 400, top: 670, bottom: 681 },
 };
 
 const STORAGE_KEY = "premier_ppa010_data_v1";
