@@ -6,6 +6,8 @@
 <title>Premier Sales Developer Machine</title>
 <link rel="icon" type="image/svg+xml" href="/assets/img/premier-logo.svg" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://basemaps.cartocdn.com" crossorigin>
+<link rel="dns-prefetch" href="https://server.arcgisonline.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -62,6 +64,38 @@ a{color:inherit;}
 ::-webkit-scrollbar{width:10px; height:10px;}
 ::-webkit-scrollbar-thumb{background:var(--gray-300); border-radius:8px;}
 ::-webkit-scrollbar-track{background:transparent;}
+
+
+/* ---------- Confirm modal (CRM) ---------- */
+.crm-modal-backdrop{
+  position:fixed; inset:0; z-index:9000; background:rgba(11,32,54,0.55);
+  display:flex; align-items:center; justify-content:center; padding:20px;
+  backdrop-filter:blur(3px);
+}
+.crm-modal{
+  width:min(440px,100%); background:var(--white); border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-pop); border:1px solid var(--gray-200); overflow:hidden;
+}
+.crm-modal-head{ padding:18px 20px 12px; border-bottom:1px solid var(--gray-100); }
+.crm-modal-head h3{margin:0; font-size:16px; font-weight:700; color:var(--navy-900); letter-spacing:-0.01em;}
+.crm-modal-head p{margin:6px 0 0; font-size:12.5px; color:var(--gray-500); line-height:1.45;}
+.crm-modal-body{padding:14px 20px 6px; max-height:50vh; overflow:auto;}
+.crm-kv{display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid var(--gray-100); font-size:12.5px;}
+.crm-kv:last-child{border-bottom:0;}
+.crm-kv span{color:var(--gray-500); flex-shrink:0;}
+.crm-kv b{color:var(--ink); text-align:right; font-weight:600; word-break:break-word;}
+.crm-warn{
+  margin:10px 0 4px; padding:10px 12px; border-radius:8px; background:var(--warm-bg);
+  color:var(--warm); font-size:12px; line-height:1.45; border:1px solid #F3E0BE;
+}
+.crm-ok{
+  margin:10px 0 4px; padding:10px 12px; border-radius:8px; background:var(--good-bg);
+  color:var(--good); font-size:12px; line-height:1.45; border:1px solid #C9E9DB;
+}
+.crm-modal-foot{
+  display:flex; gap:8px; justify-content:flex-end; padding:14px 20px 18px;
+  border-top:1px solid var(--gray-100); background:var(--gray-50);
+}
 
 /* ---------- App Shell ---------- */
 #app{min-height:100vh; display:flex;}
@@ -288,10 +322,14 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
 
 .toast{
   position:fixed; bottom:22px; right:22px; background:var(--navy-900); color:var(--white); padding:12px 18px; border-radius:10px;
-  font-size:13px; font-weight:500; box-shadow:var(--shadow-pop); z-index:200; display:flex; align-items:center; gap:10px;
-  transform:translateY(20px); opacity:0; transition:all .25s; pointer-events:none;
+  font-size:13px; font-weight:500; box-shadow:var(--shadow-pop); z-index:9001; display:flex; align-items:center; gap:10px;
+  transform:translateY(20px); opacity:0; transition:all .25s; pointer-events:none; max-width:min(420px, calc(100vw - 40px));
+  line-height:1.45;
 }
 .toast.show{transform:translateY(0); opacity:1;}
+.toast.toast-interactive{pointer-events:auto;}
+.toast a{color:#7dd3fc; font-weight:700; text-decoration:underline; text-underline-offset:2px;}
+.toast a:hover{color:#bae6fd;}
 
 .checkbox-row{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--gray-700);}
 
@@ -644,17 +682,217 @@ async function fetchLeadsForSearch(searchParams){
 }
 
 // ---------------------------------------------------------------------------
-// CRM actions → backend /api/crm/* (JobNimbus stub until key + field mapping;
-// custom integration planned — Zapier ruled out per prior project).
+// CRM actions → JobNimbus via /api/crm/* (confirm modal first, then POST)
+// Preview is built client-side so the modal always opens even if /preview 404s.
 // ---------------------------------------------------------------------------
-async function sendLeadToCRM(lead){
-  const res = await fetch("/api/crm/leads", {method:"POST", credentials:"include", headers:{"Content-Type":"application/json"}, body: JSON.stringify(lead)});
-  return res.json();
+function getActiveLead(){
+  return state.results.find(l=>l.id===state.activeLeadId) || SAMPLE_LEADS.find(l=>l.id===state.activeLeadId);
+}
+function readFollowUpDate(){
+  const el = document.getElementById("follow-up-date");
+  return el && el.value ? el.value : (getActiveLead()?.followUpDate || "");
+}
+function closeCrmModal(){
+  document.getElementById("crm-modal-root")?.remove();
+}
+function openCrmModal({title, subtitle, rows, warnings, oks, confirmLabel, onConfirm}){
+  closeCrmModal();
+  const root = document.createElement("div");
+  root.id = "crm-modal-root";
+  root.className = "crm-modal-backdrop";
+  root.innerHTML = `
+    <div class="crm-modal" role="dialog" aria-modal="true">
+      <div class="crm-modal-head">
+        <h3>${title}</h3>
+        <p>${subtitle}</p>
+      </div>
+      <div class="crm-modal-body">
+        ${rows.map(([k,v]) => `<div class="crm-kv"><span>${k}</span><b>${v || "—"}</b></div>`).join("")}
+        ${(warnings||[]).map(w => `<div class="crm-warn">${w}</div>`).join("")}
+        ${(oks||[]).map(w => `<div class="crm-ok">${w}</div>`).join("")}
+      </div>
+      <div class="crm-modal-foot">
+        <button type="button" class="btn btn-sm" data-crm-cancel>${st("sales.crm.cancel","Cancel")}</button>
+        <button type="button" class="btn btn-sm btn-accent" data-crm-confirm>${confirmLabel}</button>
+      </div>
+    </div>`;
+  document.body.appendChild(root);
+  root.addEventListener("click", (e)=>{ if(e.target===root) closeCrmModal(); });
+  root.querySelector("[data-crm-cancel]").addEventListener("click", closeCrmModal);
+  const conf = root.querySelector("[data-crm-confirm]");
+  conf.addEventListener("click", async ()=>{
+    conf.disabled = true;
+    conf.textContent = st("sales.toast.sending","Sending...");
+    try { await onConfirm(); }
+    finally { closeCrmModal(); }
+  });
+}
+function parseLeadAddress(lead){
+  const raw = String(lead.address || "").trim();
+  const zip = String(lead.zip || "").replace(/\D/g, "").slice(0, 5);
+  const m = raw.match(/^(.+?),\s*([^,]+),\s*([A-Z]{2})\s+(\d{5})(?:-\d+)?\s*$/i);
+  if(m) return { address_line1:m[1].trim(), city:m[2].trim(), state_text:m[3].toUpperCase(), zip:m[4] };
+  const m2 = raw.match(/^(.+?),\s*([^,]+),\s*([A-Z]{2})\s*$/i);
+  if(m2) return { address_line1:m2[1].trim(), city:m2[2].trim(), state_text:m2[3].toUpperCase(), zip:zip||"" };
+  return { address_line1: raw || "Address pending", city:"", state_text:"IL", zip:zip||"" };
+}
+function localContactPreview(lead){
+  const addr = parseLeadAddress(lead);
+  const company = String(lead.ownerEntity || lead.name || addr.address_line1).trim();
+  return {
+    company,
+    display_name: company,
+    ...addr,
+    email: lead.contactEmail || "",
+    mobile_phone: lead.contactPhone || "",
+    record_type_name: "Customer",
+    status_name: "Active",
+    missingPhone: !lead.contactPhone,
+    missingEmail: !lead.contactEmail,
+    geo: lead.lat != null && lead.lng != null ? { lat:Number(lead.lat), lon:Number(lead.lng) } : null,
+  };
+}
+function localTaskPreview(lead, dueDate){
+  const when = dueDate ? new Date(`${dueDate}T12:00:00`) : null;
+  const valid = when && !Number.isNaN(when.getTime());
+  return {
+    title: `Follow up: ${lead.address || lead.name || lead.id}`,
+    record_type_name: "Task",
+    dueDate: valid ? dueDate : null,
+    needsDueDate: !valid,
+    relatedJnid: lead.jnid || null,
+  };
+}
+async function crmFetchJson(url, body){
+  const res = await fetch(url, {
+    method:"POST", credentials:"include",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(body)
+  });
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; }
+  catch { data = { error: text.slice(0, 180) || `HTTP ${res.status}` }; }
+  if(res.status === 401){
+    const next = encodeURIComponent(location.pathname + location.search);
+    location.href = `/login.html?next=${next}&expired=1`;
+    throw new Error(data?.error || "Session expired");
+  }
+  if(!res.ok){
+    throw new Error(data?.error || data?.message || `CRM HTTP ${res.status}`);
+  }
+  return data || {};
+}
+async function sendLeadToCRM(lead, {forceNew=false}={}){
+  return crmFetchJson("/api/crm/leads", { lead, forceNew });
 }
 async function createFollowUpTask(lead, dueDate){
-  const res = await fetch("/api/crm/tasks", {method:"POST", credentials:"include", headers:{"Content-Type":"application/json"}, body: JSON.stringify({lead, dueDate})});
-  return res.json();
+  return crmFetchJson("/api/crm/tasks", { lead, dueDate });
 }
+async function crmConfiguredHint(){
+  try{
+    const res = await fetch("/api/crm/status", { credentials:"include" });
+    if(!res.ok) return null;
+    const data = await res.json();
+    return data;
+  }catch{ return null; }
+}
+function applyJnidToLead(lead, jnid){
+  if(!lead || !jnid) return;
+  lead.jnid = jnid;
+}
+async function confirmSendToCrm(){
+  const lead = getActiveLead();
+  if(!lead) return;
+  const p = localContactPreview(lead);
+  const status = await crmConfiguredHint();
+  if(status?.contactType) p.record_type_name = status.contactType;
+  if(status?.contactStatus) p.status_name = status.contactStatus;
+  const configured = status == null ? null : Boolean(status.configured);
+  const warnings = [];
+  if(configured === false) warnings.push(st("sales.crm.noKey","JobNimbus API key is not configured on the server."));
+  if(p.missingPhone) warnings.push(st("sales.crm.warnPhone","No phone on this lead — contact will be created without a phone number."));
+  if(p.missingEmail) warnings.push(st("sales.crm.warnEmail","No email on this lead — contact will be created without an email."));
+  if(lead.jnid) warnings.push(st("sales.crm.warnLinked","Already linked to JobNimbus ({id}). Confirm to search or create again.").replace("{id}", lead.jnid));
+  openCrmModal({
+    title: st("sales.crm.confirmContactTitle","Create JobNimbus contact?"),
+    subtitle: st("sales.crm.confirmContactSub","Review what will be sent. Duplicates are matched by company + address."),
+    rows: [
+      [st("sales.crm.company","Company"), p.company],
+      [st("sales.crm.address","Address"), [p.address_line1, p.city, p.state_text, p.zip].filter(Boolean).join(", ")],
+      [st("sales.crm.phone","Phone"), p.mobile_phone || "—"],
+      [st("sales.crm.email","Email"), p.email || "—"],
+      [st("sales.crm.type","JN type / status"), (p.record_type_name||"") + " · " + (p.status_name||"")],
+      [st("sales.crm.priority","Priority / score"), (lead.priority || "—") + " · " + (lead.leadScore ?? "—")],
+    ],
+    warnings,
+    oks: [st("sales.crm.geoOk","Map coordinates are included when available.")],
+    confirmLabel: st("sales.crm.createContact","Create contact"),
+    onConfirm: async ()=>{
+      try{
+        const r = await sendLeadToCRM(lead);
+        if(r.jnid) applyJnidToLead(lead, r.jnid);
+        if(r.success){
+          if(lead && lead.status === "New") lead.status = "Contacted";
+          if(r.jnUrl) lead.jnUrl = r.jnUrl;
+          crmSuccessToast(r, st("sales.toast.crmOk","Sent to JobNimbus CRM"));
+          render();
+        } else {
+          showToast(r.error || st("sales.toast.crmFail","CRM push failed"));
+        }
+      }catch(e){
+        showToast(e.message || st("sales.toast.crmFail","CRM push failed"));
+      }
+    }
+  });
+}
+async function confirmCreateTask(){
+  const lead = getActiveLead();
+  if(!lead) return;
+  const dueDate = readFollowUpDate();
+  const p = localTaskPreview(lead, dueDate);
+  const status = await crmConfiguredHint();
+  if(status?.taskType) p.record_type_name = status.taskType;
+  const configured = status == null ? null : Boolean(status.configured);
+  const warnings = [];
+  if(configured === false) warnings.push(st("sales.crm.noKey","JobNimbus API key is not configured on the server."));
+  if(p.needsDueDate) warnings.push(st("sales.crm.warnDue","Set a follow-up date in Sales notes before creating the task."));
+  if(!lead.jnid) warnings.push(st("sales.crm.warnNoContact","No JobNimbus contact linked yet — a contact will be created or matched first, then the task."));
+  openCrmModal({
+    title: st("sales.crm.confirmTaskTitle","Create JobNimbus follow-up task?"),
+    subtitle: st("sales.crm.confirmTaskSub","The task will be linked to the JobNimbus contact for this property."),
+    rows: [
+      [st("sales.crm.taskTitle","Task"), p.title],
+      [st("sales.crm.due","Due date"), p.dueDate || "— missing —"],
+      [st("sales.crm.taskType","JN task type"), p.record_type_name],
+      [st("sales.crm.company","Company"), lead.ownerEntity || lead.name],
+      [st("sales.crm.jnid","JN contact"), lead.jnid || st("sales.crm.willCreate","Will create / match")],
+    ],
+    warnings,
+    confirmLabel: st("sales.crm.createTaskBtn","Create task"),
+    onConfirm: async ()=>{
+      if(p.needsDueDate){
+        showToast(st("sales.crm.needDue","Choose a follow-up date first"));
+        return;
+      }
+      try{
+        const r = await createFollowUpTask(lead, dueDate);
+        if(r.jnid) applyJnidToLead(lead, r.jnid);
+        if(r.success){
+          if(lead) lead.status = "Follow-up";
+          if(r.jnUrl) lead.jnUrl = r.jnUrl;
+          crmSuccessToast(r, st("sales.toast.task","Follow-up task created"));
+          render();
+        } else {
+          showToast(r.error || st("sales.toast.crmFail","CRM push failed"));
+        }
+      }catch(e){
+        showToast(e.message || st("sales.toast.crmFail","CRM push failed"));
+      }
+    }
+  });
+}
+
 
 // ---------------------------------------------------------------------------
 // APP STATE
@@ -706,12 +944,32 @@ function st(key, fallback, vars){
   return fallback;
 }
 
-function showToast(msg){
+function showToast(msg, opts = {}){
   const t = document.getElementById("toast");
-  t.textContent = msg;
+  const html = Boolean(opts.html);
+  const ms = opts.ms || (html ? 9000 : 2600);
+  if (html) t.innerHTML = msg;
+  else t.textContent = msg;
+  t.classList.toggle("toast-interactive", html);
   t.classList.add("show");
   clearTimeout(window._toastTimer);
-  window._toastTimer = setTimeout(()=>t.classList.remove("show"), 2600);
+  window._toastTimer = setTimeout(()=>{
+    t.classList.remove("show");
+    t.classList.remove("toast-interactive");
+  }, ms);
+}
+function crmSuccessToast(r, fallback){
+  const note = r.note || fallback;
+  const url = r.jnUrl || (r.jnid ? `https://app.jobnimbus.com/contact/${encodeURIComponent(r.jnid)}` : "");
+  if (!url) {
+    showToast(note);
+    return;
+  }
+  const linkLabel = st("sales.crm.openContact", "Open in JobNimbus →");
+  showToast(
+    `${note} <a href="${url}" target="_blank" rel="noopener">${linkLabel}</a>`,
+    { html: true, ms: 12000 }
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -1182,7 +1440,7 @@ function renderDetail(){
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
           <div>
             <label class="field-label" style="margin-bottom:4px;">${st("sales.detail.followUp","Follow-up reminder")}</label>
-            <input class="input" type="date" id="follow-up-date" style="width:auto;" value="${lead.followUpDate || ""}">
+            <input class="input detail-followup-date" type="date" id="follow-up-date" style="width:auto;" value="${lead.followUpDate || ""}">
           </div>
           <button class="btn btn-primary btn-sm" data-action="save-notes">${st("sales.detail.saveNotes","Save notes")}</button>
         </div>
@@ -1241,7 +1499,7 @@ Premier Group Roofing & Construction</div>
           <button class="btn" data-action="mark-contacted" data-lead="${lead.id}">${iconCheck()}${st("sales.detail.markContacted","Mark as contacted")}</button>
           <button class="btn btn-ghost" data-action="export-csv">${iconDownload()}${st("sales.detail.exportLead","Export this lead as CSV")}</button>
         </div>
-        <div class="api-note">${iconInfo()}<div><b>API hook —</b> <code>sendLeadToCRM()</code> / <code>createFollowUpTask()</code> map directly to JobNimbus contact and task endpoints.</div></div>
+        <div class="api-note">${iconInfo()}<div><b>JobNimbus —</b> Confirm before create. Contacts and tasks sync to your CRM; duplicates are matched by company + address.</div></div>
       </div>
     </div>
   </div>
@@ -1328,19 +1586,9 @@ function attachEvents(){
 
   // Detail page actions
   const sendCrm = document.querySelector('[data-action="send-crm"]');
-  if(sendCrm) sendCrm.addEventListener("click", async ()=>{
-    sendCrm.disabled = true; sendCrm.textContent = st("sales.toast.sending","Sending...");
-    const lead = state.results.find(l=>l.id===state.activeLeadId) || SAMPLE_LEADS.find(l=>l.id===state.activeLeadId);
-    const r = await sendLeadToCRM(lead); // API HOOK
-    showToast(r.note || (r.success ? st("sales.toast.crmOk","Sent to JobNimbus CRM") : st("sales.toast.crmFail","CRM push failed")));
-    render();
-  });
+  if(sendCrm) sendCrm.addEventListener("click", ()=>{ confirmSendToCrm(); });
   const createTask = document.querySelector('[data-action="create-task"]');
-  if(createTask) createTask.addEventListener("click", async ()=>{
-    const lead = state.results.find(l=>l.id===state.activeLeadId) || SAMPLE_LEADS.find(l=>l.id===state.activeLeadId);
-    const r = await createFollowUpTask(lead, null); // API HOOK
-    showToast(r.note || st("sales.toast.task","Follow-up task created"));
-  });
+  if(createTask) createTask.addEventListener("click", ()=>{ confirmCreateTask(); });
   const markContacted = document.querySelector('[data-action="mark-contacted"]');
   if(markContacted) markContacted.addEventListener("click", async ()=>{
     const lead = state.results.find(l=>l.id===state.activeLeadId) || SAMPLE_LEADS.find(l=>l.id===state.activeLeadId);
@@ -1377,24 +1625,44 @@ function attachEvents(){
 }
 
 // ---------------------------------------------------------------------------
-// MAPS — Leaflet + free tiles (OpenStreetMap / Esri World Imagery satellite).
-// No API key required. Swappable to Google tiles when that key is decided.
-// Leads carry lat/lng from the live sources (parcel/building centroids);
-// SAMPLE_LEADS demo data has no coordinates, so the map explains itself.
+// MAPS — Leaflet + fast CDN tiles (Carto, same stack as Premier Sky).
+// Avoid tile.openstreetmap.org as the default — it rate-limits and is often slow.
 // ---------------------------------------------------------------------------
 const PRIORITY_COLORS = {Hot:"#D64545", Warm:"#C97A1F", Cold:"#5C7086"};
+const TILE_OPTS = {
+  maxZoom: 19,
+  updateWhenIdle: true,
+  updateWhenZooming: false,
+  keepBuffer: 2,
+  crossOrigin: true,
+};
 function baseLayers(){
+  const mapLabel = st("sales.map.base","Map");
+  const satLabel = st("sales.map.sat","Satellite");
   return {
-    [st("sales.map.base","Map")]: L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:"&copy; OpenStreetMap"}),
-    [st("sales.map.sat","Satellite")]: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {maxZoom:19, attribution:"Esri World Imagery"})
+    [mapLabel]: L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+      { ...TILE_OPTS, maxZoom: 20, subdomains: "abcd", attribution: "&copy; OpenStreetMap &copy; CARTO" }
+    ),
+    [satLabel]: L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      { ...TILE_OPTS, attribution: "Esri World Imagery" }
+    ),
   };
 }
 window._openLeadFromMap = (id)=>{ state.activeLeadId = id; state.view = "detail"; render(); window.scrollTo(0,0); };
 
 function setupMaps(){
   if(typeof L === "undefined") return; // Leaflet CDN unavailable (offline)
-  (window._maps || []).forEach(m => m.remove());
+  (window._maps || []).forEach(m => { try { m.remove(); } catch(e){} });
   window._maps = [];
+
+  const mapOpts = {
+    scrollWheelZoom: false,
+    preferCanvas: true,
+    fadeAnimation: false,
+    markerZoomAnimation: false,
+  };
 
   const rm = document.getElementById("results-map");
   if(rm){
@@ -1405,15 +1673,19 @@ function setupMaps(){
         : `<div class="map-empty">${st("sales.map.empty","No coordinates to map. Run a search to see live leads on the map.")}</div>`;
     } else {
       const layers = baseLayers();
-      const map = L.map(rm, {scrollWheelZoom:false, layers:[layers[st("sales.map.base","Map")]]});
+      const mapLabel = st("sales.map.base","Map");
+      const map = L.map(rm, { ...mapOpts, layers:[layers[mapLabel]] });
       window._maps.push(map);
       L.control.layers(layers).addTo(map);
       const bounds = [];
+      // Canvas layer for many circle markers (faster than SVG DOM nodes)
+      const markerLayer = L.layerGroup().addTo(map);
       mappable.forEach(l => {
         const marker = L.circleMarker([l.lat, l.lng], {
           radius:8, color:"#FFFFFF", weight:1.5,
-          fillColor:PRIORITY_COLORS[l.priority] || "#5C7086", fillOpacity:0.92
-        }).addTo(map);
+          fillColor:PRIORITY_COLORS[l.priority] || "#5C7086", fillOpacity:0.92,
+          renderer: map.options.renderer
+        }).addTo(markerLayer);
         marker.bindPopup(`<div style="min-width:190px;">
           <b style="font-size:13px;">${l.name}</b><br>
           <span style="color:#64748B; font-size:11.5px;">${l.address}</span><br>
@@ -1423,6 +1695,10 @@ function setupMaps(){
         bounds.push([l.lat, l.lng]);
       });
       map.fitBounds(bounds, {padding:[30,30], maxZoom:15});
+      // Layout can settle after SPA re-render; invalidate once so tiles aren't stuck blank.
+      requestAnimationFrame(() => {
+        try { map.invalidateSize({ animate: false }); } catch(e){}
+      });
     }
   }
 
@@ -1430,8 +1706,9 @@ function setupMaps(){
   if(dm && dm.dataset.lat){
     const lat = parseFloat(dm.dataset.lat), lng = parseFloat(dm.dataset.lng);
     const layers = baseLayers();
+    const satLabel = st("sales.map.sat","Satellite");
     // Satellite by default on the detail page — you can SEE the actual roof.
-    const map = L.map(dm, {scrollWheelZoom:false, layers:[layers[st("sales.map.sat","Satellite")]]});
+    const map = L.map(dm, { ...mapOpts, layers:[layers[satLabel]] });
     window._maps.push(map);
     L.control.layers(layers).addTo(map);
     L.circleMarker([lat, lng], {
@@ -1439,6 +1716,9 @@ function setupMaps(){
       fillColor:PRIORITY_COLORS[dm.dataset.priority] || "#5C7086", fillOpacity:0.95
     }).addTo(map);
     map.setView([lat, lng], 18);
+    requestAnimationFrame(() => {
+      try { map.invalidateSize({ animate: false }); } catch(e){}
+    });
   }
 }
 

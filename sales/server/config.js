@@ -15,10 +15,33 @@
 
 export const PORT = Number(process.env.PORT) || 3000;
 
-export const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || "";
-export const REGRID_API_KEY = process.env.REGRID_API_KEY || "";
-export const JOBNIMBUS_API_KEY = process.env.JOBNIMBUS_API_KEY || "";
+/** Always read process.env at call time (safe if load-env runs after an import). */
+function env(name, fallback = "") {
+  const v = process.env[name];
+  if (v == null || String(v).trim() === "") return fallback;
+  return String(v).trim();
+}
 
+export function getGoogleMapsApiKey() { return env("GOOGLE_MAPS_API_KEY"); }
+export function getRegridApiKey() { return env("REGRID_API_KEY"); }
+export function getJobnimbusApiKey() { return env("JOBNIMBUS_API_KEY"); }
+export function getJobnimbusApiUrl() {
+  return env("JOBNIMBUS_API_URL", "https://app.jobnimbus.com/api1");
+}
+export function getJobnimbusContactType() { return env("JOBNIMBUS_CONTACT_TYPE", "Customer"); }
+export function getJobnimbusContactStatus() { return env("JOBNIMBUS_CONTACT_STATUS", "Active"); }
+export function getJobnimbusTaskType() { return env("JOBNIMBUS_TASK_TYPE", "Task"); }
+
+// Legacy named exports (snapshot). Prefer getters above for keys loaded via load-env.
+export const GOOGLE_MAPS_API_KEY = env("GOOGLE_MAPS_API_KEY");
+export const REGRID_API_KEY = env("REGRID_API_KEY");
+export const JOBNIMBUS_API_KEY = env("JOBNIMBUS_API_KEY");
+export const JOBNIMBUS_API_URL = env("JOBNIMBUS_API_URL", "https://app.jobnimbus.com/api1");
+/** Must match JobNimbus Settings → Contact workflows */
+export const JOBNIMBUS_CONTACT_TYPE = env("JOBNIMBUS_CONTACT_TYPE", "Customer");
+export const JOBNIMBUS_CONTACT_STATUS = env("JOBNIMBUS_CONTACT_STATUS", "Active");
+/** Must match JobNimbus Settings → Task types */
+export const JOBNIMBUS_TASK_TYPE = env("JOBNIMBUS_TASK_TYPE", "Task");
 export const SOURCES = {
   CHICAGO: {
     key: "CHICAGO",

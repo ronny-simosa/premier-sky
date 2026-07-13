@@ -25,9 +25,16 @@ function getDb() {
       sales_notes    TEXT,
       follow_up_date TEXT,
       corrections    TEXT,               -- JSON: rep-verified field fixes {field: {value, note}}
+      jnid           TEXT,               -- JobNimbus contact id after CRM push
       updated_at     TEXT NOT NULL
     );
   `);
+  // Older DBs created before jnid column
+  try {
+    db.exec(`ALTER TABLE lead_overrides ADD COLUMN jnid TEXT`);
+  } catch {
+    /* column already exists */
+  }
   return db;
 }
 
@@ -45,7 +52,7 @@ export function getOverrides(sourceIds) {
   return new Map(rows.map((r) => [r.source_id, r]));
 }
 
-export function saveOverride(sourceId, { source, status, salesNotes, followUpDate, corrections }) {
+export function saveOverride(sourceId, { source, status, salesNotes, followUpDate, corrections, jnid }) {
   const existing = getOverride(sourceId);
   const merged = {
     source: source ?? existing?.source ?? null,
@@ -54,14 +61,16 @@ export function saveOverride(sourceId, { source, status, salesNotes, followUpDat
     follow_up_date: followUpDate ?? existing?.follow_up_date ?? null,
     corrections:
       corrections != null ? JSON.stringify(corrections) : (existing?.corrections ?? null),
+    jnid: jnid ?? existing?.jnid ?? null,
   };
   getDb()
     .prepare(
-      `INSERT INTO lead_overrides (source_id, source, status, sales_notes, follow_up_date, corrections, updated_at)
-       VALUES (@source_id, @source, @status, @sales_notes, @follow_up_date, @corrections, @updated_at)
+      `INSERT INTO lead_overrides (source_id, source, status, sales_notes, follow_up_date, corrections, jnid, updated_at)
+       VALUES (@source_id, @source, @status, @sales_notes, @follow_up_date, @corrections, @jnid, @updated_at)
        ON CONFLICT(source_id) DO UPDATE SET
          source = excluded.source, status = excluded.status, sales_notes = excluded.sales_notes,
          follow_up_date = excluded.follow_up_date, corrections = excluded.corrections,
+         jnid = COALESCE(excluded.jnid, lead_overrides.jnid),
          updated_at = excluded.updated_at`
     )
     .run({ source_id: sourceId, ...merged, updated_at: new Date().toISOString() });
@@ -78,6 +87,7 @@ export function applyOverrides(leads) {
     if (o.status) lead.status = o.status;
     if (o.sales_notes) lead.salesNotes = o.sales_notes;
     if (o.follow_up_date) lead.followUpDate = o.follow_up_date;
+    if (o.jnid) lead.jnid = o.jnid;
     if (o.corrections) {
       try {
         lead._corrections = JSON.parse(o.corrections);

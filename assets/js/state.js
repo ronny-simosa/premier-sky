@@ -41,6 +41,7 @@
       nav.prepend(window.I18n.createHomeButton());
       window.I18n.mountLangSwitch(nav);
       window.I18n.apply(document);
+      try { renderLegend(); } catch (e) { /* defined later; event also refreshes */ }
     }
   })();
 
@@ -577,11 +578,17 @@
   }
 
   // --- Leyenda -------------------------------------------------------------
+  function sevLabel(sev) {
+    const key = `state.sev.${sev}`;
+    const v = tr(key);
+    return v === key ? sev : v;
+  }
+
   function renderLegend() {
     const el = document.getElementById("legend");
     if (!el) return;
     const sevRows = Object.entries(window.SEVERITY_COLORS)
-      .map(([k, v]) => `<div class="row"><span class="sw" style="background:${v}"></span>${k}</div>`)
+      .map(([k, v]) => `<div class="row"><span class="sw" style="background:${v}"></span>${sevLabel(k)}</div>`)
       .join("");
     const office = (window.PREMIER_OFFICES || {})[ST.code];
     const officeRow = office
@@ -591,10 +598,10 @@
       ${officeRow}
       <h4${office ? ' style="margin-top:8px"' : ""}>${tr("state.legend.nws")}</h4>${sevRows}
       <h4 style="margin-top:8px">${tr("state.legend.spc")}</h4>
-      <div class="row"><span class="sw" style="background:#ffe066"></span>Slight</div>
-      <div class="row"><span class="sw" style="background:#ffa366"></span>Enhanced</div>
-      <div class="row"><span class="sw" style="background:#ff6666"></span>Moderate</div>
-      <div class="row"><span class="sw" style="background:#ff66ff"></span>High</div>
+      <div class="row"><span class="sw" style="background:#ffe066"></span>${tr("state.spc.slight")}</div>
+      <div class="row"><span class="sw" style="background:#ffa366"></span>${tr("state.spc.enhanced")}</div>
+      <div class="row"><span class="sw" style="background:#ff6666"></span>${tr("state.spc.moderate")}</div>
+      <div class="row"><span class="sw" style="background:#ff66ff"></span>${tr("state.spc.high")}</div>
       <h4 style="margin-top:8px">🧊 ${tr("state.legend.hailRep")}</h4>
       <div class="row"><span class="sw" style="background:#3aa0ff"></span>&lt; 1"</div>
       <div class="row"><span class="sw" style="background:#ffd000"></span>1" – 1.74"</div>
@@ -856,7 +863,7 @@
   }
 
   function jnEnrichJob(job) {
-    const phase = JNP.getPhase(job.status);
+    const phase = JNP.localized(JNP.getPhase(job.status));
     return { ...job, phaseId: phase.id, phaseLabel: phase.label, phaseColor: phase.color };
   }
 
@@ -1062,14 +1069,14 @@
     if (!sideLeg) return;
 
     const statusHint = jnActiveStatuses.size
-      ? `<span class="jn-filter-active">${jnActiveStatuses.size} sub-estado(s) activo(s)</span>`
+      ? `<span class="jn-filter-active">${tr("state.jn.subsActive", { n: jnActiveStatuses.size })}</span>`
       : "";
 
     sideLeg.innerHTML = `
       <div class="jn-side-legend-head">
         ${statusHint}
         <div class="jn-side-legend-btns">
-          ${jnActiveStatuses.size ? `<button type="button" class="jn-side-legend-all" id="jnClearStatuses">Limpiar sub-estados</button>` : ""}
+          ${jnActiveStatuses.size ? `<button type="button" class="jn-side-legend-all" id="jnClearStatuses">${tr("state.jn.clearSubs")}</button>` : ""}
           <button type="button" class="jn-side-legend-all" id="jnShowAllPhases">${tr("state.jn.showAll")}</button>
         </div>
       </div>
@@ -1086,7 +1093,7 @@
           return `
             <div class="jn-legend-block${jnExpandedPhases.has(g.phase.id) ? " open" : ""}" data-phase="${g.phase.id}">
               <div class="jn-legend-header">
-                <button type="button" class="jn-legend-toggle" aria-expanded="${jnExpandedPhases.has(g.phase.id) ? "true" : "false"}" aria-label="Desplegar ${g.phase.label}">
+                <button type="button" class="jn-legend-toggle" aria-expanded="${jnExpandedPhases.has(g.phase.id) ? "true" : "false"}" aria-label="${tr("state.jn.expandPhase", { name: g.phase.label })}">
                   <span class="jn-chevron" aria-hidden="true"></span>
                 </button>
                 <button type="button" class="jn-legend-row${phaseOn ? " active" : " dim"}" data-phase="${g.phase.id}" style="--ph-color:${g.phase.color}">
@@ -1101,7 +1108,7 @@
             </div>`;
         }).join("")}
       </div>
-      <div class="jn-side-foot">${filteredTotal} de ${total} jobs visibles</div>`;
+      <div class="jn-side-foot">${tr("state.jn.visible", { filtered: filteredTotal, total })}</div>`;
 
     bindJnLegendEvents(groupedAll);
   }
@@ -1316,13 +1323,14 @@
       for (const f of feats) {
         const p = f.properties;
         const color = window.SEVERITY_COLORS[p.severity] || window.SEVERITY_COLORS.Unknown;
+        const sevTxt = sevLabel(p.severity || "Unknown");
         listFrag.push(`
           <div class="alert-item" data-id="${p.id}" style="border-left-color:${color}">
             <div class="ev">${p.event}
-              <span class="badge" style="background:${color}">${p.severity || "?"}</span>
+              <span class="badge" style="background:${color}">${sevTxt}</span>
             </div>
             <div class="areas">${p.areaDesc || ""}</div>
-            <div class="meta">Vence: ${p.expires ? new Date(p.expires).toLocaleString() : "—"}</div>
+            <div class="meta">${tr("state.alerts.expires", { when: p.expires ? new Date(p.expires).toLocaleString(loc()) : "—" })}</div>
           </div>`);
 
         // Dibuja la geometría de la alerta. Si no tiene polígono propio,
@@ -1613,9 +1621,9 @@
       ? alerts.map((p) => {
           const c = window.SEVERITY_COLORS[p.severity] || window.SEVERITY_COLORS.Unknown;
           const upd = p.updated || p.sent;
-          const updTxt = upd ? new Date(upd).toLocaleString() : "—";
+          const updTxt = upd ? new Date(upd).toLocaleString(loc()) : "—";
           return `<div style="margin:3px 0">⚠️ <b>${p.event}</b> ` +
-            `<span class="badge" style="background:${c}">${p.severity || "?"}</span>` +
+            `<span class="badge" style="background:${c}">${sevLabel(p.severity || "Unknown")}</span>` +
             `<div style="font-size:11px;color:var(--muted)">${tr("state.point.updated", { when: updTxt })}</div></div>`;
         }).join("")
       : `<div style="color:#36d399">✅ ${tr("state.alerts.noneAtPoint")}</div>`;
@@ -2035,12 +2043,16 @@
   });
 
   // --- Language change: refresh dynamic chrome -----------------------------
-  window.addEventListener("premier:lang", () => {
+  window.addEventListener("premier:lang", (ev) => {
     if (window.I18n) window.I18n.apply(document);
     try { renderLegend(); } catch (e) {}
     syncMapStyleButtons();
     try { updateStormExportButtons(); } catch (e) {}
-    try { jnRefreshUI(); } catch (e) {}
+    // Re-localize phase badges baked into job cache + rebuild UI/markers.
+    try {
+      if (jnJobsData.length) jnJobsData = jnJobsData.map(jnEnrichJob);
+      jnRefreshUI();
+    } catch (e) {}
     try { loadStormHistory(); } catch (e) {}
     if (typeof selected !== "undefined" && selected) {
       try {
@@ -2049,6 +2061,8 @@
         try { renderRadiusContext(); } catch (e2) {}
         try { renderRadiusJobs(); } catch (e2) {}
       }
+    } else if (!ev.detail?.initial) {
+      try { loadForecast(ST.center[0], ST.center[1]); } catch (e) {}
     }
     const logout = document.getElementById("btnLogout");
     if (logout) logout.textContent = tr("nav.logout");

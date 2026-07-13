@@ -1,71 +1,94 @@
 // ===========================================================================
-// JobNimbus · fases del pipeline y colores (agrupa decenas de status en 7 fases)
+// JobNimbus · pipeline phases + colors (groups dozens of statuses into 7 phases)
+// Labels come from i18n (jn.phase.*); English fallbacks if I18n is not ready.
 // ===========================================================================
 (function () {
+  const FALLBACK = {
+    lost: { label: "Lost", short: "Lost" },
+    closed: { label: "Closed / Paid", short: "Closed" },
+    sold: { label: "Signed contract", short: "Sold" },
+    production: { label: "Production", short: "Production" },
+    estimate: { label: "Estimate", short: "Estimate" },
+    hold: { label: "On hold", short: "Hold" },
+    lead: { label: "Leads / Follow-up", short: "Leads" },
+    other: { label: "Other", short: "Other" }
+  };
+
   const PHASES = [
     {
       id: "lost",
-      label: "Perdido",
-      short: "Perdido",
       color: "#ff6b6b",
       match: (s) => /lost|denied|invalid|bad debt|no damage/i.test(s)
     },
     {
       id: "closed",
-      label: "Cerrado / Pagado",
-      short: "Cerrado",
       color: "#868e96",
       match: (s) => /paid|closed|final close|warranty process|submit final invoice|close project/i.test(s)
     },
     {
       id: "sold",
-      label: "Contrato firmado",
-      short: "Vendido",
       color: "#51cf66",
       match: (s) => /signed contract|repair sold|roofr approved/i.test(s)
     },
     {
       id: "production",
-      label: "Producción",
-      short: "Producción",
       color: "#ff922b",
       match: (s) =>
         /ready to build|in progress|coordinat|materials arrived|city process|production|permit|job completed|approve bid|^0\d\.|bidding documents|missing permit|new project management/i.test(s)
     },
     {
       id: "estimate",
-      label: "Estimación",
-      short: "Estimación",
       color: "#9775fa",
       match: (s) =>
         /estimat|bid|present|contract sent|demo completed|take off|checklist|write estimate|ready to present/i.test(s)
     },
     {
       id: "hold",
-      label: "En espera",
-      short: "Espera",
       color: "#fcc419",
       match: (s) =>
         /on hold|next season|overdue|pending payment|reach out next season|week-2|no warranty/i.test(s)
     },
     {
       id: "lead",
-      label: "Leads / Seguimiento",
-      short: "Leads",
       color: "#4dabf7",
       match: (s) =>
         /lead|follow.?up|appointment|wake up|24h|unresponsive|potential|repair lead/i.test(s)
     },
     {
       id: "other",
-      label: "Otros",
-      short: "Otros",
       color: "#adb5bd",
       match: () => true
     }
   ];
 
   const byId = Object.fromEntries(PHASES.map((p) => [p.id, p]));
+
+  function t(key, fallback) {
+    if (window.I18n) {
+      const v = window.I18n.t(key);
+      if (v && v !== key) return v;
+    }
+    return fallback;
+  }
+
+  function label(phaseOrId) {
+    const id = typeof phaseOrId === "string" ? phaseOrId : phaseOrId?.id;
+    const fb = FALLBACK[id] || FALLBACK.other;
+    return t(`jn.phase.${id}`, fb.label);
+  }
+
+  function short(phaseOrId) {
+    const id = typeof phaseOrId === "string" ? phaseOrId : phaseOrId?.id;
+    const fb = FALLBACK[id] || FALLBACK.other;
+    return t(`jn.phase.${id}Short`, fb.short);
+  }
+
+  /** Phase object with localized label/short for UI templates. */
+  function localized(phase) {
+    const p = typeof phase === "string" ? byId[phase] : phase;
+    if (!p) return { ...byId.other, label: label("other"), short: short("other") };
+    return { ...p, label: label(p), short: short(p) };
+  }
 
   function getPhase(status) {
     const s = String(status || "");
@@ -84,7 +107,7 @@
   function groupByPhase(byStatus) {
     const out = {};
     for (const p of PHASES) {
-      out[p.id] = { phase: p, count: 0, statuses: {} };
+      out[p.id] = { phase: localized(p), count: 0, statuses: {} };
     }
     for (const [status, n] of Object.entries(byStatus || {})) {
       const ph = getPhase(status);
@@ -110,6 +133,9 @@
     PHASES,
     getPhase,
     color,
+    label,
+    short,
+    localized,
     groupByPhase,
     orderedPhases,
     escapeHtml

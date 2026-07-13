@@ -6,6 +6,7 @@
 //      densidad de viviendas. NO envía alertas NWS genéricas (Flood, Heat, etc.).
 // Requiere Node >= 18 (usa fetch nativo).
 // ===========================================================================
+import "./load-env.js"; // MUST be first — sales config snapshots env at import time
 import express from "express";
 import fs from "fs";
 import path from "path";
@@ -30,32 +31,14 @@ import crmRouter from "../sales/server/routes/crm.js";
 import leadScoreRouter from "../sales/server/routes/leadScore.js";
 import overridesRouter from "../sales/server/routes/overrides.js";
 import {
-  GOOGLE_MAPS_API_KEY as SALES_GOOGLE_KEY,
-  REGRID_API_KEY as SALES_REGRID_KEY,
-  JOBNIMBUS_API_KEY as SALES_JN_KEY
+  getGoogleMapsApiKey,
+  getRegridApiKey,
+  getJobnimbusApiKey
 } from "../sales/server/config.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
 const DATA_DIR = path.join(__dirname, "data");
-
-// --- Carga sencilla de .env (sin dependencias) -----------------------------
-(function loadDotEnv() {
-  const envPath = path.join(__dirname, ".env");
-  if (!fs.existsSync(envPath)) return;
-  for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const m = trimmed.match(/^([\w.-]+)\s*=\s*(.*)$/);
-    if (!m) continue;
-    const key = m[1];
-    let val = (m[2] || "").trim();
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1);
-    }
-    if (!(key in process.env)) process.env[key] = val;
-  }
-})();
 
 const PORT = process.env.PORT || 3000;
 const POLL_MS = (parseInt(process.env.POLL_MINUTES) || 10) * 60 * 1000;
@@ -166,6 +149,9 @@ app.use("/api/lead-score", requireAuth, leadScoreRouter);
 app.use("/api/lead-overrides", requireAuth, overridesRouter);
 
 app.get("/api/status", requireAuth, (_req, res) => {
+  const googleKey = getGoogleMapsApiKey();
+  const regridKey = getRegridApiKey();
+  const jnKey = getJobnimbusApiKey();
   res.json({
     live: {
       "footprints-chicago": true,
@@ -173,21 +159,21 @@ app.get("/api/status", requireAuth, (_req, res) => {
       "footprints-cook": "with local fallback",
       "footprints-microsoft": true,
       "roof-intel-satellite": true,
-      geocoding: SALES_GOOGLE_KEY ? "google" : "free fallback",
+      geocoding: googleKey ? "google" : "free fallback",
       persistence: "sqlite",
-      ...(SALES_GOOGLE_KEY
+      ...(googleKey
         ? { "google-solar": true, "business-contacts (Places)": true }
         : {})
     },
     stubbed: {
-      ...(SALES_GOOGLE_KEY
+      ...(googleKey
         ? {}
         : { "google-solar (needs key)": true, "business-contacts (needs key)": true }),
       "storms (Premier Sky pending)": true,
       permits: true,
       "person-contacts/email (vendor pending)": true,
-      "jobnimbus-crm": !SALES_JN_KEY,
-      "regrid (non-IL markets)": !SALES_REGRID_KEY
+      "jobnimbus-crm": !jnKey,
+      "regrid (non-IL markets)": !regridKey
     }
   });
 });

@@ -107,6 +107,8 @@
         await loadCatalog(DEFAULT_LANG);
         if (lang !== DEFAULT_LANG) await loadCatalog(lang);
         apply(document);
+        // Let pages that rendered before catalogs loaded refresh dynamic UI.
+        window.dispatchEvent(new CustomEvent("premier:lang", { detail: { lang, initial: true } }));
         return lang;
       })();
     }
