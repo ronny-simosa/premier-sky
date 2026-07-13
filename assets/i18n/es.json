@@ -495,5 +495,6 @@
   "sales.crm.warnLinked": "Ya está vinculado a JobNimbus ({id}). Confirma para buscar o crear de nuevo.",
   "sales.crm.warnDue": "Elige una fecha de seguimiento en notas de Sales antes de crear la tarea.",
   "sales.crm.warnNoContact": "Aún no hay contacto en JobNimbus — primero se creará o vinculará, luego la tarea.",
-  "sales.crm.openContact": "Abrir en JobNimbus →"
+  "sales.crm.openContact": "Abrir en JobNimbus →",
+  "sales.map.noCoords": "Hay leads, pero ninguno tiene coordenadas aún."
 }

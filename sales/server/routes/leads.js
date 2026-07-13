@@ -69,11 +69,20 @@ router.get("/", async (req, res) => {
     // (replaces the parcel-area × lot-coverage roof estimate).
     const top = selectTopRecords(footprintResult.records);
     if (source.key === "DUPAGE") await enrichWithMsFootprints(top);
-    await Promise.all([
-      enrichRoofSurfaces(top), // satellite surface classification (Roofr-lite)
-      enrichWithSolar(top), // Google Solar roof area/pitch (key-gated)
-      enrichWithPlaces(top), // on-site business contact from Google Maps (key-gated)
-    ]);
+
+    // Roof/solar/places enrichment is nice-to-have but can take many seconds
+    // (satellite tiles × N leads). Cap wait so map/list stay responsive.
+    const enrichMs = Math.min(Math.max(Number(process.env.LEADS_ENRICH_MS) || 1200, 0), 8000);
+    if (enrichMs > 0) {
+      await Promise.race([
+        Promise.all([
+          enrichRoofSurfaces(top),
+          enrichWithSolar(top),
+          enrichWithPlaces(top),
+        ]),
+        new Promise((resolve) => setTimeout(resolve, enrichMs)),
+      ]);
+    }
 
     let leads = buildLeads({
       geo,
@@ -91,6 +100,7 @@ router.get("/", async (req, res) => {
       servedBy: footprintResult.servedBy || "live",
       stubbedDomains: ["storm history", "permits", "contact enrichment", "property manager"],
       note: footprintResult.note || null,
+      enrichBudgetMs: enrichMs,
     });
   } catch (e) {
     res.status(502).json({ error: `Lead search failed: ${e.message}`, leads: [], live: false });

@@ -364,9 +364,17 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
 @media (max-width: 780px){ .og-lead{grid-template-columns:1fr 80px;} }
 
 /* ---------- Map ---------- */
-.map-wrap{height:380px;}
+.map-wrap{height:380px; position:relative;}
 #detail-map{height:250px; border-radius:var(--radius-md); overflow:hidden; margin-top:14px; border:1px solid var(--gray-200);}
 .map-empty{display:flex; align-items:center; justify-content:center; height:100%; color:var(--gray-500); font-size:12.5px; background:var(--gray-50); text-align:center; padding:0 30px;}
+.map-loading-overlay{
+  position:absolute; inset:0; z-index:500; display:flex; align-items:center; justify-content:center;
+  background:rgba(246,248,250,0.45); pointer-events:none;
+}
+.map-loading-card{
+  background:var(--navy-900); color:var(--white); font-size:13px; font-weight:600;
+  padding:10px 16px; border-radius:10px; box-shadow:var(--shadow-pop);
+}
 .map-legend{display:flex; gap:14px; align-items:center; font-size:11.5px; color:var(--gray-500); padding:10px 16px; border-top:1px solid var(--gray-100);}
 .legend-dot{width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:5px; vertical-align:middle;}
 .leaflet-container{font-family:'Inter',system-ui,sans-serif; z-index:1;}
@@ -670,6 +678,9 @@ async function fetchLeadsForSearch(searchParams){
     });
     const res = await fetch(`/api/leads?${params}`, {credentials:"include"});
     const data = await res.json();
+    if(data?.geo?.lat != null && data?.geo?.lng != null){
+      state.lastGeo = { lat: Number(data.geo.lat), lng: Number(data.geo.lng) };
+    }
     if(!res.ok || !data.live){
       showToast(data.note || data.error || st("sales.toast.demo","Live search unavailable — showing demo data"));
       return SAMPLE_LEADS.filter(l => searchParams.propertyTypes.includes(l.propertyType));
@@ -899,8 +910,9 @@ async function confirmCreateTask(){
 // ---------------------------------------------------------------------------
 const state = {
   view: "dashboard", // dashboard | results | detail
-  results: [...SAMPLE_LEADS],
+  results: [],
   loading: false,
+  lastGeo: null,
   searchParams:{
     zip:"60108", radius:10,
     propertyTypes:["Commercial","Multifamily","Retail","Industrial","Office","HOA/Condo","Mixed-use"],
@@ -909,7 +921,7 @@ const state = {
   resultsView:"owners", // owners | table | cards
   sortBy:"leadScore", // leadScore | roofSqFt | propertyValue | hailWindRisk
   activeLeadId:null,
-  hasSearched:true,
+  hasSearched:false,
   showResultsMap:false, // dashboard owns the big map; the results-page map is opt-in
   sourceStatus:null,    // /api/status cache for the dashboard panel
   sessionEmail:null,    // from /api/auth/me — same session as Sky
@@ -1570,10 +1582,18 @@ function attachEvents(){
 
   const runSearch = document.querySelector('[data-action="run-search"]');
   if(runSearch) runSearch.addEventListener("click", async ()=>{
-    runSearch.disabled = true; runSearch.textContent = st("sales.search.searching","Searching...");
-    state.results = await fetchLeadsForSearch(state.searchParams); // API HOOK
-    state.hasSearched = true;
+    runSearch.disabled = true;
+    runSearch.textContent = st("sales.search.searching","Searching...");
+    state.loading = true;
+    state.results = [];
     render();
+    try{
+      state.results = await fetchLeadsForSearch(state.searchParams); // API HOOK
+      state.hasSearched = true;
+    } finally {
+      state.loading = false;
+      render();
+    }
     showToast(st("sales.toast.found","{n} leads near {zip}", { n: getFilteredSortedLeads().length, zip: state.searchParams.zip }));
   });
 
@@ -1668,9 +1688,34 @@ function setupMaps(){
   if(rm){
     const mappable = getFilteredSortedLeads().filter(l => l.lat != null && l.lng != null);
     if(!mappable.length){
-      rm.innerHTML = state.loading
-        ? `<div class="map-empty">${st("sales.map.searching","Searching live leads near {zip}...", {zip: state.searchParams.zip})}</div>`
-        : `<div class="map-empty">${st("sales.map.empty","No coordinates to map. Run a search to see live leads on the map.")}</div>`;
+      if(state.loading){
+        // Keep a real basemap visible while /api/leads runs (don't leave a blank panel).
+        const layers = baseLayers();
+        const mapLabel = st("sales.map.base","Map");
+        const map = L.map(rm, { ...mapOpts, layers:[layers[mapLabel]] });
+        window._maps.push(map);
+        const center = state.lastGeo || { lat: 41.957, lng: -88.081 }; // Bloomingdale-ish default
+        map.setView([center.lat, center.lng], 11);
+        const overlay = document.createElement("div");
+        overlay.className = "map-loading-overlay";
+        overlay.innerHTML = `<div class="map-loading-card">${st("sales.map.searching","Searching live leads near {zip}...", {zip: state.searchParams.zip})}</div>`;
+        rm.style.position = "relative";
+        rm.appendChild(overlay);
+        requestAnimationFrame(() => { try { map.invalidateSize({ animate: false }); } catch(e){} });
+        // Resolve ZIP center in the background for a better loading map.
+        fetch(`/api/geocode?zip=${encodeURIComponent(state.searchParams.zip)}`, { credentials:"include" })
+          .then(r => r.ok ? r.json() : null)
+          .then(geo => {
+            if(!geo || geo.lat == null || !window._maps.includes(map)) return;
+            state.lastGeo = { lat: Number(geo.lat), lng: Number(geo.lng) };
+            map.setView([state.lastGeo.lat, state.lastGeo.lng], 12);
+          })
+          .catch(()=>{});
+      } else if(state.results.length){
+        rm.innerHTML = `<div class="map-empty">${st("sales.map.noCoords","Leads found, but none have map coordinates yet.")}</div>`;
+      } else {
+        rm.innerHTML = `<div class="map-empty">${st("sales.map.empty","No coordinates to map. Run a search to see live leads on the map.")}</div>`;
+      }
     } else {
       const layers = baseLayers();
       const mapLabel = st("sales.map.base","Map");
@@ -1772,14 +1817,16 @@ window.addEventListener("premier:lang", () => {
 // only appears if the backend is unreachable (fetchLeadsForSearch fallback).
 async function initialSearch(){
   state.loading = true;
+  state.results = []; // don't flash coordinate-less demo data over the map
   render();
   try{
-    state.results = await fetchLeadsForSearch(state.searchParams);
+    const leads = await fetchLeadsForSearch(state.searchParams);
+    state.results = leads;
     state.hasSearched = true;
   } finally {
     state.loading = false;
-    render();
   }
+  render();
 }
 
 render();

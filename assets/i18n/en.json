@@ -495,5 +495,6 @@
   "sales.crm.warnLinked": "Already linked to JobNimbus ({id}). Confirm to search or create again.",
   "sales.crm.warnDue": "Set a follow-up date in Sales notes before creating the task.",
   "sales.crm.warnNoContact": "No JobNimbus contact linked yet — a contact will be created or matched first, then the task.",
-  "sales.crm.openContact": "Open in JobNimbus →"
+  "sales.crm.openContact": "Open in JobNimbus →",
+  "sales.map.noCoords": "Leads found, but none have map coordinates yet."
 }
