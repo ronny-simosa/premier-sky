@@ -119,13 +119,24 @@ app.use((req, res, next) => {
   next();
 });
 
-// Usuarios del generador de contratos (ej. Sharom) → siempre contract.html
+// Generador de contratos: Sharom → forzar contract; resto → no pueden quedarse en contract
 app.use((req, res, next) => {
   if (process.env.AUTH_DISABLED === "true") return next();
   if (req.method !== "GET") return next();
   const p = req.path.split("?")[0];
-  if (p === "/contract.html" || p === "/login.html") return next();
-  if (p.startsWith("/api/")) return next();
+  if (p === "/login.html" || p.startsWith("/api/")) return next();
+
+  const session = getSession(req, res);
+  const isContractUser = !!(session && canAccessContractGenerator(session.email));
+
+  // Non-Sharom opening contract.html → hub (avoids blank "no access" page)
+  if (p === "/contract.html") {
+    if (!session) return next(); // auth middleware already sent them to login
+    if (!isContractUser) return res.redirect(302, "/index.html");
+    return next();
+  }
+
+  // Sharom on hub/sky/sales/state → always contract
   const locked =
     p === "/" ||
     p === "/index.html" ||
@@ -135,8 +146,7 @@ app.use((req, res, next) => {
     p === "/sales" ||
     p.startsWith("/sales/");
   if (!locked) return next();
-  const session = getSession(req, res);
-  if (!session || !canAccessContractGenerator(session.email)) return next();
+  if (!isContractUser) return next();
   return res.redirect(302, "/contract.html");
 });
 
