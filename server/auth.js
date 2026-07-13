@@ -292,9 +292,10 @@ export function canAccessContractGenerator(email) {
 
 export function pageRequiresAuth(pathname) {
   if (pathname === "/login.html") return false;
-  if (pathname === "/" || pathname === "/index.html" || pathname === "/state.html") return true;
-  if (pathname.startsWith("/state.html")) return true;
+  if (pathname === "/" || pathname === "/index.html" || pathname === "/sky.html") return true;
+  if (pathname === "/state.html" || pathname.startsWith("/state.html")) return true;
   if (pathname === "/contract.html") return true;
+  if (pathname === "/sales" || pathname === "/sales/" || pathname.startsWith("/sales/")) return true;
   return false;
 }
 

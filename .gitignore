@@ -1,6 +1,9 @@
 server/.env
 server/data/
 server/node_modules/
+sales/node_modules/
+sales/data/*
+!sales/data/.gitkeep
 node_modules/
 .DS_Store
 *.log

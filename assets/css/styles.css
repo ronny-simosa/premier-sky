@@ -30,8 +30,8 @@ a:hover { text-decoration: underline; }
 header.site {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
+  gap: 12px;
+  padding: 12px 24px;
   border-bottom: 1px solid var(--border);
   background: rgba(11, 18, 32, 0.7);
   backdrop-filter: blur(8px);
@@ -40,16 +40,28 @@ header.site {
   z-index: 1000;
 }
 
-header.site .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 18px; }
+header.site .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 18px; flex-shrink: 0; }
 header.site .brand .logo { height: 34px; width: 34px; display: block; }
 header.site nav { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* App-local links (states) sit in the middle; globals stay right */
+header.site .nav-app {
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-start;
+}
+header.site .nav-globals {
+  flex-shrink: 0;
+  margin-left: auto;
+  gap: 8px;
+}
 .user-bar {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-right: 8px;
-  padding-right: 12px;
-  border-right: 1px solid var(--border);
+  margin-left: 4px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
 }
 .user-email {
   font-size: 12px;
@@ -68,6 +80,69 @@ header.site nav a {
   font-size: 13px;
 }
 header.site nav a:hover, header.site nav a.active { color: var(--text); border-color: var(--accent); text-decoration: none; }
+
+.btn-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--accent) !important;
+  background: rgba(58, 160, 255, 0.12);
+  color: var(--text) !important;
+  font-size: 13px !important;
+  font-weight: 600;
+  text-decoration: none !important;
+  white-space: nowrap;
+}
+.btn-home:hover {
+  background: rgba(58, 160, 255, 0.22);
+  text-decoration: none !important;
+}
+
+.lang-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+}
+.lang-btn {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.lang-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+.lang-switch-host { display: inline-flex; align-items: center; gap: 8px; }
+
+.lang-flag-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+.lang-flag-btn:hover {
+  border-color: var(--accent);
+  background: rgba(58, 160, 255, 0.12);
+}
 
 .container { max-width: min(1720px, 100%); margin: 0 auto; padding: 20px 28px; }
 

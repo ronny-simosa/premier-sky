@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Premier Sky · Acceso equipo</title>
+  <title data-i18n-title="login.title">Premier Sky · Team access</title>
   <link rel="icon" type="image/svg+xml" href="assets/img/premier-logo.svg" />
-  <link rel="stylesheet" href="assets/css/styles.css?v=33" />
+  <link rel="stylesheet" href="assets/css/styles.css?v=44" />
   <style>
     .login-wrap {
       max-width: 420px;
@@ -35,6 +35,7 @@
     .login-msg.err { color: #ff6b6b; }
     #stepCode { display: none; }
     .code-input { letter-spacing: 6px; font-size: 22px; text-align: center; font-weight: 700; }
+    .login-lang { margin-left: auto; }
   </style>
 </head>
 <body>
@@ -42,111 +43,118 @@
     <div class="brand">
       <img class="logo" src="assets/img/premier-logo.svg" alt="Premier" /> Premier Sky
     </div>
+    <div class="lang-switch-host login-lang" id="nav"></div>
   </header>
 
   <div class="container login-wrap">
-    <h1>Acceso equipo Premier</h1>
-    <p>Usa el correo <b>@premierchi.com</b> con el que entras a JobNimbus (ej. <code>sky@premierchi.com</code>). Revisa también <b>spam / correo no deseado</b>.</p>
+    <h1 data-i18n="login.heading">Premier team access</h1>
+    <p data-i18n="login.sub">Use your JobNimbus @premierchi.com email (e.g. sky@premierchi.com). Also check spam / junk.</p>
 
     <div id="stepEmail">
-      <label for="email">Correo electrónico</label>
-      <input type="email" id="email" placeholder="tu@premierchi.com" autocomplete="email" />
-      <button type="button" class="btn" id="btnSend">Enviar código</button>
+      <label for="email" data-i18n="login.emailLabel">Email</label>
+      <input type="email" id="email" data-i18n-placeholder="login.emailPlaceholder" placeholder="you@premierchi.com" autocomplete="email" />
+      <button type="button" class="btn" id="btnSend" data-i18n="login.sendCode">Send code</button>
     </div>
 
     <div id="stepCode">
-      <label for="code">Código de 6 dígitos</label>
+      <label for="code" data-i18n="login.codeLabel">6-digit code</label>
       <input type="text" id="code" class="code-input" maxlength="6" inputmode="numeric" autocomplete="one-time-code" />
-      <button type="button" class="btn" id="btnVerify">Entrar</button>
-      <button type="button" class="btn secondary" id="btnBack" style="margin-top:8px">Otro correo</button>
+      <button type="button" class="btn" id="btnVerify" data-i18n="login.enter">Sign in</button>
+      <button type="button" class="btn secondary" id="btnBack" style="margin-top:8px" data-i18n="login.otherEmail">Different email</button>
     </div>
 
     <p id="loginMsg" class="login-msg"></p>
   </div>
 
+  <script src="assets/js/i18n.js?v=44"></script>
   <script>
-    const params = new URLSearchParams(location.search);
-    const next = params.get("next") || "/index.html";
-    const msg = document.getElementById("loginMsg");
-    const CONTRACT_USER = "sharom@premierchi.com";
+    (async () => {
+      await window.I18n.init();
+      window.I18n.mountLangSwitch(document.getElementById("nav"));
+      window.addEventListener("premier:lang", () => window.I18n.apply(document));
 
-    function postLoginRedirect(email) {
-      const norm = String(email || "").trim().toLowerCase();
-      if (norm === CONTRACT_USER) {
-        location.href = "/contract.html";
-        return;
+      const params = new URLSearchParams(location.search);
+      const next = params.get("next") || "/index.html";
+      const msg = document.getElementById("loginMsg");
+      const CONTRACT_USER = "sharom@premierchi.com";
+      const t = (k) => window.I18n.t(k);
+
+      function postLoginRedirect(email) {
+        const norm = String(email || "").trim().toLowerCase();
+        if (norm === CONTRACT_USER) {
+          location.href = "/contract.html";
+          return;
+        }
+        location.href = next;
       }
-      location.href = next;
-    }
 
-    if (params.get("expired") === "1") {
-      msg.className = "login-msg err";
-      msg.textContent = "Tu sesión expiró. Inicia sesión de nuevo.";
-    }
-
-    fetch("/api/auth/me", { credentials: "include" })
-      .then((r) => r.json())
-      .then((d) => { if (d.authenticated) postLoginRedirect(d.email); })
-      .catch(() => {});
-
-    document.getElementById("btnSend").addEventListener("click", async () => {
-      const email = document.getElementById("email").value.trim();
-      msg.className = "login-msg";
-      msg.textContent = "Enviando…";
-      try {
-        const r = await fetch("/api/auth/request-code", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ email }),
-          signal: AbortSignal.timeout(25000)
-        });
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.error || "Error");
-        if (d.ok === false) throw new Error(d.message || "No se pudo enviar el correo");
-        msg.className = "login-msg ok";
-        msg.textContent = d.message;
-        document.getElementById("stepEmail").style.display = "none";
-        document.getElementById("stepCode").style.display = "block";
-        document.getElementById("code").focus();
-      } catch (e) {
+      if (params.get("expired") === "1") {
         msg.className = "login-msg err";
-        msg.textContent = e.name === "TimeoutError"
-          ? "Tiempo agotado. Si usas Railway sin Resend, configura RESEND_API_KEY."
-          : e.message;
+        msg.textContent = t("login.expired");
       }
-    });
 
-    document.getElementById("btnVerify").addEventListener("click", verify);
-    document.getElementById("code").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") verify();
-    });
+      fetch("/api/auth/me", { credentials: "include" })
+        .then((r) => r.json())
+        .then((d) => { if (d.authenticated) postLoginRedirect(d.email); })
+        .catch(() => {});
 
-    async function verify() {
-      const email = document.getElementById("email").value.trim();
-      const code = document.getElementById("code").value.trim();
-      msg.textContent = "Verificando…";
-      try {
-        const r = await fetch("/api/auth/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ email, code })
-        });
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.error || "Código inválido");
-        postLoginRedirect(d.email);
-      } catch (e) {
-        msg.className = "login-msg err";
-        msg.textContent = e.message;
+      document.getElementById("btnSend").addEventListener("click", async () => {
+        const email = document.getElementById("email").value.trim();
+        msg.className = "login-msg";
+        msg.textContent = t("login.sending");
+        try {
+          const r = await fetch("/api/auth/request-code", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ email }),
+            signal: AbortSignal.timeout(25000)
+          });
+          const d = await r.json();
+          if (!r.ok) throw new Error(d.error || t("login.error"));
+          if (d.ok === false) throw new Error(d.message || t("login.sendFailed"));
+          msg.className = "login-msg ok";
+          msg.textContent = d.message;
+          document.getElementById("stepEmail").style.display = "none";
+          document.getElementById("stepCode").style.display = "block";
+          document.getElementById("code").focus();
+        } catch (e) {
+          msg.className = "login-msg err";
+          msg.textContent = e.name === "TimeoutError" ? t("login.timeout") : e.message;
+        }
+      });
+
+      document.getElementById("btnVerify").addEventListener("click", verify);
+      document.getElementById("code").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") verify();
+      });
+
+      async function verify() {
+        const email = document.getElementById("email").value.trim();
+        const code = document.getElementById("code").value.trim();
+        msg.textContent = t("login.verifying");
+        try {
+          const r = await fetch("/api/auth/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ email, code })
+          });
+          const d = await r.json();
+          if (!r.ok) throw new Error(d.error || t("login.invalidCode"));
+          postLoginRedirect(d.email);
+        } catch (e) {
+          msg.className = "login-msg err";
+          msg.textContent = e.message;
+        }
       }
-    }
 
-    document.getElementById("btnBack").addEventListener("click", () => {
-      document.getElementById("stepCode").style.display = "none";
-      document.getElementById("stepEmail").style.display = "block";
-      msg.textContent = "";
-    });
+      document.getElementById("btnBack").addEventListener("click", () => {
+        document.getElementById("stepCode").style.display = "none";
+        document.getElementById("stepEmail").style.display = "block";
+        msg.textContent = "";
+      });
+    })();
   </script>
 </body>
 </html>

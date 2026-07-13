@@ -1,0 +1,21 @@
+{
+  "name": "premier-sales-developer-machine",
+  "version": "0.1.0",
+  "description": "Internal sales intelligence tool for Premier Group Roofing & Construction \u2014 finds and ranks commercial roofing leads by location.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server/index.js",
+    "dev": "node --watch --env-file-if-exists=.env server/index.js",
+    "smoke": "node --env-file-if-exists=.env scripts/smoke.js",
+    "fetch-cook-extract": "node scripts/fetch-cook-extract.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.11.1",
+    "express": "^4.19.2",
+    "jpeg-js": "^0.4.4"
+  }
+}

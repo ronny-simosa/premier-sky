@@ -8,8 +8,21 @@
   const code = (params.get("state") || "IL").toUpperCase();
   const ST = window.STATES[code];
 
+  function tr(key, vars) {
+    return window.I18n ? window.I18n.t(key, vars) : key;
+  }
+  function loc() {
+    return (window.I18n && window.I18n.lang) || "en";
+  }
+
   if (!ST) {
-    document.getElementById("stateTitle").textContent = "Estado no encontrado";
+    (async () => {
+      if (window.I18n) {
+        await window.I18n.init();
+        window.I18n.apply(document);
+      }
+      document.getElementById("stateTitle").textContent = tr("state.notFound");
+    })();
     return;
   }
 
@@ -19,17 +32,30 @@
   document.getElementById("stateTitle").textContent = `${ST.name} (${ST.code})`;
   document.title = `Premier Sky · ${ST.name}`;
   const nav = document.getElementById("nav");
+  const navApp = document.getElementById("navApp") || nav;
+
+  (async () => {
+    if (window.I18n) {
+      await window.I18n.init();
+      // Globals (right): Home → Flag → session (below)
+      nav.prepend(window.I18n.createHomeButton());
+      window.I18n.mountLangSwitch(nav);
+      window.I18n.apply(document);
+    }
+  })();
+
   API.getAuthMe().then((auth) => {
     if (!auth.authenticated) {
       API.redirectToLogin(auth.sessionExpired);
       return;
     }
-    if (!nav) return;
+    if (!nav || nav.querySelector(".user-bar")) return;
     const bar = document.createElement("div");
     bar.className = "user-bar";
     bar.innerHTML = `<span class="user-email" title="${auth.email}">${auth.email}</span>` +
-      `<button type="button" class="btn secondary btn-logout" id="btnLogout">Salir</button>`;
-    nav.prepend(bar);
+      `<button type="button" class="btn secondary btn-logout" id="btnLogout" data-i18n="nav.logout">${tr("nav.logout")}</button>`;
+    nav.appendChild(bar);
+    if (window.I18n) window.I18n.apply(bar);
     document.getElementById("btnLogout")?.addEventListener("click", () => API.logoutAuth());
   });
 
@@ -44,7 +70,7 @@
     a.href = `state.html?state=${s.code}`;
     a.textContent = s.code;
     if (s.code === code) a.className = "active";
-    nav.appendChild(a);
+    navApp.appendChild(a);
   });
 
   // --- Mapa ----------------------------------------------------------------
@@ -75,15 +101,18 @@
   } catch { /* ignore */ }
 
   const MAP_STYLE_BTNS = [
-    { key: "city", title: "Ciudad", glyph: "🏙" },
-    { key: "streets", title: "Calles", glyph: "🗺" },
-    { key: "satellite", title: "Satélite", glyph: "🛰" }
+    { key: "city", titleKey: "state.map.city", glyph: "🏙" },
+    { key: "streets", titleKey: "state.map.streets", glyph: "🗺" },
+    { key: "satellite", titleKey: "state.map.satellite", glyph: "🛰" }
   ];
 
   function syncMapStyleButtons() {
     document.querySelectorAll(".map-style-control a").forEach((a) => {
       a.classList.toggle("active", a.dataset.style === mapStyleKey);
       a.setAttribute("aria-pressed", a.dataset.style === mapStyleKey ? "true" : "false");
+      const title = tr(a.dataset.titleKey || "state.map.city");
+      a.title = title;
+      a.setAttribute("aria-label", title);
     });
   }
 
@@ -94,9 +123,11 @@
       MAP_STYLE_BTNS.forEach((s) => {
         const a = L.DomUtil.create("a", "", box);
         a.href = "#";
-        a.title = s.title;
+        const title = tr(s.titleKey);
+        a.title = title;
         a.dataset.style = s.key;
-        a.setAttribute("aria-label", s.title);
+        a.dataset.titleKey = s.titleKey;
+        a.setAttribute("aria-label", title);
         a.innerHTML = s.glyph;
         L.DomEvent.disableClickPropagation(a);
         L.DomEvent.on(a, "click", L.DomEvent.stop);
@@ -178,8 +209,8 @@
   function onHailFeature(f, layer) {
     const p = f.properties || {};
     const label = (p.LABEL || "").toString();
-    let txt = p.LABEL2 || "Zona de riesgo de granizo";
-    if (label === "SIGN") txt = 'Granizo significativo (≥ 2")';
+    let txt = p.LABEL2 || tr("state.hail.zoneDefault");
+    if (label === "SIGN") txt = tr("state.hail.significant");
     layer.bindTooltip(`🔮 ${txt}`, { sticky: true });
     layer.on("click", (e) => { L.DomEvent.stop(e); selectPoint(e.latlng.lat, e.latlng.lng); });
   }
@@ -282,7 +313,7 @@
         const finish = () => {
           ensureZipDB();
           if (!ZIPDB.length && !zipDbError) {
-            zipDbError = "no se pudo leer el dataset de ZIPs";
+            zipDbError = tr("state.zip.errRead");
           }
           zipDbPromise = null;
           resolve(ZIPDB);
@@ -290,7 +321,7 @@
         if (ensureZipDB()) { finish(); return; }
         existing.addEventListener("load", finish, { once: true });
         existing.addEventListener("error", () => {
-          zipDbError = "no se pudo cargar el dataset de ZIPs";
+          zipDbError = tr("state.zip.errLoad");
           finish();
         }, { once: true });
         setTimeout(finish, 6000);
@@ -303,7 +334,7 @@
       const url = `assets/data/zips_${ST.code}.js?v=11`;
       const s = document.createElement("script");
       const t = setTimeout(() => {
-        zipDbError = "tiempo de espera agotado al cargar ZIPs";
+        zipDbError = tr("state.zip.errTimeout");
         console.warn(zipDbError, "->", url);
         zipDbPromise = null;
         resolve(ZIPDB);
@@ -311,13 +342,13 @@
       s.onload = () => {
         clearTimeout(t);
         ensureZipDB();
-        if (!ZIPDB.length) zipDbError = "dataset de ZIPs con formato inesperado";
+        if (!ZIPDB.length) zipDbError = tr("state.zip.errFormat");
         zipDbPromise = null;
         resolve(ZIPDB);
       };
       s.onerror = () => {
         clearTimeout(t);
-        zipDbError = "no se pudo cargar el dataset de ZIPs";
+        zipDbError = tr("state.zip.errLoad");
         console.warn(zipDbError, "->", url);
         zipDbPromise = null;
         resolve(ZIPDB);
@@ -381,7 +412,7 @@
       `${z[0]}</span>`
     ).join("");
     if (list.length > ZIP_CHIP_LIMIT) {
-      html += `<span class="zips-more">+${list.length - ZIP_CHIP_LIMIT} más en el radio</span>`;
+      html += `<span class="zips-more">${tr("state.zip.moreInRadius", { n: list.length - ZIP_CHIP_LIMIT })}</span>`;
     }
     return html;
   }
@@ -438,10 +469,10 @@
   function jnRadiusJobsHtml(list, miles) {
     const esc = (window.JNPhases && window.JNPhases.escapeHtml) || ((s) => String(s ?? ""));
     if (!jnJobsData.length) {
-      return `<div class="jn-radius-empty">Cargando jobs JobNimbus…</div>`;
+      return `<div class="jn-radius-empty">${tr("state.jn.radiusLoading")}</div>`;
     }
     if (!list.length) {
-      return `<div class="jn-radius-empty">Sin jobs en ${miles} mi con los filtros actuales</div>`;
+      return `<div class="jn-radius-empty">${tr("state.jn.radiusEmpty", { miles })}</div>`;
     }
     return list.map(({ job, dist }) => {
       const addr = [job.address, job.city, job.state, job.zip].filter(Boolean).join(", ");
@@ -452,7 +483,7 @@
         </div>
         <div class="jn-radius-name">${esc(job.name)}</div>
         <div class="jn-radius-status">${esc(job.status)}</div>
-        <div class="jn-radius-addr">${esc(addr || "Sin dirección")}</div>
+        <div class="jn-radius-addr">${esc(addr || tr("state.jn.noAddress"))}</div>
       </button>`;
     }).join("");
   }
@@ -462,7 +493,7 @@
     const miles = radiusMiles();
     const list = jnJobsWithinRadius(selected.lat, selected.lon, miles);
     const html = jnRadiusJobsHtml(list, miles);
-    const title = `📋 Jobs en ${miles} mi (${list.length})`;
+    const title = tr("state.jn.radiusTitle", { miles, n: list.length });
 
     const apply = (root) => {
       const t = root.querySelector(".jnRadiusTitle");
@@ -495,7 +526,7 @@
     chip.className = "badge";
     chip.style.cssText =
       "background:var(--panel-2);color:var(--text);border:1px solid var(--accent);cursor:pointer;padding:4px 9px";
-    chip.title = title ? `${title} — ir a este zip` : "ir a este zip";
+    chip.title = title ? tr("state.zip.goToNamed", { place: title }) : tr("state.zip.goTo");
     chip.textContent = zip;
     chip.addEventListener("click", () => {
       document.getElementById("zipInput").value = zip;
@@ -524,13 +555,13 @@
     if (zipDbError) {
       statusTxt = `⚠ ${zipDbError}`;
     } else if (!hasZipDb) {
-      statusTxt = "cargando zips…";
+      statusTxt = tr("state.zip.loading");
       loadZipDB().then(() => renderRadiusContext());
     } else {
       list = zipsWithinRadius(selected.lat, selected.lon, miles);
       statusTxt = list.length
-        ? `${list.length} zip(s)${list.length > ZIP_CHIP_LIMIT ? ` · mostrando ${ZIP_CHIP_LIMIT}` : ""}`
-        : "sin zips en el radio";
+        ? tr("state.zip.count", { n: list.length })
+        : tr("state.zip.none");
     }
 
     const chipsHtml = list.length ? zipChipsHtml(list) : "";
@@ -539,46 +570,48 @@
       const title = root.querySelector(".zipTitle");
       const status = root.querySelector(".zipsStatus");
       const chips = root.querySelector(".zipChips");
-      if (title) title.textContent = `Zip codes en ${miles} mi`;
+      if (title) title.textContent = tr("state.zip.title", { miles });
       if (status) status.textContent = statusTxt;
       if (chips) chips.innerHTML = chipsHtml;
     });
   }
 
   // --- Leyenda -------------------------------------------------------------
-  (function legend() {
+  function renderLegend() {
     const el = document.getElementById("legend");
+    if (!el) return;
     const sevRows = Object.entries(window.SEVERITY_COLORS)
       .map(([k, v]) => `<div class="row"><span class="sw" style="background:${v}"></span>${k}</div>`)
       .join("");
     const office = (window.PREMIER_OFFICES || {})[ST.code];
     const officeRow = office
-      ? `<h4>🏠 Premier</h4><div class="row"><span>🏠</span> Oficina + radio ${window.PREMIER_RADIUS_MI || 40} mi</div>`
+      ? `<h4>🏠 Premier</h4><div class="row"><span>🏠</span> ${tr("state.office.coverage", { n: window.PREMIER_RADIUS_MI || 40 })}</div>`
       : "";
     el.innerHTML = `
       ${officeRow}
-      <h4${office ? ' style="margin-top:8px"' : ""}>Alertas NWS (severidad)</h4>${sevRows}
-      <h4 style="margin-top:8px">SPC (riesgo convectivo)</h4>
+      <h4${office ? ' style="margin-top:8px"' : ""}>${tr("state.legend.nws")}</h4>${sevRows}
+      <h4 style="margin-top:8px">${tr("state.legend.spc")}</h4>
       <div class="row"><span class="sw" style="background:#ffe066"></span>Slight</div>
       <div class="row"><span class="sw" style="background:#ffa366"></span>Enhanced</div>
       <div class="row"><span class="sw" style="background:#ff6666"></span>Moderate</div>
       <div class="row"><span class="sw" style="background:#ff66ff"></span>High</div>
-      <h4 style="margin-top:8px">🧊 Granizo reportado / histórico (tamaño)</h4>
+      <h4 style="margin-top:8px">🧊 ${tr("state.legend.hailRep")}</h4>
       <div class="row"><span class="sw" style="background:#3aa0ff"></span>&lt; 1"</div>
       <div class="row"><span class="sw" style="background:#ffd000"></span>1" – 1.74"</div>
       <div class="row"><span class="sw" style="background:#ff9100"></span>1.75" – 2.49"</div>
       <div class="row"><span class="sw" style="background:#e63900"></span>≥ 2.5"</div>
-      <h4 style="margin-top:8px">🔮 Granizo pronosticado (% SPC)</h4>
+      <h4 style="margin-top:8px">🔮 ${tr("state.legend.hailFc")}</h4>
       <div class="row"><span class="sw" style="background:#8b4726"></span>5%</div>
       <div class="row"><span class="sw" style="background:#ffc800"></span>15%</div>
       <div class="row"><span class="sw" style="background:#ff0000"></span>30%</div>
       <div class="row"><span class="sw" style="background:#ff00ff"></span>45%</div>
       <div class="row"><span class="sw" style="background:#912cee"></span>60%</div>
-      <h4 style="margin-top:8px">📊 Score tormenta</h4>
-      <div class="row"><span class="sw" style="background:#c1121f"></span>70+ · alta prioridad</div>
-      <div class="row"><span class="sw" style="background:#e85d04"></span>40–69 · revisar</div>
-      <div class="row"><span class="sw" style="background:#ffd000"></span>&lt; 40 · informativo</div>`;
-  })();
+      <h4 style="margin-top:8px">📊 ${tr("state.legend.score")}</h4>
+      <div class="row"><span class="sw" style="background:#c1121f"></span>${tr("state.legend.scoreHigh")}</div>
+      <div class="row"><span class="sw" style="background:#e85d04"></span>${tr("state.legend.scoreReview")}</div>
+      <div class="row"><span class="sw" style="background:#ffd000"></span>${tr("state.legend.scoreInfo")}</div>`;
+  }
+  renderLegend();
 
   // --- Toggles de capas ----------------------------------------------------
   document.getElementById("tglOffice").addEventListener("change", (e) => {
@@ -647,7 +680,7 @@
         const rows = s.breakdown.map((b) => `<li>${b.variable}: +${b.points}</li>`).join("");
         m.bindPopup(
           `<div style="min-width:220px"><b>Score ${s.total}</b> · ${h.label || "—"}` +
-          `<div style="font-size:12px;margin:4px 0">${s.tier === "campaign" ? "Alta prioridad" : s.tier === "review" ? "Revisar manualmente" : "Informativo"}</div>` +
+          `<div style="font-size:12px;margin:4px 0">${s.tier === "campaign" ? tr("state.score.high") : s.tier === "review" ? tr("state.score.review") : tr("state.score.info")}</div>` +
           `<ul style="margin:0;padding-left:18px;font-size:12px">${rows}</ul></div>`
         );
         scoreLayer.addLayer(m);
@@ -672,8 +705,8 @@
     const useCreated = jnDateFieldValue() === "date_created";
     const ts = useCreated ? job.dateCreated : job.dateUpdated;
     if (!ts) return "";
-    const lbl = useCreated ? "Creado" : "Actualizado";
-    const d = new Date(ts * 1000).toLocaleDateString("es");
+    const lbl = useCreated ? tr("state.jn.created") : tr("state.jn.updated");
+    const d = new Date(ts * 1000).toLocaleDateString(loc());
     return `<span class="jn-job-date" title="${lbl}">${lbl}: ${d}</span>`;
   }
 
@@ -747,8 +780,8 @@
   function jnApplyCustomDates() {
     const from = jnDateFrom?.value;
     const to = jnDateTo?.value;
-    if (!from || !to) { jnSetDateHint("Elige ambas fechas"); return false; }
-    if (from > to) { jnSetDateHint("La fecha inicial debe ser anterior"); return false; }
+    if (!from || !to) { jnSetDateHint(tr("state.jn.pickBothDates")); return false; }
+    if (from > to) { jnSetDateHint(tr("state.jn.dateOrder")); return false; }
     jnDateOpts = { from, to, field: jnDateFieldValue() };
     loadJNJobs();
     return true;
@@ -763,7 +796,7 @@
     }
     if (mode === "custom") {
       if (jnDateFrom?.value && jnDateTo?.value) jnApplyCustomDates();
-      else jnSetDateHint("Elige las fechas y pulsa Aplicar");
+      else jnSetDateHint(tr("state.jn.pickBothDates"));
       return;
     }
     jnDateOpts = jnDateRangeForMode(mode);
@@ -790,7 +823,7 @@
     const side = document.getElementById("jnSideLegend");
     const chips = document.getElementById("jnStatusSummary");
     const countEl = document.getElementById("jnJobCount");
-    if (countEl) countEl.textContent = "cargando…";
+    if (countEl) countEl.textContent = tr("state.jn.loadingCount");
     if (panel) panel.innerHTML = `<div class="skeleton skeleton-bar"></div><div class="skeleton skeleton-line md"></div>`;
     if (chips) chips.innerHTML = `<div class="skeleton skeleton-line sm" style="width:100%"></div>`;
     if (side) side.innerHTML = jnSkeletonLegend(6);
@@ -901,7 +934,7 @@
         </div>
         <div class="jn-popup-addr">${esc([job.address, job.city, job.state, job.zip].filter(Boolean).join(", "))}</div>
         ${job.contactName ? `<div class="jn-popup-contact">👤 ${esc(job.contactName)}</div>` : ""}
-        <a class="jn-popup-link" href="${esc(job.jnUrl)}" target="_blank" rel="noopener">Abrir en JobNimbus →</a>
+        <a class="jn-popup-link" href="${esc(job.jnUrl)}" target="_blank" rel="noopener">${tr("state.jn.openIn")}</a>
       </div>`;
     const marker = L.marker([job.lat, job.lon], { icon, zIndexOffset: 500 })
       .bindPopup(popup).addTo(jobsLayer);
@@ -1008,7 +1041,7 @@
 
     if (!total) {
       if (panel) panel.innerHTML = "";
-      if (sideLeg) sideLeg.innerHTML = `<div class="empty" style="font-size:12px">Sin jobs en este período</div>`;
+      if (sideLeg) sideLeg.innerHTML = `<div class="empty" style="font-size:12px">${tr("state.jn.noneInPeriod")}</div>`;
       return;
     }
 
@@ -1037,7 +1070,7 @@
         ${statusHint}
         <div class="jn-side-legend-btns">
           ${jnActiveStatuses.size ? `<button type="button" class="jn-side-legend-all" id="jnClearStatuses">Limpiar sub-estados</button>` : ""}
-          <button type="button" class="jn-side-legend-all" id="jnShowAllPhases">Mostrar todas</button>
+          <button type="button" class="jn-side-legend-all" id="jnShowAllPhases">${tr("state.jn.showAll")}</button>
         </div>
       </div>
       <div class="jn-side-legend-rows">
@@ -1100,18 +1133,18 @@
     const remaining = filtered.length - show.length;
 
     countEl.textContent = jnJobsData.length
-      ? `${filtered.length} de ${jnJobsData.length} · ${visibleMap} en mapa`
+      ? tr("state.jn.countOnMap", { filtered: filtered.length, total: jnJobsData.length, map: visibleMap })
       : "";
 
     if (!jnJobsData.length) {
       box.className = "empty";
-      box.textContent = "No hay jobs en JobNimbus para este período.";
+      box.textContent = tr("state.jn.noneForPeriod");
       return;
     }
 
     if (!filtered.length) {
       box.className = "empty";
-      box.textContent = "Ningún job coincide con los filtros aplicados.";
+      box.textContent = tr("state.jn.visible", { filtered: 0, total: jnJobsData.length });
       return;
     }
 
@@ -1119,7 +1152,7 @@
     box.className = "jn-job-list";
     box.innerHTML = show.map((j) => {
       const addr = [j.address, j.city, j.state, j.zip].filter(Boolean).join(", ");
-      const mapHint = (j.lat != null && j.lon != null) ? "" : '<span class="jn-no-geo">sin ubicación</span>';
+      const mapHint = (j.lat != null && j.lon != null) ? "" : '<span class="jn-no-geo">' + tr("state.jn.noGeo") + '</span>';
       const dateLbl = jnJobDisplayDate(j);
       return `
         <div class="jn-job-item" data-jnid="${j.jnid}" style="--ph-color:${j.phaseColor}">
@@ -1135,9 +1168,9 @@
         </div>`;
     }).join("")
       + (remaining > 0
-        ? `<button type="button" class="btn secondary jn-load-more" style="width:100%;margin-top:10px">Mostrar ${Math.min(80, remaining)} más (${remaining} restantes)</button>`
+        ? `<button type="button" class="btn secondary jn-load-more" style="width:100%;margin-top:10px">${tr("state.jn.showMore", { n: Math.min(80, remaining), remaining })}</button>`
         : "")
-      + (noCoords ? `<div class="jn-footnote">${noCoords} sin coordenadas en mapa</div>` : "");
+      + (noCoords ? `<div class="jn-footnote">${tr("state.jn.noCoords", { n: noCoords })}</div>` : "");
 
     box.querySelectorAll(".jn-job-item").forEach((el) => {
       el.addEventListener("click", () => {
@@ -1157,11 +1190,11 @@
       ? { from: jnDateOpts.from, to: jnDateOpts.to, field: jnDateOpts.field || "date_updated" }
       : null);
     if (filter) {
-      const fld = filter.field === "date_created" ? "creación" : "actualización";
-      const preset = mode === "month" ? "Este mes"
-        : mode === "custom" ? "Rango personalizado"
-        : filter.capped ? `Últimos ${filter.capped} meses`
-        : "Período";
+      const fld = filter.field === "date_created" ? tr("state.jn.dateCreated") : tr("state.jn.dateUpdated");
+      const preset = mode === "month" ? tr("state.jn.thisMonth")
+        : mode === "custom" ? tr("state.jn.customRange")
+        : filter.capped ? tr("state.hist.90").replace("90", String(filter.capped))
+        : tr("state.jn.period");
       jnSetDateHint(`${preset} · ${fld}: ${filter.from} → ${filter.to}`);
     } else {
       jnSetDateHint("Mostrando todos los jobs de la zona");
@@ -1174,7 +1207,7 @@
       const status = await API.getJNStatus();
       if (!status.configured) {
         document.getElementById("jnJobs").className = "error";
-        document.getElementById("jnJobs").innerHTML = `API no configurada.<br/>Pega tu <code>JOBNIMBUS_API_KEY</code> en <code>server/.env</code> y reinicia el servidor.`;
+        document.getElementById("jnJobs").innerHTML = tr("state.jn.apiMissing");
         return;
       }
 
@@ -1211,7 +1244,7 @@
       console.info(`JobNimbus ${ST.code}: ${data.total} jobs, ${data.withCoords} en mapa`);
     } catch (e) {
       document.getElementById("jnJobs").className = "error";
-      document.getElementById("jnJobs").textContent = "Error JobNimbus: " + e.message;
+      document.getElementById("jnJobs").textContent = tr("state.jn.error", { msg: e.message });
       console.warn("JobNimbus:", e.message);
     }
   }
@@ -1261,8 +1294,8 @@
   });
   document.getElementById("histApply").addEventListener("click", () => {
     const from = histFrom.value, to = histTo.value;
-    if (!from || !to) { histStatus.textContent = "elige ambas fechas"; return; }
-    if (from > to) { histStatus.textContent = "el 'desde' debe ser anterior al 'hasta'"; return; }
+    if (!from || !to) { histStatus.textContent = tr("state.jn.pickBothDates"); return; }
+    if (from > to) { histStatus.textContent = tr("state.jn.dateOrder"); return; }
     loadHailHistory({ from, to }, histStatus);
   });
 
@@ -1276,7 +1309,7 @@
       countEl.textContent = `${feats.length}`;
 
       if (!feats.length) {
-        box.innerHTML = `<div class="empty">✅ Sin alertas activas en ${ST.name} ahora mismo.</div>`;
+        box.innerHTML = `<div class="empty">✅ ${tr("state.alerts.none", { name: ST.name })}</div>`;
       }
 
       const listFrag = [];
@@ -1320,7 +1353,7 @@
         });
       });
     } catch (e) {
-      box.innerHTML = `<div class="error">No se pudieron cargar las alertas: ${e.message}</div>`;
+      box.innerHTML = `<div class="error">${tr("state.alerts.loadErr", { msg: e.message })}</div>`;
     }
   }
 
@@ -1359,17 +1392,17 @@
     });
     const sizeTxt = r.sizeIn.toFixed(2).replace(/0$/, "");
     const when = showDate
-      ? (r.time ? new Date(r.time).toLocaleString() : "—")
-      : `Reportado ${r.time} UTC`;
+      ? (r.time ? new Date(r.time).toLocaleString(loc()) : "—")
+      : tr("state.hail.reportedAt", { time: r.time });
     const place = [r.location, `${r.county} Co.`, r.state].filter(Boolean).join(", ");
     const note = r.comments || r.remark || "";
     m.bindPopup(
       `<div style="min-width:210px">
-        <div style="font-weight:700;font-size:15px">🧊 Granizo ${sizeTxt}"</div>
+        <div style="font-weight:700;font-size:15px">🧊 ${tr("state.hail.sizeTitle", { size: sizeTxt })}</div>
         <div style="font-size:12px;color:#555">${place}</div>
         <div style="font-size:12px;color:#555">${showDate ? "📅 " : ""}${when}</div>
         ${note ? `<div style="font-size:12px;margin-top:4px">${note}</div>` : ""}
-        <a href="#" onclick="__stSelectPoint(${r.lat},${r.lon});return false" style="display:inline-block;margin-top:6px;color:var(--accent)">📍 Ver zips de esta zona</a>
+        <a href="#" onclick="__stSelectPoint(${r.lat},${r.lon});return false" style="display:inline-block;margin-top:6px;color:var(--accent)">📍 ${tr("state.hail.viewZips")}</a>
       </div>`
     );
     return m;
@@ -1401,7 +1434,7 @@
   // --- Histórico de granizo: rango de fechas (IEM Local Storm Reports) -----
   async function loadHailHistory(opts, statusEl) {
     hailHistoryLayer.clearLayers();
-    statusEl.textContent = "cargando histórico…";
+    statusEl.textContent = tr("common.loading");
     try {
       const reps = await API.getHailHistory(ST.code, opts);
       let count = 0;
@@ -1412,11 +1445,11 @@
         if (count >= 2500) break; // tope de seguridad
       }
       statusEl.textContent = count
-        ? `${count} reporte(s) de granizo`
-        : "sin reportes en el rango";
+        ? tr("state.hist.count", { n: count })
+        : tr("state.hist.none");
       if (!map.hasLayer(hailHistoryLayer)) map.addLayer(hailHistoryLayer);
     } catch (e) {
-      statusEl.textContent = "error al cargar histórico";
+      statusEl.textContent = tr("common.error");
       console.warn("Histórico granizo:", e.message);
     }
   }
@@ -1445,8 +1478,8 @@
         `<div style="min-width:200px">
           <div style="font-weight:700;font-size:15px;color:#E2231A">🏠 ${off.name}</div>
           <div style="font-size:12px;color:#555;margin-top:2px">${off.address}</div>
-          <div style="font-size:12px;color:#555;margin-top:4px">Radio de cobertura ≈ ${miles} mi</div>
-          <a href="#" onclick="__stSelectPoint(${off.lat},${off.lon});return false" style="display:inline-block;margin-top:6px;color:var(--accent)">📍 Ver zips de esta zona</a>
+          <div style="font-size:12px;color:#555;margin-top:4px">${tr("state.office.radiusApprox", { miles })}</div>
+          <a href="#" onclick="__stSelectPoint(${off.lat},${off.lon});return false" style="display:inline-block;margin-top:6px;color:var(--accent)">📍 ${tr("state.hail.viewZips")}</a>
         </div>`
       )
       .addTo(officeLayer);
@@ -1456,8 +1489,8 @@
   async function loadForecast(lat, lon) {
     const fbox = document.getElementById("forecast");
     const cbox = document.getElementById("current");
-    fbox.className = "loading"; fbox.textContent = "Cargando proyección…";
-    cbox.className = "loading"; cbox.textContent = "Cargando condiciones actuales…";
+    fbox.className = "loading"; fbox.textContent = tr("state.forecastLoading");
+    cbox.className = "loading"; cbox.textContent = tr("state.currentLoading");
 
     // Open-Meteo como fuente principal; si falla, respaldo con NWS.
     let data;
@@ -1467,9 +1500,9 @@
       try {
         data = await API.getNWSWeather(lat, lon);
       } catch (e2) {
-        fbox.className = "error"; fbox.textContent = "No se pudo cargar la proyección: " + e1.message;
+        fbox.className = "error"; fbox.textContent = tr("state.fc.loadErr", { msg: e1.message });
         cbox.className = "error"; cbox.textContent = "—";
-        document.querySelectorAll(".miniFc").forEach((el) => { el.textContent = "Proyección no disponible"; });
+        document.querySelectorAll(".miniFc").forEach((el) => { el.textContent = tr("common.error"); });
         return;
       }
     }
@@ -1491,8 +1524,8 @@
       const d = data.daily;
       const cards = d.time.map((t, i) => {
         const date = new Date(t + "T00:00");
-        const dow = date.toLocaleDateString("es", { weekday: "short" });
-        const dd = date.toLocaleDateString("es", { day: "numeric", month: "short" });
+        const dow = date.toLocaleDateString(loc(), { weekday: "short" });
+        const dd = date.toLocaleDateString(loc(), { day: "numeric", month: "short" });
         return `
           <div class="day-card">
             <div class="dow">${dow}<br/>${dd}</div>
@@ -1509,14 +1542,14 @@
       if (fromNWS) {
         const note = document.createElement("div");
         note.style.cssText = "grid-column:1/-1;font-size:12px;color:var(--muted);margin-bottom:6px";
-        note.textContent = "⚠ Open-Meteo no disponible — datos del NWS (api.weather.gov).";
+        note.textContent = tr("state.fc.nwsFallback");
         fbox.prepend(note);
       }
 
       // Proyección compacta para el popup del mapa y el panel "Punto seleccionado"
       const miniCards = d.time.slice(0, 7).map((t, i) => {
         const date = new Date(t + "T00:00");
-        const dow = date.toLocaleDateString("es", { weekday: "short" });
+        const dow = date.toLocaleDateString(loc(), { weekday: "short" });
         return `<div style="text-align:center;min-width:42px;flex:0 0 auto">
             <div style="font-size:10px;color:var(--muted);text-transform:capitalize">${dow}</div>
             <div style="font-size:18px;line-height:20px">${API.wmoEmoji(d.weather_code[i])}</div>
@@ -1530,7 +1563,7 @@
       // Gráficas horarias (próximas 48 h)
       renderHourlyCharts(data.hourly);
     } catch (e) {
-      fbox.className = "error"; fbox.textContent = "No se pudo cargar la proyección: " + e.message;
+      fbox.className = "error"; fbox.textContent = tr("state.fc.loadErr", { msg: e.message });
       cbox.className = "error"; cbox.textContent = "—";
     }
   }
@@ -1545,21 +1578,21 @@
     btn.dataset.bound = "1";
     btn.addEventListener("click", async () => {
       btn.disabled = true;
-      btn.textContent = "Cargando…";
+      btn.textContent = tr("state.fc.loading");
       try {
         await loadForecast(lat, lon);
         const fc = await API.getNWSForecast(lat, lon);
         const next = fc.periods.slice(0, 2).map((p) =>
-          `<div style="margin-top:6px"><b>${p.name}:</b> ${p.temperature}°${p.temperatureUnit}, ${p.shortForecast}. Viento ${p.windSpeed} ${p.windDirection}.</div>`
+          `<div style="margin-top:6px"><b>${p.name}:</b> ${p.temperature}°${p.temperatureUnit}, ${p.shortForecast}. ${tr("state.fc.windLine", { speed: p.windSpeed, dir: p.windDirection })}</div>`
         ).join("");
         root.querySelectorAll(".nwsBox").forEach((box) => {
           box.innerHTML =
-            `<div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px"><b>Pronóstico NWS</b>${next}</div>`;
+            `<div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px"><b>${tr("state.fc.nwsTitle")}</b>${next}</div>`;
         });
         btn.style.display = "none";
       } catch {
         btn.disabled = false;
-        btn.textContent = "Reintentar pronóstico";
+        btn.textContent = tr("state.fc.retry");
       }
     });
   }
@@ -1583,12 +1616,12 @@
           const updTxt = upd ? new Date(upd).toLocaleString() : "—";
           return `<div style="margin:3px 0">⚠️ <b>${p.event}</b> ` +
             `<span class="badge" style="background:${c}">${p.severity || "?"}</span>` +
-            `<div style="font-size:11px;color:var(--muted)">Actualizado: ${updTxt}</div></div>`;
+            `<div style="font-size:11px;color:var(--muted)">${tr("state.point.updated", { when: updTxt })}</div></div>`;
         }).join("")
-      : `<div style="color:#36d399">✅ Sin alertas NWS en este punto</div>`;
+      : `<div style="color:#36d399">✅ ${tr("state.alerts.noneAtPoint")}</div>`;
     riskHtml += spc
-      ? `<div style="margin-top:2px">🌩️ Riesgo SPC: <b>${spc}</b></div>`
-      : `<div style="color:var(--muted);font-size:12px">Sin riesgo convectivo SPC aquí</div>`;
+      ? `<div style="margin-top:2px">🌩️ ${tr("state.point.spcRisk", { spc: `<b>${spc}</b>` })}</div>`
+      : `<div style="color:var(--muted);font-size:12px">${tr("state.spc.none")}</div>`;
 
     const nearbyScore = scoreAtPoint(lat, lon);
     if (nearbyScore) {
@@ -1605,22 +1638,22 @@
       ${header}
       <div>${riskHtml}</div>
       <div style="border-top:1px solid var(--border);padding-top:6px;margin-top:6px">
-        <b class="jnRadiusTitle">📋 Jobs en ${radiusMiles()} mi</b>
+        <b class="jnRadiusTitle">${tr("state.jn.radiusTitle", { miles: radiusMiles(), n: "…" })}</b>
         <div class="jnRadiusList" style="margin-top:6px;max-height:200px;overflow:auto">
-          <div class="jn-radius-empty">Buscando jobs en el radio…</div>
+          <div class="jn-radius-empty">${tr("state.jn.searchingRadius")}</div>
         </div>
       </div>
       <div style="border-top:1px solid var(--border);padding-top:6px;margin-top:6px">
-        <b class="zipTitle">Zip codes en ${radiusMiles()} mi</b>
-        <span class="zipsStatus" style="font-size:11px;color:var(--muted)">calculando…</span>
+        <b class="zipTitle">${tr("state.zip.title", { miles: radiusMiles() })}</b>
+        <span class="zipsStatus" style="font-size:11px;color:var(--muted)">${tr("state.zip.calculating")}</span>
         <div class="zipChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;max-height:160px;overflow:auto"></div>
       </div>
       <div class="fcBlock" style="border-top:1px solid var(--border);padding-top:6px;margin-top:6px">
-        <b>📅 Proyección 7 días</b>
-        <button type="button" class="btn secondary fcLoadBtn" style="margin-top:6px;font-size:12px;padding:4px 10px">Cargar pronóstico</button>
+        <b>📅 ${tr("state.point.projection7")}</b>
+        <button type="button" class="btn secondary fcLoadBtn" style="margin-top:6px;font-size:12px;padding:4px 10px">${tr("state.fc.loadBtn")}</button>
         <div class="miniFc" style="font-size:12px;color:var(--muted);margin-top:4px"></div>
       </div>
-      <div class="ptAddr" style="margin-top:6px;font-size:12px;color:var(--muted)">Cargando dirección…</div>
+      <div class="ptAddr" style="margin-top:6px;font-size:12px;color:var(--muted)">${tr("state.addr.loading")}</div>
       <div class="nwsBox"></div>`;
 
     clickMarker.bindPopup(`<div style="min-width:260px;max-width:340px">${body}</div>`, { maxWidth: 360 }).openPopup();
@@ -1687,7 +1720,7 @@
       map.setView([r.lat, r.lon], 11);
       selectPoint(r.lat, r.lon, r.name);
     } catch (e) {
-      alert("Zip code no encontrado: " + zip);
+      alert(tr("state.zip.notFound", { zip }));
     }
   }
   document.getElementById("zipBtn").addEventListener("click", doZipSearch);
@@ -1701,7 +1734,7 @@
     if (!h || !window.Chart) return;
     const N = 48;
     const labels = h.time.slice(0, N).map((t) =>
-      new Date(t).toLocaleString("es", { weekday: "short", hour: "2-digit" })
+      new Date(t).toLocaleString(loc(), { weekday: "short", hour: "2-digit" })
     );
     const grid = { color: "rgba(255,255,255,0.06)" };
     const tick = { color: "#93a3bd", maxTicksLimit: 8 };
@@ -1714,13 +1747,13 @@
       data: {
         labels,
         datasets: [{
-          label: "Temperatura °F",
+          label: tr("state.chart.temp"),
           data: h.temperature_2m.slice(0, N),
           borderColor: "#ff6b3d",
           backgroundColor: "rgba(255,107,61,0.15)",
           fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2
         }, {
-          label: "Viento mph",
+          label: tr("state.chart.wind"),
           data: h.wind_speed_10m.slice(0, N),
           borderColor: "#9aa7bd",
           fill: false, tension: 0.3, pointRadius: 0, borderWidth: 1, borderDash: [4, 3]
@@ -1738,11 +1771,11 @@
       data: {
         labels,
         datasets: [{
-          label: "Prob. lluvia %",
+          label: tr("state.chart.rainProb"),
           data: h.precipitation_probability.slice(0, N),
           backgroundColor: "rgba(58,160,255,0.55)", yAxisID: "y"
         }, {
-          type: "line", label: "Precipitación in",
+          type: "line", label: tr("state.chart.precip"),
           data: h.precipitation.slice(0, N),
           borderColor: "#36d399", backgroundColor: "rgba(54,211,153,0.2)",
           fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2, yAxisID: "y1"
@@ -1816,8 +1849,8 @@
     }
     radarSlider.value = String(RADAR.idx);
     radarTimeEl.textContent =
-      new Date(frame.time * 1000).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }) +
-      " · capa activa";
+      new Date(frame.time * 1000).toLocaleTimeString(loc(), { hour: "2-digit", minute: "2-digit" }) +
+      tr("state.radar.active");
   }
 
   function radarPlay() {
@@ -1839,7 +1872,7 @@
       try {
         if (!RADAR.frames.length) await initRadar();
       } catch (err) {
-        alert("Radar no disponible ahora mismo.");
+        alert(tr("state.radar.unavailable"));
         tglRadar.checked = false;
         saveRadarPref(false);
         return;
@@ -1901,8 +1934,8 @@
       localStorage.setItem("stormCsvFormat", sel.value);
       setStormExportStatus(
         sel.value === "google"
-          ? "Google: CSV con comas · …-google.csv · subir a Drive"
-          : "Excel: archivo .xlsx · columnas listas al abrir",
+          ? tr("state.export.hintGoogle")
+          : tr("state.export.hintExcel"),
         "ok"
       );
     });
@@ -1915,7 +1948,7 @@
     });
     if (hasJobs) {
       const fmt = stormCsvFormat() === "google" ? "CSV Google" : "Excel .xlsx";
-      setStormExportStatus(`Listo · teléfono y email · ${fmt}`);
+      setStormExportStatus(tr("state.export.ready", { fmt }));
     }
   }
 
@@ -1924,16 +1957,16 @@
     if (!btn || btn.disabled) return;
     const kind = btn.dataset.export;
     btn.classList.add("busy");
-    setStormExportStatus("Generando lista en servidor…");
+    setStormExportStatus(tr("state.export.generating"));
     try {
       const fmt = stormCsvFormat();
       const result = await API.exportStormList(kind, ST.code, stormDateOptsForExport(), fmt);
       const okMsg = fmt === "google"
-        ? "Descargado · …-google.csv · sube a Google Drive"
-        : "Descargado · …-excel.xlsx · abre en Excel o MobiSheets";
+        ? tr("state.export.doneGoogle")
+        : tr("state.export.doneExcel");
       setStormExportStatus(result.ok ? okMsg : result.message, result.ok ? "ok" : "err");
     } catch (err) {
-      setStormExportStatus(err.message || "Error al exportar", "err");
+      setStormExportStatus(err.message || tr("state.export.fail"), "err");
     } finally {
       btn.classList.remove("busy");
     }
@@ -1942,7 +1975,7 @@
   // --- Historial de tormentas + PDF -----------------------------------------
   function fmtHistoryDate(iso) {
     try {
-      return new Date(iso).toLocaleString("es-US", { dateStyle: "short", timeStyle: "short" });
+      return new Date(iso).toLocaleString(loc() === "es" ? "es-US" : "en-US", { dateStyle: "short", timeStyle: "short" });
     } catch {
       return iso;
     }
@@ -1964,25 +1997,25 @@
         const days = data.policy.retentionDays;
         const max = data.policy.maxEvents;
         hint.textContent = days
-          ? `Últimos ${days} días · máx. ${max} eventos · PDF con leads`
-          : `Máx. ${max} eventos · PDF con leads`;
+          ? tr("state.history.hintDays", { days, max })
+          : tr("state.history.hintMax", { max });
       }
       if (!data.events?.length) {
-        list.innerHTML = '<p class="storm-history-empty">Sin eventos registrados en esta zona.</p>';
+        list.innerHTML = `<p class="storm-history-empty">${tr("state.history.empty")}</p>`;
         return;
       }
       list.innerHTML = data.events.map((ev) => {
-        const tier = ev.tier === "campaign" ? "Meta" : ev.tier === "review" ? "Revisar" : "—";
+        const tier = ev.tier === "campaign" ? tr("state.history.tierMeta") : ev.tier === "review" ? tr("state.history.tierReview") : "—";
         return `<div class="storm-history-item ${tierClass(ev.tier)}">
           <div class="storm-history-meta">
             <strong>Score ${ev.scoreTotal} · ${tier}</strong>
             <span>${fmtHistoryDate(ev.recordedAt)}<br/>${ev.label || ev.zone} · ${ev.leadCount} lead(s)</span>
           </div>
-          <button type="button" class="storm-history-pdf" data-id="${ev.id}" title="Descargar PDF">PDF</button>
+          <button type="button" class="storm-history-pdf" data-id="${ev.id}" title="${tr("state.history.pdfTitle")}">${tr("state.history.pdf")}</button>
         </div>`;
       }).join("");
     } catch (err) {
-      list.innerHTML = `<p class="storm-history-empty">${err.message || "Error al cargar"}</p>`;
+      list.innerHTML = `<p class="storm-history-empty">${err.message || tr("state.history.loadFail")}</p>`;
     }
   }
 
@@ -1994,11 +2027,31 @@
     try {
       await API.downloadStormHistoryPdf(btn.dataset.id);
     } catch (err) {
-      alert(err.message || "No se pudo generar el PDF");
+      alert(err.message || tr("state.history.pdfFail"));
     } finally {
       btn.classList.remove("busy");
-      btn.textContent = "PDF";
+      btn.textContent = tr("state.history.pdf");
     }
+  });
+
+  // --- Language change: refresh dynamic chrome -----------------------------
+  window.addEventListener("premier:lang", () => {
+    if (window.I18n) window.I18n.apply(document);
+    try { renderLegend(); } catch (e) {}
+    syncMapStyleButtons();
+    try { updateStormExportButtons(); } catch (e) {}
+    try { jnRefreshUI(); } catch (e) {}
+    try { loadStormHistory(); } catch (e) {}
+    if (typeof selected !== "undefined" && selected) {
+      try {
+        selectPoint(selected.lat, selected.lon);
+      } catch (e) {
+        try { renderRadiusContext(); } catch (e2) {}
+        try { renderRadiusJobs(); } catch (e2) {}
+      }
+    }
+    const logout = document.getElementById("btnLogout");
+    if (logout) logout.textContent = tr("nav.logout");
   });
 
   // --- Init ----------------------------------------------------------------

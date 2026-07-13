@@ -1,0 +1,1510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Premier Sales Developer Machine</title>
+<link rel="icon" type="image/svg+xml" href="/assets/img/premier-logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+/* ============================================================================
+   PREMIER SALES DEVELOPER MACHINE — DESIGN TOKENS
+   Palette: Navy (primary), White, Gray scale, Light-blue accent
+   Type: Inter (UI/body) + IBM Plex Mono (data/metrics — the "readout" signature)
+   ============================================================================ */
+:root{
+  --navy-900:#0B2036;
+  --navy-800:#0F2A43;
+  --navy-700:#16344F;
+  --navy-600:#1F4A6E;
+  --blue-accent:#2E8BE6;
+  --blue-accent-dark:#1D6FBF;
+  --blue-soft:#EAF3FC;
+  --gray-50:#F6F8FA;
+  --gray-100:#EEF1F5;
+  --gray-200:#E2E7EE;
+  --gray-300:#CBD5E1;
+  --gray-500:#64748B;
+  --gray-700:#3B4657;
+  --ink:#132436;
+  --white:#FFFFFF;
+  --hot:#D64545;
+  --hot-bg:#FCEBEB;
+  --warm:#C97A1F;
+  --warm-bg:#FBF1E3;
+  --cold:#5C7086;
+  --cold-bg:#EDF1F5;
+  --good:#2A8F6E;
+  --good-bg:#E6F5EF;
+  --radius-sm:6px;
+  --radius-md:10px;
+  --radius-lg:16px;
+  --shadow-card:0 1px 2px rgba(15,42,67,0.06), 0 1px 8px rgba(15,42,67,0.05);
+  --shadow-pop:0 12px 32px rgba(11,32,54,0.18);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  background:var(--gray-50);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace; font-variant-numeric:tabular-nums;}
+button{font-family:inherit; cursor:pointer;}
+input,select,textarea{font-family:inherit;}
+a{color:inherit;}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:10px; height:10px;}
+::-webkit-scrollbar-thumb{background:var(--gray-300); border-radius:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+
+/* ---------- App Shell ---------- */
+#app{min-height:100vh; display:flex;}
+
+.sidebar{
+  width:232px; flex-shrink:0; background:var(--navy-900);
+  color:var(--white); display:flex; flex-direction:column;
+  position:sticky; top:0; height:100vh; padding:20px 14px;
+}
+.brand{padding:6px 10px 16px 10px; border-bottom:1px solid rgba(255,255,255,0.08); margin-bottom:12px;}
+.brand-row{display:flex; align-items:center; gap:10px; margin-bottom:8px;}
+.brand-logo{width:34px; height:34px; border-radius:8px; display:block; flex-shrink:0; background:var(--white); object-fit:contain; padding:3px;}
+.brand-name{font-size:15px; font-weight:700; line-height:1.2; letter-spacing:-0.01em;}
+.brand-sub{font-size:11px; color:rgba(255,255,255,0.45); margin-top:2px; text-transform:uppercase; letter-spacing:.06em;}
+.brand-globals{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px;
+}
+.sidebar .btn-home{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:7px 12px; border-radius:8px;
+  border:1px solid rgba(46,139,230,0.55);
+  background:rgba(46,139,230,0.16);
+  font-size:12.5px; font-weight:600; color:#fff;
+  text-decoration:none; white-space:nowrap;
+}
+.sidebar .btn-home:hover{background:rgba(46,139,230,0.28); color:#fff;}
+.sidebar .lang-flag-btn{
+  width:36px; height:34px; padding:0; border-radius:8px; cursor:pointer;
+  border:1px solid rgba(255,255,255,0.28); background:rgba(255,255,255,0.08);
+  font-size:20px; line-height:1; color:#fff;
+  display:inline-flex; align-items:center; justify-content:center;
+}
+.sidebar .lang-flag-btn:hover{border-color:rgba(255,255,255,0.55); background:rgba(255,255,255,0.14);}
+
+.nav-group{margin-bottom:4px;}
+.nav-label{font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,0.35); padding:14px 10px 6px;}
+.nav-item{
+  display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px;
+  font-size:13.5px; font-weight:500; color:rgba(255,255,255,0.72); margin-bottom:2px;
+  border:none; background:transparent; width:100%; text-align:left; transition:background .12s, color .12s;
+}
+.nav-item:hover{background:rgba(255,255,255,0.06); color:var(--white);}
+.nav-item.active{background:var(--blue-accent); color:var(--white); font-weight:600;}
+.nav-icon{width:16px; height:16px; flex-shrink:0; opacity:.9;}
+.nav-count{margin-left:auto; font-size:11px; font-family:'IBM Plex Mono',monospace; background:rgba(255,255,255,0.1); padding:1px 6px; border-radius:20px;}
+
+.sidebar-foot{margin-top:auto; padding:14px 10px 8px; border-top:1px solid rgba(255,255,255,0.08);}
+.sidebar-foot-user{display:flex; align-items:flex-start; gap:9px; font-size:12.5px; color:rgba(255,255,255,0.7); margin-bottom:10px;}
+.avatar-dot{width:26px; height:26px; border-radius:50%; background:var(--navy-600); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--white); flex-shrink:0;}
+.sidebar-foot-email{font-size:11.5px; color:rgba(255,255,255,0.55); word-break:break-all; line-height:1.35;}
+.sidebar-foot-org{font-size:10.5px; color:rgba(255,255,255,0.35); margin-top:2px; text-transform:uppercase; letter-spacing:.04em;}
+.sidebar .btn-logout{
+  width:100%; justify-content:center;
+  padding:7px 10px; border-radius:8px; font-size:12.5px; font-weight:600;
+  border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.85);
+}
+.sidebar .btn-logout:hover{background:rgba(255,255,255,0.12); color:#fff; border-color:rgba(255,255,255,0.35);}
+
+.main{flex:1; min-width:0;}
+.topbar{
+  position:sticky; top:0; z-index:20; background:var(--white); border-bottom:1px solid var(--gray-200);
+  padding:14px 28px; display:flex; align-items:center; justify-content:space-between;
+}
+.topbar h1{font-size:18px; margin:0; font-weight:700; letter-spacing:-0.01em;}
+.topbar-sub{font-size:12.5px; color:var(--gray-500); margin-top:2px;}
+.topbar-actions{display:flex; gap:8px;}
+
+.content{padding:24px 28px 60px;}
+
+/* ---------- Buttons ---------- */
+.btn{
+  display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:600;
+  padding:8px 14px; border-radius:8px; border:1px solid var(--gray-200); background:var(--white); color:var(--ink);
+  transition:all .12s;
+}
+.btn:hover{border-color:var(--gray-300); background:var(--gray-50);}
+.btn-primary{background:var(--navy-800); border-color:var(--navy-800); color:var(--white);}
+.btn-primary:hover{background:var(--navy-700); border-color:var(--navy-700);}
+.btn-accent{background:var(--blue-accent); border-color:var(--blue-accent); color:var(--white);}
+.btn-accent:hover{background:var(--blue-accent-dark); border-color:var(--blue-accent-dark);}
+.btn-sm{padding:6px 10px; font-size:12px;}
+.btn-ghost{border-color:transparent; background:transparent;}
+.btn-ghost:hover{background:var(--gray-100);}
+.btn:disabled{opacity:.45; cursor:not-allowed;}
+
+/* ---------- Cards / Panels ---------- */
+.panel{background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius-lg); box-shadow:var(--shadow-card);}
+.panel-pad{padding:20px 22px;}
+.panel-title{font-size:14.5px; font-weight:700; margin:0 0 2px; letter-spacing:-0.005em;}
+.panel-desc{font-size:12.5px; color:var(--gray-500); margin:0 0 16px;}
+
+/* ---------- Dashboard stat cards ---------- */
+.stat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px;}
+.stat-card{background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius-md); padding:16px 18px; box-shadow:var(--shadow-card);}
+.stat-label{font-size:11.5px; color:var(--gray-500); font-weight:600; text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px;}
+.stat-value{font-size:26px; font-weight:700; font-family:'IBM Plex Mono',monospace; letter-spacing:-0.02em; color:var(--navy-900);}
+.stat-value.accent{color:var(--blue-accent-dark);}
+.stat-value.hot{color:var(--hot);}
+.stat-value.warm{color:var(--warm);}
+.stat-value.cold{color:var(--cold);}
+.stat-foot{font-size:11.5px; color:var(--gray-500); margin-top:6px;}
+
+/* ---------- Priority badges / score ---------- */
+.badge{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; padding:3px 9px; border-radius:20px; text-transform:uppercase; letter-spacing:.03em;}
+.badge-dot{width:6px; height:6px; border-radius:50%;}
+.badge-hot{background:var(--hot-bg); color:var(--hot);}
+.badge-hot .badge-dot{background:var(--hot);}
+.badge-warm{background:var(--warm-bg); color:var(--warm);}
+.badge-warm .badge-dot{background:var(--warm);}
+.badge-cold{background:var(--cold-bg); color:var(--cold);}
+.badge-cold .badge-dot{background:var(--cold);}
+
+.score-pill{
+  display:inline-flex; align-items:baseline; gap:3px; font-family:'IBM Plex Mono',monospace; font-weight:700;
+  padding:4px 9px; border-radius:8px; font-size:14px;
+}
+.score-hot{background:var(--hot-bg); color:var(--hot);}
+.score-warm{background:var(--warm-bg); color:var(--warm);}
+.score-cold{background:var(--cold-bg); color:var(--cold);}
+.score-pill .max{font-size:10px; font-weight:500; opacity:.65;}
+
+.status-chip{font-size:11px; font-weight:600; padding:3px 9px; border-radius:6px; background:var(--gray-100); color:var(--gray-700); border:1px solid var(--gray-200);}
+.status-New{background:var(--blue-soft); color:var(--blue-accent-dark); border-color:#CFE4FA;}
+.status-Contacted{background:#F1EEFB; color:#6D4FC7; border-color:#E1DAF7;}
+.status-Follow-up{background:var(--warm-bg); color:var(--warm); border-color:#F3E0BE;}
+.status-Proposal{background:#E4F1FB; color:#1D6FBF; border-color:#CFE4FA;}
+.status-Closed{background:var(--good-bg); color:var(--good); border-color:#C9E9DB;}
+.status-Not{background:var(--gray-100); color:var(--gray-500); border-color:var(--gray-200);}
+
+.risk-chip{font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px;}
+.risk-Severe{background:var(--hot-bg); color:var(--hot);}
+.risk-High{background:#FDF0E4; color:#C55A11;}
+.risk-Moderate{background:var(--warm-bg); color:var(--warm);}
+.risk-Low{background:var(--good-bg); color:var(--good);}
+
+/* ---------- Search Panel ---------- */
+.search-grid{display:grid; grid-template-columns:200px 200px 1fr; gap:18px; margin-bottom:18px;}
+.field-label{font-size:12px; font-weight:600; color:var(--gray-700); margin-bottom:6px; display:block;}
+.field-hint{font-size:11px; color:var(--gray-500); margin-top:5px;}
+.input, select.input{
+  width:100%; padding:9px 11px; border:1px solid var(--gray-300); border-radius:8px; font-size:13.5px; background:var(--white); color:var(--ink);
+}
+.input:focus, select.input:focus{outline:none; border-color:var(--blue-accent); box-shadow:0 0 0 3px var(--blue-soft);}
+.radius-group{display:flex; gap:8px;}
+.radius-opt{
+  flex:1; text-align:center; padding:9px 6px; border:1px solid var(--gray-300); border-radius:8px; font-size:13px; font-weight:600;
+  background:var(--white); color:var(--gray-700); transition:all .12s;
+}
+.radius-opt.selected{background:var(--navy-800); border-color:var(--navy-800); color:var(--white);}
+.chip-select{display:flex; flex-wrap:wrap; gap:8px;}
+.type-chip{
+  padding:8px 13px; border:1px solid var(--gray-300); border-radius:20px; font-size:12.5px; font-weight:600; background:var(--white); color:var(--gray-700);
+  display:flex; align-items:center; gap:6px; transition:all .12s;
+}
+.type-chip.selected{background:var(--blue-soft); border-color:var(--blue-accent); color:var(--blue-accent-dark);}
+.filter-row{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; padding-top:16px; margin-top:16px; border-top:1px solid var(--gray-100);}
+
+/* ---------- Results toolbar ---------- */
+.results-toolbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;}
+.view-toggle{display:flex; border:1px solid var(--gray-300); border-radius:8px; overflow:hidden;}
+.view-toggle button{padding:7px 13px; font-size:12.5px; font-weight:600; border:none; background:var(--white); color:var(--gray-500);}
+.view-toggle button.active{background:var(--navy-800); color:var(--white);}
+.sort-select{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--gray-500);}
+
+/* ---------- Table view ---------- */
+.lead-table{width:100%; border-collapse:collapse; font-size:13px;}
+.lead-table thead th{
+  text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--gray-500);
+  font-weight:700; padding:10px 12px; border-bottom:1px solid var(--gray-200); background:var(--gray-50); position:sticky; top:0;
+}
+.lead-table tbody tr{border-bottom:1px solid var(--gray-100); cursor:pointer; transition:background .1s;}
+.lead-table tbody tr:hover{background:var(--blue-soft);}
+.lead-table td{padding:11px 12px; vertical-align:middle;}
+.lt-name{font-weight:600; color:var(--ink);}
+.lt-sub{font-size:11.5px; color:var(--gray-500); margin-top:1px;}
+.table-wrap{overflow-x:auto; border-radius:var(--radius-lg);}
+
+/* ---------- Card grid ---------- */
+.lead-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:16px;}
+.lead-card{background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius-lg); box-shadow:var(--shadow-card); padding:18px; cursor:pointer; transition:transform .12s, box-shadow .12s;}
+.lead-card:hover{transform:translateY(-2px); box-shadow:0 8px 24px rgba(15,42,67,0.12);}
+.lc-head{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;}
+.lc-name{font-size:15px; font-weight:700; margin:0 0 3px; letter-spacing:-0.005em;}
+.lc-addr{font-size:12px; color:var(--gray-500);}
+.lc-type-tag{display:inline-block; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--blue-accent-dark); background:var(--blue-soft); padding:2px 8px; border-radius:5px; margin-top:8px;}
+.lc-grid{display:grid; grid-template-columns:1fr 1fr; gap:9px 14px; margin:14px 0; padding:12px 0; border-top:1px solid var(--gray-100); border-bottom:1px solid var(--gray-100);}
+.lc-metric-label{font-size:10.5px; color:var(--gray-500); text-transform:uppercase; letter-spacing:.03em;}
+.lc-metric-value{font-size:13px; font-weight:600; font-family:'IBM Plex Mono',monospace; margin-top:2px;}
+.lc-reason{font-size:12px; color:var(--gray-700); line-height:1.5; margin-bottom:12px;}
+.lc-foot{display:flex; align-items:center; justify-content:space-between;}
+
+/* ---------- Detail page ---------- */
+.detail-header{display:flex; justify-content:space-between; align-items:flex-start; gap:20px; margin-bottom:20px;}
+.detail-grid{display:grid; grid-template-columns:1.4fr 1fr; gap:20px;}
+.info-row{display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--gray-100); font-size:13px;}
+.info-row:last-child{border-bottom:none;}
+.info-label{color:var(--gray-500); font-size:12.5px;}
+.info-value{font-weight:600; text-align:right; font-family:'IBM Plex Mono',monospace; font-size:12.8px;}
+.timeline{list-style:none; margin:0; padding:0;}
+.timeline li{display:flex; gap:12px; padding:10px 0; border-bottom:1px solid var(--gray-100);}
+.timeline li:last-child{border-bottom:none;}
+.tl-dot{width:9px; height:9px; border-radius:50%; margin-top:5px; flex-shrink:0;}
+.tl-date{font-size:11px; font-family:'IBM Plex Mono',monospace; color:var(--gray-500); min-width:78px;}
+.tl-text{font-size:12.8px; color:var(--ink);}
+.tl-sub{font-size:11.5px; color:var(--gray-500);}
+.ai-box{background:var(--blue-soft); border:1px solid #CFE4FA; border-radius:var(--radius-md); padding:14px 16px; margin-bottom:12px;}
+.ai-box-label{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--blue-accent-dark); margin-bottom:6px; display:flex; align-items:center; gap:6px;}
+.ai-box p{margin:0; font-size:13px; line-height:1.55; color:var(--ink);}
+.email-draft{background:var(--gray-50); border:1px solid var(--gray-200); border-radius:var(--radius-md); padding:14px 16px; font-size:12.8px; line-height:1.6; white-space:pre-wrap; font-family:'IBM Plex Mono',monospace; color:var(--ink);}
+textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); border-radius:8px; padding:10px 12px; font-size:13px; resize:vertical;}
+
+.section-gap{margin-bottom:20px;}
+.tag-pill{font-size:11px; font-weight:600; background:var(--gray-100); color:var(--gray-700); padding:3px 9px; border-radius:6px; display:inline-block;}
+
+/* API placeholder note strip */
+.api-note{
+  display:flex; align-items:flex-start; gap:9px; background:#FBFBFD; border:1px dashed var(--gray-300); border-radius:8px;
+  padding:9px 12px; font-size:11.5px; color:var(--gray-500); margin-top:16px;
+}
+.api-note b{color:var(--gray-700);}
+
+.empty-state{text-align:center; padding:60px 20px; color:var(--gray-500);}
+.empty-state h3{color:var(--ink); font-size:15px; margin-bottom:6px;}
+
+.toast{
+  position:fixed; bottom:22px; right:22px; background:var(--navy-900); color:var(--white); padding:12px 18px; border-radius:10px;
+  font-size:13px; font-weight:500; box-shadow:var(--shadow-pop); z-index:200; display:flex; align-items:center; gap:10px;
+  transform:translateY(20px); opacity:0; transition:all .25s; pointer-events:none;
+}
+.toast.show{transform:translateY(0); opacity:1;}
+
+.checkbox-row{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--gray-700);}
+
+/* ---------- Dashboard redesign ---------- */
+.dash-search{display:grid; grid-template-columns:130px 210px 1fr 170px; gap:16px; align-items:start;}
+.dash-main{display:grid; grid-template-columns:1.75fr 1fr; gap:16px; margin-bottom:20px;}
+.top-lead-list{display:flex; flex-direction:column; overflow-y:auto; max-height:400px; margin:4px 0 12px;}
+.top-lead{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 8px; border-bottom:1px solid var(--gray-100); cursor:pointer; border-radius:8px; transition:background .1s;}
+.top-lead:hover{background:var(--blue-soft);}
+.top-lead .tl2-name{font-size:12.8px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:190px;}
+.top-lead .tl2-meta{font-size:11px; color:var(--gray-500); margin-top:1px;}
+.status-chips{display:flex; flex-wrap:wrap; gap:8px;}
+.src-chip{font-size:11.5px; font-weight:600; padding:4px 11px; border-radius:20px; display:inline-flex; align-items:center; gap:5px;}
+.src-live{background:var(--good-bg); color:var(--good);}
+.src-stub{background:var(--gray-100); color:var(--gray-500);}
+.results-filters{display:flex; gap:20px; align-items:center; flex-wrap:wrap; padding:11px 16px; background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius-md); margin-bottom:14px; font-size:12.5px; color:var(--gray-700);}
+@media (max-width: 1100px){ .dash-search{grid-template-columns:1fr 1fr;} .dash-main{grid-template-columns:1fr;} }
+
+/* ---------- Owner groups (portfolio view) ---------- */
+.owner-group{margin-bottom:12px; overflow:hidden;}
+.og-head{display:flex; justify-content:space-between; align-items:center; gap:14px; padding:14px 18px; cursor:pointer; transition:background .1s;}
+.og-head:hover{background:var(--blue-soft);}
+.og-name{font-size:14.5px; font-weight:700; letter-spacing:-0.005em;}
+.og-meta{font-size:12px; color:var(--gray-500); margin-top:3px;}
+.og-phone{font-size:12.5px; font-weight:600; color:var(--blue-accent-dark); font-family:'IBM Plex Mono',monospace; text-decoration:none;}
+.og-badge{font-size:10px; font-weight:800; letter-spacing:.05em; padding:3px 9px; border-radius:20px; background:var(--blue-soft); color:var(--blue-accent-dark);}
+.og-leads{border-top:1px solid var(--gray-100);}
+.og-lead{display:grid; grid-template-columns:1fr 110px 64px 96px; gap:12px; align-items:center; padding:9px 18px; cursor:pointer; border-bottom:1px solid var(--gray-100); font-size:12.5px; transition:background .1s;}
+.og-lead:last-child{border-bottom:none;}
+.og-lead:hover{background:var(--gray-50);}
+.og-addr{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--gray-700);}
+@media (max-width: 780px){ .og-lead{grid-template-columns:1fr 80px;} }
+
+/* ---------- Map ---------- */
+.map-wrap{height:380px;}
+#detail-map{height:250px; border-radius:var(--radius-md); overflow:hidden; margin-top:14px; border:1px solid var(--gray-200);}
+.map-empty{display:flex; align-items:center; justify-content:center; height:100%; color:var(--gray-500); font-size:12.5px; background:var(--gray-50); text-align:center; padding:0 30px;}
+.map-legend{display:flex; gap:14px; align-items:center; font-size:11.5px; color:var(--gray-500); padding:10px 16px; border-top:1px solid var(--gray-100);}
+.legend-dot{width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:5px; vertical-align:middle;}
+.leaflet-container{font-family:'Inter',system-ui,sans-serif; z-index:1;}
+.leaflet-popup-content-wrapper{border-radius:10px;}
+
+@media (max-width: 1100px){
+  .search-grid{grid-template-columns:1fr; }
+  .filter-row{grid-template-columns:1fr 1fr;}
+  .detail-grid{grid-template-columns:1fr;}
+  .stat-grid{grid-template-columns:repeat(2,1fr);}
+}
+@media (max-width: 780px){
+  .sidebar{display:none;}
+  .stat-grid{grid-template-columns:1fr 1fr;}
+  .filter-row{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script src="/assets/js/i18n.js?v=44"></script>
+<script>
+/* ============================================================================
+   PREMIER SALES DEVELOPER MACHINE
+   Frontend — served by the Express backend (server/index.js). Footprint/parcel/
+   assessor data and geocoding are LIVE via /api/*; storm, permits, contacts,
+   and CRM remain stubbed. SAMPLE_LEADS below is kept as offline fallback.
+   ============================================================================
+   FUTURE API INTEGRATION POINTS (search this file for "API HOOK" markers):
+   1. Building Footprint Data  — free public GIS sources (IL pilot market):
+                                   - City of Chicago Data Portal (Socrata/SODA API)
+                                   - DuPage County GIS Open Data (ArcGIS REST / MapServer)
+                                   - Cook County Open Data "Cook Central" (ArcGIS Hub API)
+                                  Paid fallback for markets without open GIS data (FL, WI, MD, VA/DC):
+                                   Regrid Parcel API (building footprints + parcel boundaries)
+   2. Property Data API        — sq ft, use type, ownership (Regrid / ATTOM / Reonomy)
+   3. County Assessor API      — assessed value, year built, last sale, parcel
+   4. Google Maps / Places API — geocoding ZIP+radius, map view, place details
+   5. Storm / Hail / Wind API  — NOAA/NWS/CSU/Premier Sky storm event history
+   6. Permit Data API          — municipal building permit records
+   7. Contact Enrichment API   — property manager / owner contact details
+   8. CRM Integration (JobNimbus) — push leads, create tasks, sync status
+   ============================================================================ */
+
+// ---------------------------------------------------------------------------
+// DEMO DATA — replace with live API responses. Shape mirrors the eventual
+// merged payload from Property Data + Assessor + Storm + Permit + Enrichment.
+// ---------------------------------------------------------------------------
+const SAMPLE_LEADS = [
+  {
+    id:"PSL-1001", name:"Bloomingdale Corporate Center", address:"123 Lake St, Bloomingdale, IL 60108",
+    zip:"60108", distanceMiles:1.2, propertyType:"Office",
+    manager:"Midwest Property Partners", ownerEntity:"BCC Holdings LLC",
+    buildingSqFt:85000, roofSqFt:82000, roofType:"TPO (fully adhered)", yearBuilt:1998, roofAge:18,
+    propertyValue:9200000, lastSaleDate:"2016-03-14",
+    stormHistory:[
+      {date:"2024-04-02", type:"Wind", detail:"Straight-line wind gusts to 68 mph reported within 3 mi"},
+      {date:"2023-06-29", type:"Hail", detail:"1.5in hail reported within 2 mi radius"}
+    ],
+    hailWindRisk:"High",
+    recentPermits:[{date:"2024-05-10", type:"Roof repair", detail:"Emergency membrane patch, west elevation"}],
+    leadScore:88, priority:"Hot",
+    reason:"18-year-old TPO roof with two storm events in the last 24 months and a reactive repair permit already on file — strong sign of active leaks.",
+    salesAngle:"Lead with the emergency repair permit and offer a full roof condition assessment before the next storm season.",
+    outreachMessage:"Hi — I noticed a roof repair permit was pulled at Bloomingdale Corporate Center after last spring's wind event. We're offering complimentary roof condition assessments in the area this month and wanted to check if the repair fully resolved things or if it's worth a closer look before next storm season.",
+    contactName:null, contactPhone:null, contactEmail:null,
+    status:"New"
+  },
+  {
+    id:"PSL-1002", name:"Glendale Heights Industrial Park — Bldg C", address:"455 Fullerton Ave, Glendale Heights, IL 60139",
+    zip:"60139", distanceMiles:4.6, propertyType:"Industrial",
+    manager:"Heartland Industrial Management", ownerEntity:"GHIP Bldg C LLC",
+    buildingSqFt:62000, roofSqFt:60500, roofType:"EPDM (ballasted)", yearBuilt:1985, roofAge:30,
+    propertyValue:4150000, lastSaleDate:"2011-09-01",
+    stormHistory:[
+      {date:"2023-06-29", type:"Hail", detail:"1.75in hail reported within 1 mi radius"},
+      {date:"2022-08-10", type:"Wind", detail:"Severe thunderstorm wind advisory, county-wide"}
+    ],
+    hailWindRisk:"Severe",
+    recentPermits:[],
+    leadScore:91, priority:"Hot",
+    reason:"30-year-old EPDM roof, well past typical service life, sitting inside a severe hail footprint with no permit history — likely undocumented damage.",
+    salesAngle:"Offer a free storm-damage documentation report; EPDM at this age is a full-replacement conversation, not a patch.",
+    outreachMessage:"Hi — your building at 455 Fullerton Ave sits inside the hail swath from the June 2023 storm, and public records show the roof hasn't been touched since the mid-80s. We'd like to offer a free documented damage report so you have something concrete for your insurer either way.",
+    contactName:null, contactPhone:null, contactEmail:null,
+    status:"New"
+  },
+  {
+    id:"PSL-1003", name:"Stratford Square Retail Plaza", address:"152 Stratford Square, Bloomingdale, IL 60108",
+    zip:"60108", distanceMiles:0.8, propertyType:"Retail",
+    manager:"Centro Retail Services", ownerEntity:"Stratford Square Partners LP",
+    buildingSqFt:145000, roofSqFt:138000, roofType:"Modified Bitumen", yearBuilt:2004, roofAge:8,
+    propertyValue:21500000, lastSaleDate:"2019-11-20",
+    stormHistory:[{date:"2023-06-29", type:"Hail", detail:"1in hail reported within 3 mi radius"}],
+    hailWindRisk:"Moderate",
+    recentPermits:[{date:"2023-08-02", type:"Rooftop HVAC replacement", detail:"3 new RTUs installed, roof penetrations updated"}],
+    leadScore:64, priority:"Warm",
+    reason:"Recent HVAC work created new roof penetrations — a common source of future leaks — and the property sits at the edge of a hail-affected zone.",
+    salesAngle:"Offer a post-installation roof penetration inspection tied to the recent HVAC permit.",
+    outreachMessage:"Hi — we saw the RTU replacement permit filed at Stratford Square Plaza. New rooftop penetrations are one of the top causes of leaks in the first two years after install, so we wanted to offer a quick inspection to confirm everything was properly flashed.",
+    contactName:null, contactPhone:null, contactEmail:null,
+    status:"New"
+  },
+  {
+    id:"PSL-1004", name:"Meadowbrook Multifamily Apartments", address:"890 Meadowbrook Ln, Carol Stream, IL 60188",
+    zip:"60188", distanceMiles:6.3, propertyType:"Multifamily",
+    manager:"Lincoln Residential Group", ownerEntity:"Meadowbrook JV LLC",
+    buildingSqFt:210000, roofSqFt:198000, roofType:"Asphalt Shingle (pitched)", yearBuilt:1992, roofAge:24,
+    propertyValue:32800000, lastSaleDate:"2021-06-08",
+    stormHistory:[
+      {date:"2024-04-02", type:"Wind", detail:"Wind gusts to 68 mph reported within 2 mi"},
+      {date:"2023-06-29", type:"Hail", detail:"1.5in hail reported within 2 mi radius"}
+    ],
+    hailWindRisk:"High",
+    recentPermits:[{date:"2024-06-01", type:"Gutter repair", detail:"Sections replaced on buildings 4 and 7"}],
+    leadScore:82, priority:"Hot",
+    reason:"Large multifamily portfolio, aging shingle roofs, repeat storm exposure, and a gutter repair already filed — good multi-building opportunity.",
+    salesAngle:"Propose a portfolio-wide roof condition audit across all buildings rather than a single-unit repair.",
+    outreachMessage:"Hi — with the gutter work recently done on buildings 4 and 7, it's a good time to get ahead of roofing before next storm season. We'd like to offer a complimentary roof audit across the full property so you have one clear picture instead of building-by-building surprises.",
+    contactName:null, contactPhone:null, contactEmail:null,
+    status:"Contacted"
+  },
+  {
+    id:"PSL-1005", name:"Keystone Business Park — Office A", address:"701 Keystone Ave, Roselle, IL 60172",
+    zip:"60172", distanceMiles:3.9, propertyType:"Office",
+    manager:"Prairie Commercial Management", ownerEntity:"Keystone Office A LLC",
+    buildingSqFt:48000, roofSqFt:46500, roofType:"TPO", yearBuilt:2010, roofAge:16,
+    propertyValue:6100000, lastSaleDate:"2017-02-27",
+    stormHistory:[{date:"2023-06-29", type:"Hail", detail:"1in hail reported within 4 mi radius"}],
+    hailWindRisk:"Moderate",
+    recentPermits:[],
+    leadScore:55, priority:"Warm",
+    reason:"Mid-life TPO roof approaching the age where preventative maintenance pays off, light storm exposure, no recent roof activity on file.",
+    salesAngle:"Position as preventative maintenance rather than storm response — extend roof life before problems start.",
+    outreachMessage:"Hi — Keystone Business Park's roof is coming up on 16 years, which is right around when a maintenance check starts paying for itself. Happy to offer a free inspection so you know exactly where things stand.",
+    contactName:null, contactPhone:null, contactEmail:null,
+    status:"New"
+  },
+  {
+    id:"PSL-1006", name:"Fox Valley Commons Condominiums", address:"340 Fox Valley Dr, Wood Dale, IL 60191",
+    zip:"60191", distanceMiles:7.8, propertyType:"HOA/Condo",
+    manager:"Sunrise Community Association Management", ownerEntity:"Fox Valley Commons Condo Assoc.",
+    buildingSqFt:96000, roofSqFt:91000, roofType:"Asphalt Shingle (pitched)", yearBuilt:1988, roofAge:15,
+    propertyValue:14200000, lastSaleDate:"N/A — HOA-held common property",
+    stormHistory:[
+      {date:"2023-06-29", type:"Hail", detail:"1.5in hail reported within 2 mi radius"},
+      {date:"2022-08-10", type:"Wind", detail:"Severe thunderstorm wind advisory, county-wide"}
+    ],
+    hailWindRisk:"High",
+    recentPermits:[{date:"2023-07-15", type:"Roof inspection", detail:"Association-ordered inspection following hail event"}],
+    leadScore:73, priority:"Warm",
+    reason:"HOA already ordered a post-hail inspection — a strong buying signal — but no repair or replacement permit has followed yet.",
+    salesAngle:"Reach the board directly; offer to review the existing inspection report and provide a second opinion with a formal proposal.",
+    outreachMessage:"Hi — we understand the association had a roof inspection done after last summer's hail event. We'd be glad to review those findings and put together a formal repair or replacement proposal for the board's next meeting.",
+    contactName:null, contactPhone:null, contactEmail:null,
+    status:"New"
+  },
+  {
+    id:"PSL-1007", name:"Addison Mixed-Use Development", address:"1200 Lake St, Addison, IL 60101",
+    zip:"60101", distanceMiles:9.4, propertyType:"Mixed-use",
+    manager:"Centro Retail Services", ownerEntity:"Addison Mixed-Use Partners LLC",
+    buildingSqFt:72000, roofSqFt:69000, roofType:"TPO", yearBuilt:2021, roofAge:5,
+    propertyValue:11800000, lastSaleDate:"2021-05-12",
+    stormHistory:[],
+    hailWindRisk:"Low",
+    recentPermits:[],
+    leadScore:22, priority:"Cold",
+    reason:"New construction, no storm exposure on record, roof still well within warranty — low near-term opportunity.",
+    salesAngle:"Add to long-term nurture list; check back near end of workmanship warranty period.",
+    outreachMessage:"Hi — congratulations on the new development. We'd like to stay in touch and offer a complimentary roof check-in as the workmanship warranty approaches its end date.",
+    contactName:null, contactPhone:null, contactEmail:null,
+    status:"New"
+  },
+  {
+    id:"PSL-1008", name:"Itasca Logistics Center", address:"500 Thorndale Ave, Itasca, IL 60143",
+    zip:"60143", distanceMiles:5.1, propertyType:"Industrial",
+    manager:"Heartland Industrial Management", ownerEntity:"Itasca Logistics LLC",
+    buildingSqFt:310000, roofSqFt:298000, roofType:"TPO (mechanically attached)", yearBuilt:2001, roofAge:14,
+    propertyValue:41500000, lastSaleDate:"2018-10-03",
+    stormHistory:[
+      {date:"2024-04-02", type:"Wind", detail:"Wind gusts to 68 mph reported within 1 mi"},
+      {date:"2023-06-29", type:"Hail", detail:"1.75in hail reported within 1 mi radius"}
+    ],
+    hailWindRisk:"Severe",
+    recentPermits:[{date:"2024-04-18", type:"Roof repair", detail:"Emergency tarp and patch after wind event"}],
+    leadScore:95, priority:"Hot",
+    reason:"Largest roof in the set, severe storm footprint, and an emergency tarp-and-patch permit already filed — highest-value, highest-urgency opportunity.",
+    salesAngle:"Move fast — request the emergency repair scope of work and propose a full engineered assessment before the next storm system.",
+    outreachMessage:"Hi — we saw the emergency tarp-and-patch permit filed at the Itasca Logistics Center after last month's wind event. Given the size of the roof, it's worth a full engineered assessment now rather than repeat emergency patches. Happy to come out this week.",
+    contactName:null, contactPhone:null, contactEmail:null,
+    status:"New"
+  },
+  {
+    id:"PSL-1009", name:"Carol Stream Professional Plaza", address:"222 Schmale Rd, Carol Stream, IL 60188",
+    zip:"60188", distanceMiles:6.9, propertyType:"Office",
+    manager:"Prairie Commercial Management", ownerEntity:"CSPP Holdings LLC",
+    buildingSqFt:34000, roofSqFt:33000, roofType:"TPO", yearBuilt:2016, roofAge:10,
+    propertyValue:5200000, lastSaleDate:"2016-08-19",
+    stormHistory:[],
+    hailWindRisk:"Low",
+    recentPermits:[],
+    leadScore:28, priority:"Cold",
+    reason:"Younger roof, no storm history on record, no recent permit activity — low urgency at this time.",
+    salesAngle:"Nurture list; reintroduce during annual maintenance outreach.",
+    outreachMessage:"Hi — we work with several properties in Carol Stream and wanted to introduce ourselves. When your team is due for an annual roof check, we'd be glad to help.",
+    contactName:null, contactPhone:null, contactEmail:null,
+    status:"New"
+  },
+  {
+    id:"PSL-1010", name:"Wood Dale Shopping Center", address:"815 Irving Park Rd, Wood Dale, IL 60191",
+    zip:"60191", distanceMiles:8.2, propertyType:"Retail",
+    manager:"Sunrise Community Association Management", ownerEntity:"Wood Dale Retail LLC",
+    buildingSqFt:58000, roofSqFt:55500, roofType:"Modified Bitumen", yearBuilt:1999, roofAge:20,
+    propertyValue:7300000, lastSaleDate:"2014-04-30",
+    stormHistory:[{date:"2023-06-29", type:"Hail", detail:"1.25in hail reported within 3 mi radius"}],
+    hailWindRisk:"Moderate",
+    recentPermits:[{date:"2022-11-04", type:"Roof coating", detail:"Reflective coating applied to reduce maintenance"}],
+    leadScore:58, priority:"Warm",
+    reason:"20-year-old modified bitumen roof with a maintenance coating already applied — a re-coat or overlay conversation is well-timed.",
+    salesAngle:"Ask about performance of the 2022 coating and offer a follow-up inspection to plan the next maintenance cycle.",
+    outreachMessage:"Hi — we noticed the reflective coating applied at Wood Dale Shopping Center back in 2022. We'd like to check in on how it's holding up and help plan the next maintenance step before it becomes a bigger repair.",
+    contactName:null, contactPhone:null, contactEmail:null,
+    status:"Follow-up"
+  },
+  {
+    id:"PSL-1011", name:"Schaumburg Corporate Campus", address:"1900 E Higgins Rd, Schaumburg, IL 60173",
+    zip:"60173", distanceMiles:12.6, propertyType:"Commercial",
+    manager:"Midwest Property Partners", ownerEntity:"Schaumburg Campus Holdings LLC",
+    buildingSqFt:265000, roofSqFt:252000, roofType:"TPO", yearBuilt:1994, roofAge:22,
+    propertyValue:38900000, lastSaleDate:"2015-01-22",
+    stormHistory:[
+      {date:"2024-04-02", type:"Wind", detail:"Wind gusts to 65 mph reported within 4 mi"},
+      {date:"2023-06-29", type:"Hail", detail:"1.5in hail reported within 3 mi radius"}
+    ],
+    hailWindRisk:"High",
+    recentPermits:[],
+    leadScore:79, priority:"Hot",
+    reason:"Large multi-building corporate campus, aging roof system, repeat storm exposure and no repair activity on file — likely deferred maintenance.",
+    salesAngle:"Request a campus-wide walk with facilities management; propose phased replacement plan across buildings.",
+    outreachMessage:"Hi — with the campus roof now over 20 years old and two storm events in the last two years, we'd like to offer a full facilities walk and put together a phased replacement plan that fits your capital planning cycle.",
+    contactName:null, contactPhone:null, contactEmail:null,
+    status:"New"
+  },
+  {
+    id:"PSL-1012", name:"Roselle Community Townhomes HOA", address:"60 Prospect St, Roselle, IL 60172",
+    zip:"60172", distanceMiles:4.2, propertyType:"HOA/Condo",
+    manager:"Sunrise Community Association Management", ownerEntity:"Roselle Community Townhomes Assoc.",
+    buildingSqFt:78000, roofSqFt:74000, roofType:"Asphalt Shingle (pitched)", yearBuilt:2013, roofAge:13,
+    propertyValue:9600000, lastSaleDate:"N/A — HOA-held common property",
+    stormHistory:[{date:"2023-06-29", type:"Hail", detail:"1in hail reported within 5 mi radius"}],
+    hailWindRisk:"Low",
+    recentPermits:[],
+    leadScore:34, priority:"Cold",
+    reason:"Mid-life shingle roof, only light hail exposure on the edge of the storm footprint, no permit activity — lower near-term priority.",
+    salesAngle:"Add to seasonal HOA newsletter outreach; revisit if a stronger storm event hits the area.",
+    outreachMessage:"Hi — we work with several community associations nearby and wanted to introduce Premier Group as a resource for when the board is ready to review roofing options.",
+    contactName:null, contactPhone:null, contactEmail:null,
+    status:"New"
+  }
+];
+
+// ---------------------------------------------------------------------------
+// LIVE — building footprint / parcel data, proxied through our backend.
+// The browser no longer calls third-party GIS APIs directly (CORS + rate
+// limits). See server/sources/* for per-county implementations:
+//   Chicago → Socrata syp8-uezg (building footprints — corrected dataset;
+//             the old hz9b-7nh8 was a map view that silently returned [])
+//   DuPage  → ParcelsWithRealEstateCC (parcels + assessor: owner, values)
+//   Cook    → buildingFootprint_2008 (live, with local-extract fallback)
+//   Non-IL  → Regrid stub (needs API key)
+// ZIP → coordinates/county routing now uses REAL geocoding server-side
+// (/api/geocode: Google when key is set, free fallback otherwise) — the old
+// hardcoded DEMO_ZIP_COUNTY_MAP / DEMO_ZIP_COORDS tables are gone.
+// ---------------------------------------------------------------------------
+async function fetchBuildingFootprint(zip, radiusMiles){
+  try{
+    const res = await fetch(`/api/footprints?zip=${encodeURIComponent(zip)}&radius=${radiusMiles||10}`, {credentials:"include"});
+    const data = await res.json();
+    if(!res.ok) return { sourceUsed: data.sourceUsed || "backend", cost:"", live:false, buildingCount:null, note: data.note || data.error || "Backend error" };
+    return data;
+  } catch(err){
+    return { sourceUsed:"backend", cost:"", live:false, buildingCount:null, note:"Backend unreachable: " + err.message };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// LIVE — orchestrated lead search via the backend merge pipeline (/api/leads):
+// geocode → county routing → footprint/parcel/assessor fetch → merge into
+// this app's lead shape. Storm history, permits, and contact enrichment are
+// still backend STUBS (the response says exactly which domains are stubbed).
+// Falls back to SAMPLE_LEADS demo data if the backend is unreachable.
+// ---------------------------------------------------------------------------
+async function fetchLeadsForSearch(searchParams){
+  try{
+    const params = new URLSearchParams({
+      zip: searchParams.zip,
+      radius: String(searchParams.radius),
+      types: searchParams.propertyTypes.join(",")
+    });
+    const res = await fetch(`/api/leads?${params}`, {credentials:"include"});
+    const data = await res.json();
+    if(!res.ok || !data.live){
+      showToast(data.note || data.error || st("sales.toast.demo","Live search unavailable — showing demo data"));
+      return SAMPLE_LEADS.filter(l => searchParams.propertyTypes.includes(l.propertyType));
+    }
+    return data.leads;
+  } catch(err){
+    showToast(st("sales.toast.backendDown","Backend unreachable — showing demo data"));
+    return SAMPLE_LEADS.filter(l => searchParams.propertyTypes.includes(l.propertyType));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CRM actions → backend /api/crm/* (JobNimbus stub until key + field mapping;
+// custom integration planned — Zapier ruled out per prior project).
+// ---------------------------------------------------------------------------
+async function sendLeadToCRM(lead){
+  const res = await fetch("/api/crm/leads", {method:"POST", credentials:"include", headers:{"Content-Type":"application/json"}, body: JSON.stringify(lead)});
+  return res.json();
+}
+async function createFollowUpTask(lead, dueDate){
+  const res = await fetch("/api/crm/tasks", {method:"POST", credentials:"include", headers:{"Content-Type":"application/json"}, body: JSON.stringify({lead, dueDate})});
+  return res.json();
+}
+
+// ---------------------------------------------------------------------------
+// APP STATE
+// ---------------------------------------------------------------------------
+const state = {
+  view: "dashboard", // dashboard | results | detail
+  results: [...SAMPLE_LEADS],
+  loading: false,
+  searchParams:{
+    zip:"60108", radius:10,
+    propertyTypes:["Commercial","Multifamily","Retail","Industrial","Office","HOA/Condo","Mixed-use"],
+    stormOnly:false, minRoofSqFt:0, priorityFilter:"All"
+  },
+  resultsView:"owners", // owners | table | cards
+  sortBy:"leadScore", // leadScore | roofSqFt | propertyValue | hailWindRisk
+  activeLeadId:null,
+  hasSearched:true,
+  showResultsMap:false, // dashboard owns the big map; the results-page map is opt-in
+  sourceStatus:null,    // /api/status cache for the dashboard panel
+  sessionEmail:null,    // from /api/auth/me — same session as Sky
+};
+const RISK_ORDER = {Severe:4, High:3, Moderate:2, Low:1};
+const ALL_TYPES = ["Commercial","Multifamily","Retail","Industrial","Office","HOA/Condo","Mixed-use"];
+
+function fmtMoney(n){ return n == null ? "—" : "$" + Math.round(n).toLocaleString("en-US"); }
+function fmtSqFt(n){ return n == null ? "—" : Math.round(n).toLocaleString("en-US") + " sf"; }
+function priorityLabel(p){
+  if(p==="Hot") return st("sales.priority.hot","Hot");
+  if(p==="Warm") return st("sales.priority.warm","Warm");
+  return st("sales.priority.cold","Cold");
+}
+function priorityBadge(p){
+  const cls = p==="Hot" ? "badge-hot" : p==="Warm" ? "badge-warm" : "badge-cold";
+  return `<span class="badge ${cls}"><span class="badge-dot"></span>${priorityLabel(p)}</span>`;
+}
+function scoreClass(p){ return p==="Hot" ? "score-hot" : p==="Warm" ? "score-warm" : "score-cold"; }
+function statusClass(s){ return "status-" + s.replace(/\s+/g,"-").replace("Not Interested","Not"); }
+function mapsLink(address){ return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(address); }
+function st(key, fallback, vars){
+  try {
+    if (window.I18n && typeof window.I18n.t === "function") {
+      const v = window.I18n.t(key, vars);
+      if (v && v !== key) return v;
+    }
+  } catch (e) {}
+  if (vars && typeof fallback === "string") {
+    return fallback.replace(/\{(\w+)\}/g, (_, k) => (vars[k] != null ? String(vars[k]) : ""));
+  }
+  return fallback;
+}
+
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(()=>t.classList.remove("show"), 2600);
+}
+
+// ---------------------------------------------------------------------------
+// FILTER + SORT (operates on state.results, which comes from fetchLeadsForSearch)
+// ---------------------------------------------------------------------------
+function getFilteredSortedLeads(){
+  let leads = [...state.results];
+  const sp = state.searchParams;
+  leads = leads.filter(l => sp.propertyTypes.includes(l.propertyType));
+  if(sp.stormOnly) leads = leads.filter(l => l.stormHistory.length > 0);
+  if(sp.minRoofSqFt > 0) leads = leads.filter(l => l.roofSqFt >= sp.minRoofSqFt);
+  if(sp.priorityFilter !== "All") leads = leads.filter(l => l.priority === sp.priorityFilter);
+
+  leads.sort((a,b)=>{
+    if(state.sortBy === "leadScore") return b.leadScore - a.leadScore;
+    if(state.sortBy === "roofSqFt") return b.roofSqFt - a.roofSqFt;
+    if(state.sortBy === "propertyValue") return b.propertyValue - a.propertyValue;
+    if(state.sortBy === "hailWindRisk") return RISK_ORDER[b.hailWindRisk] - RISK_ORDER[a.hailWindRisk];
+    return 0;
+  });
+  return leads;
+}
+
+// ---------------------------------------------------------------------------
+// OWNER GROUPING — one owner = one call. Multiple parcels under the same
+// registered owner collapse into a portfolio group (the strongest commercial
+// pitch: audit the whole portfolio, not one building). Leads without an
+// owner of record (Chicago/Cook footprints) stay individual.
+// ---------------------------------------------------------------------------
+function groupLeadsByOwner(leads){
+  const map = new Map();
+  for(const l of leads){
+    const key = l.ownerEntity || ("__solo__" + l.id);
+    if(!map.has(key)) map.set(key, {
+      owner: l.ownerEntity, leads: [], types: new Set(),
+      totalRoofSqFt: 0, totalValue: 0, bestScore: -1, bestLead: null,
+      priority: "Cold", phone: null, phoneIsOwnerMatch: false
+    });
+    const g = map.get(key);
+    g.leads.push(l);
+    g.types.add(l.propertyType);
+    g.totalRoofSqFt += l.roofSqFt || 0;
+    g.totalValue += l.propertyValue || 0;
+    if(l.leadScore > g.bestScore){ g.bestScore = l.leadScore; g.priority = l.priority; g.bestLead = l; }
+    // Best phone for the group: prefer an owner-matched business line
+    if(l.contactPhone && (!g.phone || (l.contactIsOwnerMatch && !g.phoneIsOwnerMatch))){
+      g.phone = l.contactPhone; g.phoneIsOwnerMatch = !!l.contactIsOwnerMatch;
+    }
+  }
+  return [...map.values()].map(g => {
+    g.parcels = g.leads.length;
+    g.leads.sort((a,b)=>b.leadScore - a.leadScore || (b.roofSqFt||0)-(a.roofSqFt||0));
+    return g;
+  }).sort((a,b)=> b.bestScore - a.bestScore || b.totalRoofSqFt - a.totalRoofSqFt);
+}
+
+// ---------------------------------------------------------------------------
+// CSV EXPORT
+// ---------------------------------------------------------------------------
+function exportCSV(){
+  const leads = getFilteredSortedLeads();
+  const cols = ["id","name","address","propertyType","manager","ownerEntity","buildingSqFt","roofSqFt","roofType",
+    "yearBuilt","roofAge","propertyValue","lastSaleDate","hailWindRisk","leadScore","priority","status"];
+  const header = cols.join(",");
+  const rows = leads.map(l => cols.map(c => `"${String(l[c]).replace(/"/g,'""')}"`).join(","));
+  const csv = [header, ...rows].join("\n");
+  const blob = new Blob([csv], {type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "premier-sales-leads.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(st("sales.toast.csv", "CSV exported — {n} leads", { n: leads.length }));
+}
+
+// ---------------------------------------------------------------------------
+// RENDER: SIDEBAR
+// ---------------------------------------------------------------------------
+function renderSidebar(){
+  const items = [
+    {id:"dashboard", label: st("sales.nav.dashboard","Dashboard"), icon:iconGrid()},
+    {id:"results", label: st("sales.nav.results","Lead Results"), icon:iconList(), count: state.hasSearched ? getFilteredSortedLeads().length : null},
+  ];
+  const email = state.sessionEmail || "";
+  const initials = email ? email.slice(0, 2).toUpperCase() : "PG";
+  return `
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-row">
+        <img class="brand-logo" src="/assets/img/premier-logo.svg" alt="Premier" />
+        <div>
+          <div class="brand-name">${st("sales.brandName","Premier Sales")}</div>
+          <div class="brand-sub">${st("sales.brandSub","Premier Group")}</div>
+        </div>
+      </div>
+      <div class="brand-globals">
+        <a class="btn-home" href="/index.html" title="${st("sales.homeHint","Back to app picker")}">${st("sales.home","← Home")}</a>
+        <div id="salesLangHost"></div>
+      </div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">${st("sales.nav.workspace","Workspace")}</div>
+      ${items.map(it => `
+        <button class="nav-item ${state.view===it.id ? "active":""}" data-nav="${it.id}">
+          ${it.icon}
+          <span>${it.label}</span>
+          ${it.count!=null ? `<span class="nav-count">${it.count}</span>` : ""}
+        </button>
+      `).join("")}
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">${st("sales.nav.integrations","Integrations")}</div>
+      <div style="padding:8px 10px; font-size:11.5px; color:rgba(255,255,255,0.4); line-height:1.55;">
+        ${st("sales.nav.sourcesLive","{live} sources live · {pending} pending", { live: 7, pending: 5 })}
+        <div style="margin-top:4px; color:rgba(255,255,255,0.3); font-size:10.5px;">${st("sales.nav.sourcesHint","Details in the Dashboard \"Data source status\" panel")}</div>
+      </div>
+    </div>
+    <div class="sidebar-foot">
+      <div class="sidebar-foot-user">
+        <div class="avatar-dot">${initials}</div>
+        <div>
+          <div class="sidebar-foot-email" title="${email}">${email || st("sales.user","Sales Team")}</div>
+          <div class="sidebar-foot-org">${st("sales.userOrg","Premier Group")}</div>
+        </div>
+      </div>
+      <button type="button" class="btn btn-sm btn-logout" id="btnSalesLogout">${st("nav.logout","Log out")}</button>
+    </div>
+  </div>`;
+}
+function iconGrid(){ return `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>`; }
+function iconSearch(){ return `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`; }
+function iconList(){ return `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`; }
+function iconBolt(){ return `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h6l-2 8 10-12h-6l2-8z"/></svg>`; }
+
+// ---------------------------------------------------------------------------
+// RENDER: TOPBAR
+// ---------------------------------------------------------------------------
+function renderTopbar(){
+  const titles = {
+    dashboard:[st("sales.top.dash","Dashboard"), st("sales.top.dashSub","Search, visualize, and prioritize commercial leads by location")],
+    results:[st("sales.top.results","Lead Results"), st("sales.top.resultsSub","Ranked by roofing sales opportunity")],
+    detail:[st("sales.top.detail","Lead Profile"), st("sales.top.detailSub","Full property intelligence and sales tools")]
+  };
+  const [title, sub] = titles[state.view];
+  let actions = "";
+  if(state.view === "results"){
+    actions = `<button class="btn btn-sm" data-action="export-csv">${iconDownload()}${st("sales.btn.exportCsv","Export CSV")}</button>`;
+  }
+  if(state.view === "detail"){
+    actions = `<button class="btn btn-sm btn-ghost" data-action="back-to-results">${iconBack()}${st("sales.btn.backResults","Back to results")}</button>`;
+  }
+  return `
+  <div class="topbar">
+    <div><h1>${title}</h1><div class="topbar-sub">${sub}</div></div>
+    <div class="topbar-actions">${actions}</div>
+  </div>`;
+}
+function iconDownload(){ return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:2px"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>`; }
+function iconBack(){ return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:2px"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>`; }
+
+// ---------------------------------------------------------------------------
+// RENDER: DASHBOARD
+// ---------------------------------------------------------------------------
+function renderDashboard(){
+  const sp = state.searchParams;
+  const leads = getFilteredSortedLeads();
+  const hot = leads.filter(l=>l.priority==="Hot").length;
+  const warm = leads.filter(l=>l.priority==="Warm").length;
+  const cold = leads.filter(l=>l.priority==="Cold").length;
+  const avgRoof = leads.length ? Math.round(leads.reduce((s,l)=>s+(l.roofSqFt||0),0)/leads.length) : 0;
+  const stormAffected = leads.filter(l=>l.stormHistory.length>0).length;
+  // Rough opportunity value estimate: roof sf * placeholder $/sf blended commercial reroof cost
+  const OPPORTUNITY_RATE_PER_SF = 9.5;
+  const totalOpportunity = leads.reduce((s,l)=>s + (l.roofSqFt||0) * OPPORTUNITY_RATE_PER_SF * (l.priority==="Hot"?1:l.priority==="Warm"?0.55:0.2), 0);
+  const topGroups = groupLeadsByOwner(leads).slice(0,8);
+
+  return `
+  <div class="panel panel-pad section-gap">
+    <div class="dash-search">
+      <div>
+        <label class="field-label">${st("sales.search.zip","ZIP code")}</label>
+        <input class="input" id="zip-input" type="text" maxlength="5" value="${sp.zip}" placeholder="${st("sales.search.zipPh","e.g. 60108")}">
+      </div>
+      <div>
+        <label class="field-label">${st("sales.search.radius","Radius")}</label>
+        <div class="radius-group">
+          ${[5,10,15].map(r => `<button class="radius-opt ${sp.radius===r?"selected":""}" data-radius="${r}">${r} mi</button>`).join("")}
+        </div>
+      </div>
+      <div>
+        <label class="field-label">${st("sales.search.types","Property types")}</label>
+        <div class="chip-select">
+          ${ALL_TYPES.map(t => `<button class="type-chip ${sp.propertyTypes.includes(t)?"selected":""}" data-type-toggle="${t}">${sp.propertyTypes.includes(t)?"✓ ":""}${t}</button>`).join("")}
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; justify-content:flex-end;">
+        <button class="btn btn-accent" data-action="run-search" style="justify-content:center; padding:10px 14px;">${iconSearch2()}${st("sales.search.run","Search leads")}</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-label">${st("sales.stat.found","Leads found")}</div><div class="stat-value mono">${leads.length}</div><div class="stat-foot">ZIP ${sp.zip} · ${sp.radius} mi radius</div></div>
+    <div class="stat-card"><div class="stat-label">${st("sales.stat.priority","Priority")}</div><div class="stat-value mono"><span style="color:var(--hot)">${hot}</span><span style="color:var(--gray-300); font-size:18px;"> / </span><span style="color:var(--warm)">${warm}</span><span style="color:var(--gray-300); font-size:18px;"> / </span><span style="color:var(--cold)">${cold}</span></div><div class="stat-foot">${st("sales.stat.priorityFoot","Hot / Warm / Cold — hot requires storm data (pending)")}</div></div>
+    <div class="stat-card"><div class="stat-label">${st("sales.stat.avgRoof","Average roof size")}</div><div class="stat-value mono">${fmtSqFt(avgRoof)}</div><div class="stat-foot">${st("sales.stat.stormFoot","{n} properties with storm on record", {n: stormAffected})}</div></div>
+    <div class="stat-card"><div class="stat-label">${st("sales.stat.opportunity","Estimated opportunity")}</div><div class="stat-value accent mono">${fmtMoney(totalOpportunity)}</div><div class="stat-foot">${st("sales.stat.oppFoot","Modeled at ${rate}/sf, weighted by priority", {rate: OPPORTUNITY_RATE_PER_SF})}</div></div>
+  </div>
+
+  <div class="dash-main">
+    <div class="panel" style="overflow:hidden;">
+      <div id="results-map" class="map-wrap" style="height:430px;"></div>
+      <div class="map-legend">
+        <span><span class="legend-dot" style="background:var(--hot)"></span>${st("sales.map.hot","Hot")}</span>
+        <span><span class="legend-dot" style="background:var(--warm)"></span>${st("sales.map.warm","Warm")}</span>
+        <span><span class="legend-dot" style="background:var(--cold)"></span>${st("sales.map.cold","Cold")}</span>
+        <span style="margin-left:auto;">${st("sales.map.legendHint","Click a marker → profile · satellite view in the top-right control")}</span>
+      </div>
+    </div>
+    <div class="panel panel-pad" style="display:flex; flex-direction:column;">
+      <div class="panel-title">${st("sales.topOpps","Top opportunities")}</div>
+      <div class="panel-desc" style="margin-bottom:6px;">${st("sales.topOpps.sub","By owner — one call per owner, not per parcel")}</div>
+      <div class="top-lead-list">
+        ${topGroups.length ? topGroups.map(g => `
+          <div class="top-lead" data-open-lead="${g.bestLead.id}">
+            <div style="min-width:0;">
+              <div class="tl2-name">${g.owner || g.bestLead.name}</div>
+              <div class="tl2-meta">${g.parcels>1 ? `<b style="color:var(--blue-accent-dark)">${st("sales.topOpps.parcels","×{n} parcels", {n: g.parcels})}</b> · ` : ""}${[...g.types].join(" · ")} · ${fmtSqFt(g.totalRoofSqFt)}</div>
+            </div>
+            <span class="score-pill ${scoreClass(g.priority)}">${g.bestScore}<span class="max">/100</span></span>
+          </div>`).join("") : `<div class="empty-state" style="padding:36px 10px;"><h3>${st("sales.empty.noResults","No results yet")}</h3>${st("sales.empty.runSearch","Run a search above.")}</div>`}
+      </div>
+      <button class="btn btn-sm" data-nav="results" style="margin-top:auto; justify-content:center;">${st("sales.viewAll","View all {n} leads →", { n: leads.length })}</button>
+    </div>
+  </div>
+
+  <div class="panel panel-pad">
+    <div class="panel-title">${st("sales.sourcesTitle","Data source status")}</div>
+    <div class="panel-desc">${st("sales.sourcesDesc","Green = live · gray = pending key or integration")}</div>
+    <div id="source-status" class="status-chips">${renderSourceStatus()}</div>
+  </div>
+  `;
+}
+function renderSourceStatus(){
+  const s = state.sourceStatus;
+  if(!s) return `<span style="font-size:12px; color:var(--gray-500);">${st("sales.sourcesChecking","Checking /api/status...")}</span>`;
+  const chips = [];
+  for(const [k,v] of Object.entries(s.live||{})){
+    if(v) chips.push(`<span class="src-chip src-live">●&nbsp;${k}${typeof v==="string" ? " · "+v : ""}</span>`);
+  }
+  for(const [k,v] of Object.entries(s.stubbed||{})){
+    if(v) chips.push(`<span class="src-chip src-stub">○&nbsp;${k}</span>`);
+  }
+  return chips.join("");
+}
+async function loadSourceStatus(){
+  if(state.sourceStatus) return;
+  try{
+    const res = await fetch("/api/status", {credentials:"include"});
+    state.sourceStatus = await res.json();
+    const el = document.getElementById("source-status");
+    if(el) el.innerHTML = renderSourceStatus();
+  } catch(e){ /* panel keeps its loading text */ }
+}
+function iconInfo(){ return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`; }
+
+// (Search Panel page removed — search lives on the Dashboard; filters on Results)
+function iconSearch2(){ return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:1px"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`; }
+
+// ---------------------------------------------------------------------------
+// RENDER: RESULTS (table + card views)
+// ---------------------------------------------------------------------------
+function renderResults(){
+  const leads = getFilteredSortedLeads();
+  const sp = state.searchParams;
+  const toolbar = `
+    <div class="results-toolbar">
+      <div style="font-size:13px; color:var(--gray-500);">${st("sales.results.count","{n} leads · ZIP {zip}, {radius} mi", {n: leads.length, zip: sp.zip, radius: sp.radius})}</div>
+      <div style="display:flex; align-items:center; gap:14px;">
+        <div class="sort-select">
+          ${st("sales.results.sortBy","Sort by")}
+          <select class="input" id="sort-select" style="width:auto; padding:6px 10px;">
+            <option value="leadScore" ${state.sortBy==="leadScore"?"selected":""}>${st("sales.sort.leadScore","Lead score")}</option>
+            <option value="roofSqFt" ${state.sortBy==="roofSqFt"?"selected":""}>${st("sales.sort.roofSqFt","Roof size")}</option>
+            <option value="propertyValue" ${state.sortBy==="propertyValue"?"selected":""}>${st("sales.sort.propertyValue","Property value")}</option>
+            <option value="hailWindRisk" ${state.sortBy==="hailWindRisk"?"selected":""}>${st("sales.sort.hailWindRisk","Storm risk")}</option>
+          </select>
+        </div>
+        <button class="btn btn-sm ${state.showResultsMap?"btn-primary":""}" data-action="toggle-results-map">${state.showResultsMap?st("sales.map.hide","Hide map"):st("sales.map.show","Show map")}</button>
+        <div class="view-toggle">
+          <button class="${state.resultsView==="owners"?"active":""}" data-results-view="owners">${st("sales.view.owners","Owners")}</button>
+          <button class="${state.resultsView==="table"?"active":""}" data-results-view="table">${st("sales.view.table","Table")}</button>
+          <button class="${state.resultsView==="cards"?"active":""}" data-results-view="cards">${st("sales.view.cards","Cards")}</button>
+        </div>
+      </div>
+    </div>
+    <div class="results-filters">
+      <label class="checkbox-row"><input type="checkbox" id="storm-only" ${sp.stormOnly?"checked":""}/> ${st("sales.filter.stormOnly","Only storm-affected properties")}</label>
+      <span class="sort-select">${st("sales.filter.minRoof","Min roof size (sf)")} <input class="input" id="min-roof" type="number" min="0" step="1000" value="${sp.minRoofSqFt}" style="width:110px; padding:6px 10px;"></span>
+      <span class="sort-select">${st("sales.filter.priority","Priority")} <select class="input" id="priority-filter" style="width:auto; padding:6px 10px;">${["All","Hot","Warm","Cold"].map(p=>`<option value="${p}" ${sp.priorityFilter===p?"selected":""}>${p==="All"?st("sales.filter.all","All"):priorityLabel(p)}</option>`).join("")}</select></span>
+    </div>`;
+
+  const mapPanel = !state.showResultsMap ? "" : `
+    <div class="panel section-gap" style="overflow:hidden;">
+      <div id="results-map" class="map-wrap"></div>
+      <div class="map-legend">
+        <span><span class="legend-dot" style="background:var(--hot)"></span>${st("sales.map.hot","Hot")}</span>
+        <span><span class="legend-dot" style="background:var(--warm)"></span>${st("sales.map.warm","Warm")}</span>
+        <span><span class="legend-dot" style="background:var(--cold)"></span>${st("sales.map.cold","Cold")}</span>
+        <span style="margin-left:auto;">${st("sales.map.legendHint","Click a marker → profile · satellite view in the top-right control")}</span>
+      </div>
+    </div>`;
+
+  if(leads.length === 0){
+    return toolbar + `<div class="panel"><div class="empty-state"><h3>${st("sales.empty.noMatch","No leads match these filters")}</h3>${st("sales.empty.widen","Try widening the radius, adding property types, or clearing filters in the Dashboard.")}</div></div>`;
+  }
+
+  if(state.resultsView === "owners"){
+    const groups = groupLeadsByOwner(leads);
+    const multi = groups.filter(g=>g.parcels>1).length;
+    return toolbar + mapPanel + `
+    <div style="font-size:12.5px; color:var(--gray-500); margin-bottom:12px;">${st("sales.owners.summary","{n} distinct owners · {multi} with multi-parcel portfolios — one call per owner, not per parcel", {n: groups.length, multi})}</div>
+    ` + groups.map(g => `
+      <div class="panel owner-group">
+        <div class="og-head" data-open-lead="${g.bestLead.id}">
+          <div style="min-width:0;">
+            <div class="og-name">${g.owner || g.bestLead.name}</div>
+            <div class="og-meta">${g.parcels} parcel${g.parcels>1?"s":""} · ${[...g.types].join(" · ")} · ${st("sales.owners.totalRoof","total roof {sqft}", {sqft: fmtSqFt(g.totalRoofSqFt)})}${g.totalValue ? st("sales.owners.assessed"," · assessed {val}", {val: fmtMoney(g.totalValue)}) : ""}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; flex-shrink:0;">
+            ${g.phone ? `<a href="tel:${g.phone.replace(/[^0-9+]/g,"")}" class="og-phone" onclick="event.stopPropagation()" title="${g.phoneIsOwnerMatch ? st("sales.owners.ownerOccupant","owner-occupant line") : st("sales.owners.onSite","on-site business (likely tenant)")}">${g.phoneIsOwnerMatch ? "☎ " : "☎? "}${g.phone}</a>` : ""}
+            ${g.parcels>1 ? `<span class="og-badge">${st("sales.owners.portfolio","PORTFOLIO ×{n}", {n: g.parcels})}</span>` : ""}
+            <span class="score-pill ${scoreClass(g.priority)}">${g.bestScore}<span class="max">/100</span></span>
+          </div>
+        </div>
+        ${g.parcels>1 ? `<div class="og-leads">${g.leads.map(l => `
+          <div class="og-lead" data-open-lead="${l.id}">
+            <span class="og-addr">${l.address}</span>
+            <span class="mono">${fmtSqFt(l.roofSqFt)}</span>
+            <span class="score-pill ${scoreClass(l.priority)}" style="font-size:11.5px; padding:2px 7px;">${l.leadScore}</span>
+            <span class="status-chip ${statusClass(l.status)}">${l.status}</span>
+          </div>`).join("")}</div>` : ""}
+      </div>`).join("");
+  }
+
+  if(state.resultsView === "table"){
+    return toolbar + mapPanel + `
+    <div class="panel table-wrap">
+      <table class="lead-table">
+        <thead><tr>
+          <th>${st("sales.th.property","Property")}</th><th>${st("sales.th.type","Type")}</th><th>${st("sales.th.manager","Manager")}</th><th>${st("sales.th.roofSize","Roof size")}</th><th>${st("sales.th.roofAge","Roof age")}</th>
+          <th>${st("sales.th.value","Value")}</th><th>${st("sales.th.risk","Risk")}</th><th>${st("sales.th.score","Score")}</th><th>${st("sales.th.priority","Priority")}</th><th>${st("sales.th.status","Status")}</th>
+        </tr></thead>
+        <tbody>
+          ${leads.map(l => `
+            <tr data-open-lead="${l.id}">
+              <td><div class="lt-name">${l.name}</div><div class="lt-sub">${l.address}</div></td>
+              <td>${l.propertyType}</td>
+              <td>${l.manager ?? "—"}</td>
+              <td>${fmtSqFt(l.roofSqFt)}</td>
+              <td>${l.roofAge != null ? l.roofAge + st("sales.card.yrs"," yrs") : "—"}</td>
+              <td>${fmtMoney(l.propertyValue)}</td>
+              <td><span class="risk-chip risk-${l.hailWindRisk}">${l.hailWindRisk}</span></td>
+              <td><span class="score-pill ${scoreClass(l.priority)}">${l.leadScore}<span class="max">/100</span></span></td>
+              <td>${priorityBadge(l.priority)}</td>
+              <td><span class="status-chip ${statusClass(l.status)}">${l.status}</span></td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>`;
+  }
+
+  return toolbar + mapPanel + `
+  <div class="lead-grid">
+    ${leads.map(l => `
+      <div class="lead-card" data-open-lead="${l.id}">
+        <div class="lc-head">
+          <div>
+            <h3 class="lc-name">${l.name}</h3>
+            <div class="lc-addr">${l.address}</div>
+            <span class="lc-type-tag">${l.propertyType}</span>
+          </div>
+          <span class="score-pill ${scoreClass(l.priority)}">${l.leadScore}<span class="max">/100</span></span>
+        </div>
+        <div class="lc-grid">
+          <div><div class="lc-metric-label">${st("sales.card.roofSize","Roof size")}</div><div class="lc-metric-value">${fmtSqFt(l.roofSqFt)}</div></div>
+          <div><div class="lc-metric-label">${st("sales.card.roofAge","Roof age")}</div><div class="lc-metric-value">${l.roofAge != null ? l.roofAge + st("sales.card.yrs"," yrs") : "—"}</div></div>
+          <div><div class="lc-metric-label">${st("sales.card.value","Property value")}</div><div class="lc-metric-value">${fmtMoney(l.propertyValue)}</div></div>
+          <div><div class="lc-metric-label">${st("sales.card.risk","Storm risk")}</div><div class="lc-metric-value"><span class="risk-chip risk-${l.hailWindRisk}">${l.hailWindRisk}</span></div></div>
+        </div>
+        <div class="lc-reason">${l.reason}</div>
+        <div class="lc-foot">
+          ${priorityBadge(l.priority)}
+          <span class="status-chip ${statusClass(l.status)}">${l.status}</span>
+        </div>
+      </div>
+    `).join("")}
+  </div>`;
+}
+
+// ---------------------------------------------------------------------------
+// RENDER: LEAD DETAIL PAGE
+// ---------------------------------------------------------------------------
+function renderDetail(){
+  const lead = state.results.find(l => l.id === state.activeLeadId) || SAMPLE_LEADS.find(l=>l.id===state.activeLeadId);
+  if(!lead) return `<div class="empty-state"><h3>${st("sales.detail.notFound","Lead not found")}</h3></div>`;
+
+  return `
+  <div class="detail-header">
+    <div>
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+        <h2 style="margin:0; font-size:21px; letter-spacing:-0.01em;">${lead.name}</h2>
+        ${priorityBadge(lead.priority)}
+      </div>
+      <div style="color:var(--gray-500); font-size:13px;">${lead.address} · <a href="${mapsLink(lead.address)}" target="_blank" style="color:var(--blue-accent-dark); font-weight:600;">${st("sales.detail.maps","Open in Google Maps ↗")}</a></div>
+    </div>
+    <div style="text-align:right; flex-shrink:0;">
+      <span class="score-pill ${scoreClass(lead.priority)}" style="font-size:20px; padding:8px 14px;">${lead.leadScore}<span class="max">/100</span></span>
+      <div style="margin-top:6px;"><span class="status-chip ${statusClass(lead.status)}">${lead.status}</span></div>
+    </div>
+  </div>
+
+  <div class="detail-grid">
+    <div>
+      <div class="panel panel-pad section-gap">
+        <div class="panel-title">${st("sales.detail.profile","Property profile")}</div>
+        <div class="info-row"><span class="info-label">${st("sales.detail.propType","Property type")}</span><span class="info-value">${lead.propertyType}</span></div>
+        <div class="info-row"><span class="info-label">Property manager</span><span class="info-value">${lead.manager ?? "—"}</span></div>
+        <div class="info-row"><span class="info-label">Owner entity</span><span class="info-value">${lead.ownerEntity ?? "—"}</span></div>
+        <div class="info-row"><span class="info-label">Building sq ft</span><span class="info-value">${fmtSqFt(lead.buildingSqFt)}</span></div>
+        <div class="info-row"><span class="info-label">Roof sq ft</span><span class="info-value">${fmtSqFt(lead.roofSqFt)}</span></div>
+        <div class="info-row"><span class="info-label">Roof type</span><span class="info-value">${lead.roofType ?? "— requires inspection —"}</span></div>
+        ${lead.roofSurface ? `<div class="info-row"><span class="info-label">Roof surface (satellite)</span><span class="info-value" style="white-space:normal; max-width:62%; font-size:11.8px; line-height:1.45;">${lead.roofSurface.label}<br><span style="color:var(--gray-500); font-weight:500;">confidence: ${lead.roofSurface.confidence} · ${lead.roofSurface.samples} samples · estimate, not an inspection</span></span></div>` : ""}
+        ${lead.solarRoof ? `<div class="info-row"><span class="info-label">Roof measured (Google Solar)</span><span class="info-value" style="white-space:normal; max-width:62%; font-size:11.8px; line-height:1.45;">${fmtSqFt(lead.solarRoof.areaSqFt)} · ${lead.solarRoof.segments} segment(s) · avg pitch ${lead.solarRoof.avgPitchDeg ?? "—"}°${lead.solarRoof.flatSharePct != null ? ` · ${lead.solarRoof.flatSharePct}% flat` : ""}<br><span style="color:var(--gray-500); font-weight:500;">imagery ${lead.solarRoof.imageryDate ?? "n/d"}</span></span></div>` : ""}
+        <div class="info-row"><span class="info-label">Year built</span><span class="info-value">${lead.yearBuilt ?? "—"}</span></div>
+        <div class="info-row"><span class="info-label">Estimated roof age</span><span class="info-value">${lead.roofAge != null ? lead.roofAge + st("sales.card.yrs"," yrs") : "—"}</span></div>
+        <div class="info-row"><span class="info-label">Current property value</span><span class="info-value">${fmtMoney(lead.propertyValue)}</span></div>
+        <div class="info-row"><span class="info-label">Last sale date</span><span class="info-value">${lead.lastSaleDate ?? "—"}</span></div>
+        ${lead.lat != null ? `<div id="detail-map" data-lat="${lead.lat}" data-lng="${lead.lng}" data-priority="${lead.priority}"></div>` : ""}
+      </div>
+
+      <div class="panel panel-pad section-gap">
+        <div class="panel-title">${st("sales.detail.roofAnalysis","Roof opportunity analysis")}</div>
+        <div class="info-row"><span class="info-label">Hail / wind risk</span><span class="info-value"><span class="risk-chip risk-${lead.hailWindRisk}">${lead.hailWindRisk}</span></span></div>
+        <div class="info-row"><span class="info-label">Storm events on record</span><span class="info-value">${lead.stormHistory.length}</span></div>
+        <div class="info-row"><span class="info-label">Recent permits</span><span class="info-value">${lead.recentPermits.length}</span></div>
+        <div class="panel-desc" style="margin-top:12px;">${st("sales.detail.stormTimeline","Storm timeline")}</div>
+        <ul class="timeline">
+          ${lead.stormHistory.length ? lead.stormHistory.map(s => `
+            <li>
+              <div class="tl-dot" style="background:${s.type==='Hail'?'var(--blue-accent)':'var(--warm)'}"></div>
+              <div class="tl-date">${s.date}</div>
+              <div><div class="tl-text">${s.type} event</div><div class="tl-sub">${s.detail}</div></div>
+            </li>`).join("") : `<li><div class="tl-text" style="color:var(--gray-500)">${st("sales.detail.noStorm","No storm events on record for this property.")}</div></li>`}
+          ${lead.recentPermits.map(p => `
+            <li>
+              <div class="tl-dot" style="background:var(--good)"></div>
+              <div class="tl-date">${p.date}</div>
+              <div><div class="tl-text">Permit — ${p.type}</div><div class="tl-sub">${p.detail}</div></div>
+            </li>`).join("")}
+        </ul>
+      </div>
+
+      <div class="panel panel-pad">
+        <div class="panel-title">${st("sales.detail.notes","Sales notes")}</div>
+        <div class="panel-desc">Internal notes — visible only to your team.</div>
+        <textarea class="notes" placeholder="Add call notes, objections, next steps...">${lead.salesNotes||""}</textarea>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+          <div>
+            <label class="field-label" style="margin-bottom:4px;">${st("sales.detail.followUp","Follow-up reminder")}</label>
+            <input class="input" type="date" id="follow-up-date" style="width:auto;" value="${lead.followUpDate || ""}">
+          </div>
+          <button class="btn btn-primary btn-sm" data-action="save-notes">${st("sales.detail.saveNotes","Save notes")}</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel panel-pad section-gap">
+        <div class="panel-title">${st("sales.detail.aiRec","AI sales recommendation")}</div>
+        <div class="ai-box">
+          <div class="ai-box-label">${iconBolt()} ${st("sales.detail.whyCall","Why call this property")}</div>
+          <p>${lead.reason}</p>
+        </div>
+        <div class="ai-box">
+          <div class="ai-box-label">${iconBolt()} Recommended sales angle</div>
+          <p>${lead.salesAngle}</p>
+        </div>
+        <div class="ai-box">
+          <div class="ai-box-label">${iconBolt()} Best opening line</div>
+          <p>"${lead.outreachMessage.split(".")[0]}."</p>
+        </div>
+        <div class="panel-desc" style="margin:14px 0 6px;">Suggested email draft</div>
+        <div class="email-draft">Subject: Roof check-in for ${lead.name}
+
+Hi there,
+
+${lead.outreachMessage}
+
+Happy to work around your schedule — would this week or next work for a quick walk of the roof?
+
+Best,
+Premier Group Roofing & Construction</div>
+        <div class="panel-desc" style="margin:14px 0 6px;">Suggested call script</div>
+        <div class="email-draft">Hi, this is [Rep Name] with Premier Group Roofing. ${lead.salesAngle} Do you have two minutes, or is there a better time to reach the person who handles roofing decisions for ${lead.name}?</div>
+      </div>
+
+      <div class="panel panel-pad section-gap">
+        <div class="panel-title">${st("sales.detail.contact","Contact")}</div>
+        <div class="panel-desc">${lead.contactPhone
+          ? (lead.contactIsOwnerMatch
+              ? "On-site business via Google Maps — <b>matches the owner of record</b>: direct line to the decision-making organization."
+              : "Business operating at this address (Google Maps) — likely a tenant, not the owner. Still useful: they can refer you to the PM/owner.")
+          : "No Google Maps business listing at this address — email and person-level contacts require the enrichment vendor (pending)."}</div>
+        <div class="info-row"><span class="info-label">On-site business</span><span class="info-value" style="${lead.contactName?"":"color:var(--gray-400)"}">${lead.contactName||"— not available —"}</span></div>
+        <div class="info-row"><span class="info-label">Phone</span><span class="info-value" style="${lead.contactPhone?"":"color:var(--gray-400)"}">${lead.contactPhone ? `<a href="tel:${lead.contactPhone.replace(/[^0-9+]/g,"")}" style="color:var(--blue-accent-dark);">${lead.contactPhone}</a>` : "— not available —"}</span></div>
+        <div class="info-row"><span class="info-label">Website</span><span class="info-value" style="${lead.contactWebsite?"":"color:var(--gray-400)"}">${lead.contactWebsite ? `<a href="${lead.contactWebsite}" target="_blank" style="color:var(--blue-accent-dark);">open ↗</a>` : "—"}</span></div>
+        <div class="info-row"><span class="info-label">Email</span><span class="info-value" style="color:var(--gray-400)">${lead.contactEmail||"— needs enrichment vendor —"}</span></div>
+        <div class="info-row"><span class="info-label">Owner of record</span><span class="info-value">${lead.ownerEntity ?? "—"}</span></div>
+      </div>
+
+      <div class="panel panel-pad">
+        <div class="panel-title">${st("sales.detail.actions","Export / CRM actions")}</div>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+          <button class="btn btn-accent" data-action="send-crm" data-lead="${lead.id}">${iconSend()}${st("sales.detail.sendCrm","Send to CRM")}</button>
+          <button class="btn" data-action="create-task" data-lead="${lead.id}">${iconClock()}${st("sales.detail.createTask","Create follow-up task")}</button>
+          <button class="btn" data-action="mark-contacted" data-lead="${lead.id}">${iconCheck()}${st("sales.detail.markContacted","Mark as contacted")}</button>
+          <button class="btn btn-ghost" data-action="export-csv">${iconDownload()}${st("sales.detail.exportLead","Export this lead as CSV")}</button>
+        </div>
+        <div class="api-note">${iconInfo()}<div><b>API hook —</b> <code>sendLeadToCRM()</code> / <code>createFollowUpTask()</code> map directly to JobNimbus contact and task endpoints.</div></div>
+      </div>
+    </div>
+  </div>
+  `;
+}
+function iconSend(){ return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:2px"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`; }
+function iconClock(){ return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:2px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`; }
+function iconCheck(){ return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:2px"><polyline points="20 6 9 17 4 12"/></svg>`; }
+
+// ---------------------------------------------------------------------------
+// MAIN RENDER
+// ---------------------------------------------------------------------------
+function render(){
+  const view = state.view;
+  let body = "";
+  if(view==="dashboard") body = renderDashboard();
+  else if(view==="results") body = renderResults();
+  else if(view==="detail") body = renderDetail();
+
+  document.getElementById("app").innerHTML = `
+    ${renderSidebar()}
+    <div class="main">
+      ${renderTopbar()}
+      <div class="content">${body}</div>
+    </div>
+  `;
+  attachEvents();
+}
+
+// ---------------------------------------------------------------------------
+// EVENTS
+// ---------------------------------------------------------------------------
+function attachEvents(){
+  document.querySelectorAll("[data-nav]").forEach(el=>{
+    el.addEventListener("click", ()=>{ state.view = el.dataset.nav; render(); });
+  });
+  document.querySelectorAll("[data-open-lead]").forEach(el=>{
+    el.addEventListener("click", ()=>{ state.activeLeadId = el.dataset.openLead; state.view="detail"; render(); window.scrollTo(0,0); });
+  });
+  const backBtn = document.querySelector('[data-action="back-to-results"]');
+  if(backBtn) backBtn.addEventListener("click", ()=>{ state.view="results"; render(); });
+
+  const exportBtn = document.querySelector('[data-action="export-csv"]');
+  if(exportBtn) exportBtn.addEventListener("click", exportCSV);
+
+  // Search panel
+  const zipInput = document.getElementById("zip-input");
+  if(zipInput) zipInput.addEventListener("input", e=>{ state.searchParams.zip = e.target.value; });
+  document.querySelectorAll("[data-radius]").forEach(el=>{
+    el.addEventListener("click", ()=>{ state.searchParams.radius = parseInt(el.dataset.radius); render(); });
+  });
+  document.querySelectorAll("[data-type-toggle]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const t = el.dataset.typeToggle;
+      const idx = state.searchParams.propertyTypes.indexOf(t);
+      if(idx>-1) state.searchParams.propertyTypes.splice(idx,1); else state.searchParams.propertyTypes.push(t);
+      render();
+    });
+  });
+  const stormOnly = document.getElementById("storm-only");
+  if(stormOnly) stormOnly.addEventListener("change", e=>{ state.searchParams.stormOnly = e.target.checked; render(); });
+  const minRoof = document.getElementById("min-roof");
+  if(minRoof) minRoof.addEventListener("change", e=>{ state.searchParams.minRoofSqFt = parseInt(e.target.value)||0; render(); });
+  const priorityFilter = document.getElementById("priority-filter");
+  if(priorityFilter) priorityFilter.addEventListener("change", e=>{ state.searchParams.priorityFilter = e.target.value; render(); });
+  const mapToggle = document.querySelector('[data-action="toggle-results-map"]');
+  if(mapToggle) mapToggle.addEventListener("click", ()=>{ state.showResultsMap = !state.showResultsMap; render(); });
+
+  const runSearch = document.querySelector('[data-action="run-search"]');
+  if(runSearch) runSearch.addEventListener("click", async ()=>{
+    runSearch.disabled = true; runSearch.textContent = st("sales.search.searching","Searching...");
+    state.results = await fetchLeadsForSearch(state.searchParams); // API HOOK
+    state.hasSearched = true;
+    render();
+    showToast(st("sales.toast.found","{n} leads near {zip}", { n: getFilteredSortedLeads().length, zip: state.searchParams.zip }));
+  });
+
+  // Results toolbar
+  document.querySelectorAll("[data-results-view]").forEach(el=>{
+    el.addEventListener("click", ()=>{ state.resultsView = el.dataset.resultsView; render(); });
+  });
+  const sortSelect = document.getElementById("sort-select");
+  if(sortSelect) sortSelect.addEventListener("change", e=>{ state.sortBy = e.target.value; render(); });
+
+  // Detail page actions
+  const sendCrm = document.querySelector('[data-action="send-crm"]');
+  if(sendCrm) sendCrm.addEventListener("click", async ()=>{
+    sendCrm.disabled = true; sendCrm.textContent = st("sales.toast.sending","Sending...");
+    const lead = state.results.find(l=>l.id===state.activeLeadId) || SAMPLE_LEADS.find(l=>l.id===state.activeLeadId);
+    const r = await sendLeadToCRM(lead); // API HOOK
+    showToast(r.note || (r.success ? st("sales.toast.crmOk","Sent to JobNimbus CRM") : st("sales.toast.crmFail","CRM push failed")));
+    render();
+  });
+  const createTask = document.querySelector('[data-action="create-task"]');
+  if(createTask) createTask.addEventListener("click", async ()=>{
+    const lead = state.results.find(l=>l.id===state.activeLeadId) || SAMPLE_LEADS.find(l=>l.id===state.activeLeadId);
+    const r = await createFollowUpTask(lead, null); // API HOOK
+    showToast(r.note || st("sales.toast.task","Follow-up task created"));
+  });
+  const markContacted = document.querySelector('[data-action="mark-contacted"]');
+  if(markContacted) markContacted.addEventListener("click", async ()=>{
+    const lead = state.results.find(l=>l.id===state.activeLeadId) || SAMPLE_LEADS.find(l=>l.id===state.activeLeadId);
+    if(lead){
+      lead.status = "Contacted";
+      const sid = lead._provenance && lead._provenance.sourceId;
+      if(sid){
+        try{ await fetch(`/api/lead-overrides/${encodeURIComponent(sid)}`, {method:"PATCH", credentials:"include", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({source: lead._provenance.source, status: "Contacted"})}); } catch(e){}
+      }
+    }
+    showToast(st("sales.toast.contacted","Marked as contacted") + (lead && lead._provenance ? st("sales.toast.persistedSuffix"," — persisted") : ""));
+    render();
+  });
+  const saveNotes = document.querySelector('[data-action="save-notes"]');
+  if(saveNotes) saveNotes.addEventListener("click", async ()=>{
+    const val = document.querySelector(".notes").value;
+    const followUp = document.getElementById("follow-up-date")?.value || null;
+    const lead = state.results.find(l=>l.id===state.activeLeadId) || SAMPLE_LEADS.find(l=>l.id===state.activeLeadId);
+    if(!lead) return;
+    lead.salesNotes = val;
+    if(followUp) lead.followUpDate = followUp;
+    const sid = lead._provenance && lead._provenance.sourceId;
+    if(sid){
+      try{
+        await fetch(`/api/lead-overrides/${encodeURIComponent(sid)}`, {method:"PATCH", credentials:"include", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({source: lead._provenance.source, salesNotes: val, followUpDate: followUp})});
+        showToast(st("sales.toast.notesDb","Notes saved — persisted to the database"));
+      } catch(e){ showToast(st("sales.toast.notesLocal","Saved locally — backend unavailable")); }
+    } else {
+      showToast(st("sales.toast.notesSession","Notes saved (session only)"));
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
+// MAPS — Leaflet + free tiles (OpenStreetMap / Esri World Imagery satellite).
+// No API key required. Swappable to Google tiles when that key is decided.
+// Leads carry lat/lng from the live sources (parcel/building centroids);
+// SAMPLE_LEADS demo data has no coordinates, so the map explains itself.
+// ---------------------------------------------------------------------------
+const PRIORITY_COLORS = {Hot:"#D64545", Warm:"#C97A1F", Cold:"#5C7086"};
+function baseLayers(){
+  return {
+    [st("sales.map.base","Map")]: L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:"&copy; OpenStreetMap"}),
+    [st("sales.map.sat","Satellite")]: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {maxZoom:19, attribution:"Esri World Imagery"})
+  };
+}
+window._openLeadFromMap = (id)=>{ state.activeLeadId = id; state.view = "detail"; render(); window.scrollTo(0,0); };
+
+function setupMaps(){
+  if(typeof L === "undefined") return; // Leaflet CDN unavailable (offline)
+  (window._maps || []).forEach(m => m.remove());
+  window._maps = [];
+
+  const rm = document.getElementById("results-map");
+  if(rm){
+    const mappable = getFilteredSortedLeads().filter(l => l.lat != null && l.lng != null);
+    if(!mappable.length){
+      rm.innerHTML = state.loading
+        ? `<div class="map-empty">${st("sales.map.searching","Searching live leads near {zip}...", {zip: state.searchParams.zip})}</div>`
+        : `<div class="map-empty">${st("sales.map.empty","No coordinates to map. Run a search to see live leads on the map.")}</div>`;
+    } else {
+      const layers = baseLayers();
+      const map = L.map(rm, {scrollWheelZoom:false, layers:[layers[st("sales.map.base","Map")]]});
+      window._maps.push(map);
+      L.control.layers(layers).addTo(map);
+      const bounds = [];
+      mappable.forEach(l => {
+        const marker = L.circleMarker([l.lat, l.lng], {
+          radius:8, color:"#FFFFFF", weight:1.5,
+          fillColor:PRIORITY_COLORS[l.priority] || "#5C7086", fillOpacity:0.92
+        }).addTo(map);
+        marker.bindPopup(`<div style="min-width:190px;">
+          <b style="font-size:13px;">${l.name}</b><br>
+          <span style="color:#64748B; font-size:11.5px;">${l.address}</span><br>
+          <span class="mono" style="font-size:12px;">Score ${l.leadScore}/100 · ${priorityLabel(l.priority)}${l.roofSqFt ? " · " + fmtSqFt(l.roofSqFt) + " roof" : ""}</span><br>
+          <a href="#" style="color:#1D6FBF; font-weight:600; font-size:12px;" onclick="window._openLeadFromMap('${l.id}'); return false;">${st("sales.map.viewProfile","View full profile →")}</a>
+        </div>`);
+        bounds.push([l.lat, l.lng]);
+      });
+      map.fitBounds(bounds, {padding:[30,30], maxZoom:15});
+    }
+  }
+
+  const dm = document.getElementById("detail-map");
+  if(dm && dm.dataset.lat){
+    const lat = parseFloat(dm.dataset.lat), lng = parseFloat(dm.dataset.lng);
+    const layers = baseLayers();
+    // Satellite by default on the detail page — you can SEE the actual roof.
+    const map = L.map(dm, {scrollWheelZoom:false, layers:[layers[st("sales.map.sat","Satellite")]]});
+    window._maps.push(map);
+    L.control.layers(layers).addTo(map);
+    L.circleMarker([lat, lng], {
+      radius:9, color:"#FFFFFF", weight:2,
+      fillColor:PRIORITY_COLORS[dm.dataset.priority] || "#5C7086", fillOpacity:0.95
+    }).addTo(map);
+    map.setView([lat, lng], 18);
+  }
+}
+
+const _renderBase = render;
+render = function(){
+  _renderBase();
+  setupMaps();
+  loadSourceStatus();
+  applySalesChromeI18n();
+};
+
+async function applySalesChromeI18n(){
+  if (!window.I18n) return;
+  await window.I18n.init();
+  const host = document.getElementById("salesLangHost");
+  if (host) window.I18n.mountLangSwitch(host);
+  const name = document.querySelector(".brand-name");
+  if (name) name.textContent = st("sales.brandName","Premier Sales");
+  document.getElementById("btnSalesLogout")?.addEventListener("click", async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    } catch (e) { /* ignore */ }
+    location.href = "/login.html";
+  });
+}
+
+async function loadSessionUser(){
+  try {
+    const res = await fetch("/api/auth/me", { credentials: "include" });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data && data.authenticated && data.email) {
+      state.sessionEmail = data.email;
+      const emailEl = document.querySelector(".sidebar-foot-email");
+      const av = document.querySelector(".avatar-dot");
+      if (emailEl) {
+        emailEl.textContent = data.email;
+        emailEl.title = data.email;
+      }
+      if (av) av.textContent = data.email.slice(0, 2).toUpperCase();
+    }
+  } catch (e) { /* ignore */ }
+}
+
+window.addEventListener("premier:lang", () => {
+  render();
+});
+
+// Initial load: fetch LIVE leads for the default search immediately — the
+// map and stats should never sit on coordinate-less demo data. SAMPLE_LEADS
+// only appears if the backend is unreachable (fetchLeadsForSearch fallback).
+async function initialSearch(){
+  state.loading = true;
+  render();
+  try{
+    state.results = await fetchLeadsForSearch(state.searchParams);
+    state.hasSearched = true;
+  } finally {
+    state.loading = false;
+    render();
+  }
+}
+
+render();
+loadSessionUser().then(() => { if (state.sessionEmail) render(); });
+initialSearch();
+</script>
+</body>
+</html>

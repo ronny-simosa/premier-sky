@@ -2,7 +2,7 @@
   "name": "premier-sky",
   "private": true,
   "scripts": {
-    "build": "cd server && npm install",
+    "build": "npm install --prefix server && npm install --prefix sales",
     "start": "cd server && npm start"
   },
   "engines": {

@@ -1,44 +1,136 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Premier Sky · Monitor de tormentas NWS / NOAA / Open-Meteo</title>
+  <title data-i18n-title="hub.title">Premier · Team apps</title>
   <link rel="icon" type="image/svg+xml" href="assets/img/premier-logo.svg" />
-  <link rel="stylesheet" href="assets/css/styles.css" />
+  <link rel="stylesheet" href="assets/css/styles.css?v=44" />
+  <style>
+    .hub-hero { max-width: 720px; margin: 0 auto 28px; text-align: center; }
+    .hub-hero h1 { font-size: 28px; margin: 0 0 10px; }
+    .hub-hero p { color: var(--muted); margin: 0; line-height: 1.5; }
+    .hub-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+      max-width: 860px;
+      margin: 0 auto 48px;
+    }
+    @media (max-width: 700px) {
+      .hub-grid { grid-template-columns: 1fr; }
+    }
+    .hub-card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 28px 24px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .hub-card:hover,
+    .hub-card:focus,
+    .hub-card:visited {
+      text-decoration: none !important;
+      color: inherit;
+    }
+    .hub-card:hover .tag,
+    .hub-card:hover h2,
+    .hub-card:hover p,
+    .hub-card:hover .cta,
+    .hub-card .tag,
+    .hub-card h2,
+    .hub-card p,
+    .hub-card .cta {
+      text-decoration: none !important;
+    }
+    .hub-card:hover {
+      border-color: var(--accent, #b91c1c);
+      transform: translateY(-2px);
+    }
+    .hub-card .tag {
+      align-self: flex-start;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+    .hub-card h2 { margin: 0; font-size: 22px; }
+    .hub-card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; flex: 1; }
+    .hub-card .cta {
+      margin-top: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--accent, #b91c1c);
+    }
+  </style>
 </head>
 <body>
   <header class="site">
-    <div class="brand"><img class="logo" src="assets/img/premier-logo.svg" alt="Premier" /> Premier Sky</div>
-    <nav id="nav"></nav>
+    <div class="brand">
+      <img class="logo" src="assets/img/premier-logo.svg" alt="Premier" /> Premier Group
+    </div>
+    <nav id="nav" class="nav-globals lang-switch-host" aria-label="Account"></nav>
   </header>
 
   <div class="container">
-    <section class="hero">
-      <h1>Monitor de tormentas en tiempo real</h1>
-      <p>
-        Sigue tormentas, granizo, lluvias y vientos por estado. Mapas con puntos calientes,
-        direcciones y zip codes para trackear el área afectada, además de una proyección
-        del clima a 7 días. Datos en vivo del Servicio Meteorológico Nacional de EE.UU.,
-        Open-Meteo y el Storm Prediction Center.
-      </p>
-      <div class="sources">
-        <span class="chip">NWS / NOAA · api.weather.gov</span>
-        <span class="chip">Open-Meteo</span>
-        <span class="chip">NOAA SPC · Storm Prediction Center</span>
-      </div>
+    <section class="hub-hero">
+      <h1 data-i18n="hub.heading">Where do you want to go?</h1>
+      <p data-i18n="hub.sub">Pick a team tool. Same Premier session for both.</p>
     </section>
 
-    <div class="state-grid" id="stateGrid"></div>
+    <div class="hub-grid">
+      <a class="hub-card" href="/sky.html">
+        <span class="tag" data-i18n="hub.sky.tag">Storms · Jobs</span>
+        <h2 data-i18n="hub.sky.title">Premier Sky</h2>
+        <p data-i18n="hub.sky.desc">
+          NWS/NOAA storm monitor, state maps, JobNimbus jobs, and zone list exports.
+        </p>
+        <span class="cta" data-i18n="hub.sky.cta">Open Premier Sky →</span>
+      </a>
+      <a class="hub-card" href="/sales/">
+        <span class="tag" data-i18n="hub.sales.tag">Leads · Commercial roofs</span>
+        <h2 data-i18n="hub.sales.title">Premier Sales</h2>
+        <p data-i18n="hub.sales.desc">
+          Find and rank commercial roof leads by ZIP and radius: footprints, assessor, roof intel, and Hot/Warm/Cold score.
+        </p>
+        <span class="cta" data-i18n="hub.sales.cta">Open Premier Sales →</span>
+      </a>
+    </div>
   </div>
 
-  <footer class="site">
-    Datos: NOAA/NWS, Open-Meteo, NOAA SPC · Mapas © OpenStreetMap ·
-    Geocodificación Nominatim / Zippopotam. Uso informativo, no oficial para decisiones de emergencia.
+  <footer class="site" data-i18n="hub.footer">
+    Premier Group · Internal team access
   </footer>
 
-  <script src="assets/js/config.js"></script>
-  <script src="assets/js/api.js?v=34"></script>
-  <script src="assets/js/home.js"></script>
+  <script src="assets/js/i18n.js?v=44"></script>
+  <script src="assets/js/api.js?v=44"></script>
+  <script>
+    (async () => {
+      await window.I18n.init();
+      window.I18n.mountLangSwitch(document.getElementById("nav"));
+
+      const API = window.WeatherAPI;
+      const auth = await API.getAuthMe();
+      if (!auth.authenticated) {
+        API.redirectToLogin(auth.sessionExpired);
+        return;
+      }
+      const nav = document.getElementById("nav");
+      const bar = document.createElement("div");
+      bar.className = "user-bar";
+      bar.innerHTML = `
+        <span class="user-email">${auth.email || ""}</span>
+        <button type="button" class="btn secondary btn-logout" id="btnLogout" data-i18n="nav.logout">Log out</button>`;
+      nav.appendChild(bar);
+      window.I18n.apply(bar);
+      document.getElementById("btnLogout")?.addEventListener("click", () => API.logoutAuth());
+    })();
+  </script>
 </body>
 </html>

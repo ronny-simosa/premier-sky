@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title data-i18n-title="sky.title">Premier Sky · Storm monitor</title>
+  <link rel="icon" type="image/svg+xml" href="assets/img/premier-logo.svg" />
+  <link rel="stylesheet" href="assets/css/styles.css?v=44" />
+</head>
+<body>
+  <header class="site">
+    <div class="brand">
+      <img class="logo" src="assets/img/premier-logo.svg" alt="Premier" /> Premier Sky
+    </div>
+    <nav id="navApp" class="nav-app" aria-label="States"></nav>
+    <nav id="nav" class="nav-globals lang-switch-host" aria-label="Account"></nav>
+  </header>
+
+  <div class="container">
+    <section class="hero">
+      <h1 data-i18n="sky.heading">Real-time storm monitor</h1>
+      <p data-i18n="sky.sub">
+        Track storms, hail, rain, and wind by state. Hotspot maps, addresses and zip codes for the affected area, plus a 7-day outlook. Live data from the U.S. National Weather Service, Open-Meteo, and the Storm Prediction Center.
+      </p>
+      <div class="sources">
+        <span class="chip">NWS / NOAA · api.weather.gov</span>
+        <span class="chip">Open-Meteo</span>
+        <span class="chip">NOAA SPC · Storm Prediction Center</span>
+      </div>
+    </section>
+
+    <div class="state-grid" id="stateGrid"></div>
+  </div>
+
+  <footer class="site" data-i18n="sky.footer">
+    Data: NOAA/NWS, Open-Meteo, NOAA SPC · Maps © OpenStreetMap · Geocoding Nominatim / Zippopotam. Informational use only — not for official emergency decisions.
+  </footer>
+
+  <script src="assets/js/i18n.js?v=44"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/api.js?v=44"></script>
+  <script src="assets/js/home.js?v=44"></script>
+</body>
+</html>

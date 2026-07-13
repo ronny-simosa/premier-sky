@@ -1,60 +1,61 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Premier Sky · Estado</title>
+  <title data-i18n-title="state.title">Premier Sky · State</title>
   <link rel="icon" type="image/svg+xml" href="assets/img/premier-logo.svg" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="assets/css/styles.css?v=36" />
+  <link rel="stylesheet" href="assets/css/styles.css?v=44" />
 </head>
 <body>
   <header class="site">
-    <div class="brand"><a href="index.html" style="color:inherit;display:flex;align-items:center;gap:12px"><img class="logo" src="assets/img/premier-logo.svg" alt="Premier" /> Premier Sky</a></div>
-    <nav id="nav"></nav>
+    <div class="brand"><img class="logo" src="assets/img/premier-logo.svg" alt="Premier" /> Premier Sky</div>
+    <nav id="navApp" class="nav-app" aria-label="States"></nav>
+    <nav id="nav" class="nav-globals lang-switch-host" aria-label="Account"></nav>
   </header>
 
   <div class="container">
     <div class="hero" style="padding:20px 0 10px; text-align:left">
       <h1 id="stateTitle">…</h1>
-      <p id="stateSub">Puntos calientes de tormentas, granizo, lluvia y viento · proyección a 7 días</p>
+      <p id="stateSub" data-i18n="state.sub">Storm, hail, rain, and wind hotspots · 7-day outlook</p>
     </div>
 
     <div class="map-toolbar">
-      <input type="text" id="zipInput" placeholder="Buscar zip code (ej. 60601)" />
-      <button class="btn" id="zipBtn">Ir al zip</button>
-      <label class="toggle">Radio
+      <input type="text" id="zipInput" placeholder="Search zip (e.g. 60601)" data-i18n-placeholder="state.zipPlaceholder" />
+      <button class="btn" id="zipBtn" data-i18n="state.goZip">Go to zip</button>
+      <label class="toggle"><span data-i18n="state.radius">Radius</span>
         <input type="range" id="radiusInput" min="1" max="25" value="5" style="width:110px;vertical-align:middle" />
         <span id="radiusVal" style="color:var(--text);font-weight:600">5 mi</span>
       </label>
-      <label class="toggle"><input type="checkbox" id="tglOffice" checked /> 🏠 Oficina Premier</label>
-      <label class="toggle"><input type="checkbox" id="tglAlerts" checked /> Alertas NWS</label>
-      <label class="toggle"><input type="checkbox" id="tglSPC" checked /> Riesgo SPC</label>
-      <label class="toggle"><input type="checkbox" id="tglHailRep" /> 🧊 Granizo reportado</label>
-      <label class="toggle"><input type="checkbox" id="tglHailFc" /> 🔮 Granizo pronosticado</label>
-      <label class="toggle"><input type="checkbox" id="tglJobs" checked /> 📋 Jobs JobNimbus</label>
-      <label class="toggle" title="Puntuación de tormenta (score)"><input type="checkbox" id="tglScore" checked /> 📊 Score tormenta</label>
-      <label class="toggle" title="Lluvia real reciente (RainViewer) sobre el mapa de arriba"><input type="checkbox" id="tglRadar" /> Radar lluvia</label>
+      <label class="toggle"><input type="checkbox" id="tglOffice" checked /> 🏠 <span data-i18n="state.layer.office">Premier office</span></label>
+      <label class="toggle"><input type="checkbox" id="tglAlerts" checked /> <span data-i18n="state.layer.alerts">NWS alerts</span></label>
+      <label class="toggle"><input type="checkbox" id="tglSPC" checked /> <span data-i18n="state.layer.spc">SPC risk</span></label>
+      <label class="toggle"><input type="checkbox" id="tglHailRep" /> 🧊 <span data-i18n="state.layer.hailRep">Reported hail</span></label>
+      <label class="toggle"><input type="checkbox" id="tglHailFc" /> 🔮 <span data-i18n="state.layer.hailFc">Forecast hail</span></label>
+      <label class="toggle"><input type="checkbox" id="tglJobs" checked /> 📋 <span data-i18n="state.layer.jobs">JobNimbus jobs</span></label>
+      <label class="toggle" data-i18n-title="state.layer.scoreTitle" title="Storm score"><input type="checkbox" id="tglScore" checked /> 📊 <span data-i18n="state.layer.score">Storm score</span></label>
+      <label class="toggle" data-i18n-title="state.layer.radarTitle" title="Recent rain (RainViewer)"><input type="checkbox" id="tglRadar" /> <span data-i18n="state.layer.radar">Rain radar</span></label>
       <button class="btn secondary" id="radarPlay" style="display:none">⏸</button>
       <input type="range" id="radarSlider" min="0" max="0" value="0" style="display:none;width:120px;vertical-align:middle" />
       <span id="radarTime" style="font-size:12px;color:var(--muted)"></span>
-      <span class="muted" id="clickHint" style="font-size:12px;color:var(--muted)">Clic en el mapa = dirección + zip codes</span>
+      <span class="muted" id="clickHint" style="font-size:12px;color:var(--muted)" data-i18n="state.clickHint">Click map = address + zip codes</span>
     </div>
 
     <div class="map-toolbar" style="margin-top:10px">
-      <label class="toggle">🕘 Histórico de granizo
+      <label class="toggle">🕘 <span data-i18n="state.hist.label">Hail history</span>
         <select id="histRange" style="margin-left:6px">
-          <option value="0">Desactivado</option>
-          <option value="30">Últimos 30 días</option>
-          <option value="90">Últimos 90 días</option>
-          <option value="custom">Rango de fechas…</option>
+          <option value="0" data-i18n="state.hist.off">Off</option>
+          <option value="30" data-i18n="state.hist.30">Last 30 days</option>
+          <option value="90" data-i18n="state.hist.90">Last 90 days</option>
+          <option value="custom" data-i18n="state.hist.custom">Custom date range…</option>
         </select>
       </label>
       <span id="histCustom" style="display:none">
         <input type="date" id="histFrom" />
-        <span class="muted" style="color:var(--muted)">a</span>
+        <span class="muted" style="color:var(--muted)" data-i18n="common.to">to</span>
         <input type="date" id="histTo" />
-        <button class="btn secondary" id="histApply">Ver</button>
+        <button class="btn secondary" id="histApply" data-i18n="state.hist.apply">View</button>
       </span>
       <span id="histStatus" class="muted" style="font-size:12px;color:var(--muted)"></span>
     </div>
@@ -62,30 +63,30 @@
     <div class="map-layout">
       <aside class="map-rail map-rail-left">
         <div class="panel panel-rail">
-          <h2>🗺️ Capas del mapa</h2>
-          <p class="rail-hint">Colores de alertas, riesgo SPC y granizo</p>
+          <h2>🗺️ <span data-i18n="state.layersTitle">Map layers</span></h2>
+          <p class="rail-hint" data-i18n="state.layersHint">Alert colors, SPC risk, and hail</p>
           <div id="legend" class="legend-panel"></div>
           <div id="stormExports" class="storm-exports">
-            <h4>📥 Listas de llamada</h4>
-            <p class="rail-hint">Leads prioritarios por incidencia · CSV</p>
-            <button type="button" class="storm-export-btn" data-export="rain" disabled>🌧️ Lluvia fuerte</button>
-            <button type="button" class="storm-export-btn" data-export="hail" disabled>🧊 Granizo hoy</button>
-            <button type="button" class="storm-export-btn" data-export="alerts" disabled>🚨 Alertas activas</button>
+            <h4>📥 <span data-i18n="state.exportsTitle">Call lists</span></h4>
+            <p class="rail-hint" data-i18n="state.exportsHint">Priority leads by incident · CSV</p>
+            <button type="button" class="storm-export-btn" data-export="rain" disabled>🌧️ <span data-i18n="state.export.rain">Heavy rain</span></button>
+            <button type="button" class="storm-export-btn" data-export="hail" disabled>🧊 <span data-i18n="state.export.hail">Hail today</span></button>
+            <button type="button" class="storm-export-btn" data-export="alerts" disabled>🚨 <span data-i18n="state.export.alerts">Active alerts</span></button>
             <label class="storm-export-format">
-              <span>Formato</span>
-              <select id="stormCsvFormat" title="Excel (.xlsx) · Google Drive (.csv)">
-                <option value="excel">Excel (.xlsx)</option>
-                <option value="google">Google (.csv)</option>
+              <span data-i18n="state.export.format">Format</span>
+              <select id="stormCsvFormat" data-i18n-title="state.export.formatTitle" title="Excel (.xlsx) · Google Drive (.csv)">
+                <option value="excel" data-i18n="state.export.excel">Excel (.xlsx)</option>
+                <option value="google" data-i18n="state.export.google">Google (.csv)</option>
               </select>
             </label>
-            <p class="rail-hint storm-export-format-hint">Excel: abre el .xlsx directo · Google: sube el -google.csv a Drive</p>
+            <p class="rail-hint storm-export-format-hint" data-i18n="state.export.formatHint">Excel: open .xlsx · Google: upload -google.csv to Drive</p>
             <p id="stormExportStatus" class="storm-export-status"></p>
           </div>
           <div id="stormHistory" class="storm-history">
-            <h4>📂 Historial de tormentas</h4>
-            <p class="rail-hint" id="stormHistoryHint">Eventos con score ≥ umbral · PDF con leads afectados</p>
+            <h4>📂 <span data-i18n="state.historyTitle">Storm history</span></h4>
+            <p class="rail-hint" id="stormHistoryHint" data-i18n="state.historyHint">Events with score ≥ threshold · PDF with affected leads</p>
             <div id="stormHistoryList" class="storm-history-list">
-              <p class="storm-history-empty">Cargando…</p>
+              <p class="storm-history-empty" data-i18n="state.historyLoading">Loading…</p>
             </div>
           </div>
         </div>
@@ -99,32 +100,32 @@
 
       <aside class="map-rail map-rail-right">
         <div class="panel panel-rail jn-rail-panel">
-          <h2>📋 Jobs · fases</h2>
+          <h2>📋 <span data-i18n="state.jobsPhasesTitle">Jobs · phases</span></h2>
           <div class="jn-date-toolbar jn-date-toolbar-rail">
-            <label class="jn-date-label">Período
+            <label class="jn-date-label"><span data-i18n="state.jn.period">Period</span>
               <select id="jnDateMode">
-                <option value="month" selected>Este mes</option>
-                <option value="all">Todos los jobs</option>
-                <option value="custom">Rango personalizado…</option>
+                <option value="month" selected data-i18n="state.jn.thisMonth">This month</option>
+                <option value="all" data-i18n="state.jn.allJobs">All jobs</option>
+                <option value="custom" data-i18n="state.jn.customRange">Custom range…</option>
               </select>
             </label>
-            <label id="jnDateFieldWrap" class="jn-date-label">Por
-              <select id="jnDateField" title="Campo de fecha en JobNimbus">
-                <option value="date_updated" selected>Última actualización</option>
-                <option value="date_created">Fecha de creación</option>
+            <label id="jnDateFieldWrap" class="jn-date-label"><span data-i18n="state.jn.by">By</span>
+              <select id="jnDateField" data-i18n-title="state.jn.dateFieldTitle" title="JobNimbus date field">
+                <option value="date_updated" selected data-i18n="state.jn.dateUpdated">Last updated</option>
+                <option value="date_created" data-i18n="state.jn.dateCreated">Created date</option>
               </select>
             </label>
             <span id="jnDateCustom" class="jn-date-custom" style="display:none">
               <input type="date" id="jnDateFrom" />
-              <span class="muted">a</span>
+              <span class="muted" data-i18n="common.to">to</span>
               <input type="date" id="jnDateTo" />
-              <button type="button" class="btn secondary" id="jnDateApply">Aplicar</button>
+              <button type="button" class="btn secondary" id="jnDateApply" data-i18n="state.jn.apply">Apply</button>
             </span>
             <span id="jnDateHint" class="jn-date-hint"></span>
           </div>
-          <p class="rail-hint">▸ despliega sub-estados · clic alterna fases (varias a la vez en el mapa)</p>
+          <p class="rail-hint" data-i18n="state.jn.phaseHint">▸ expand sub-statuses · click toggles phases</p>
           <div id="jnSideLegend" class="jn-side-legend">
-            <div class="empty" style="font-size:12px">Cargando jobs…</div>
+            <div class="empty" style="font-size:12px" data-i18n="state.jn.loading">Loading jobs…</div>
           </div>
         </div>
       </aside>
@@ -133,22 +134,22 @@
     <div class="state-layout">
       <div>
         <div class="panel">
-          <h2>📍 Punto seleccionado</h2>
-          <div id="locInfo" class="empty">Haz clic en el mapa o busca un zip code para ver dirección, zip y pronóstico oficial NWS de ese punto.</div>
+          <h2>📍 <span data-i18n="state.pointTitle">Selected point</span></h2>
+          <div id="locInfo" class="empty" data-i18n="state.pointEmpty">Click the map or search a zip to see address, zips, and official NWS forecast.</div>
         </div>
 
         <div class="panel">
-          <h2>🌤️ Clima actual <span class="count" id="currentLoc"></span></h2>
-          <div id="current" class="loading">Cargando condiciones actuales…</div>
+          <h2>🌤️ <span data-i18n="state.currentTitle">Current weather</span> <span class="count" id="currentLoc"></span></h2>
+          <div id="current" class="loading" data-i18n="state.currentLoading">Loading current conditions…</div>
         </div>
 
         <div class="panel">
-          <h2>📅 Proyección a 7 días <span class="count">Open-Meteo</span></h2>
-          <div id="forecast" class="loading">Cargando proyección…</div>
+          <h2>📅 <span data-i18n="state.forecastTitle">7-day outlook</span> <span class="count">Open-Meteo</span></h2>
+          <div id="forecast" class="loading" data-i18n="state.forecastLoading">Loading outlook…</div>
         </div>
 
         <div class="panel">
-          <h2>📈 Gráficas horarias <span class="count">próximas 48 h · Open-Meteo</span></h2>
+          <h2>📈 <span data-i18n="state.chartsTitle">Hourly charts</span> <span class="count" data-i18n="state.chartsSub">next 48 h · Open-Meteo</span></h2>
           <div style="margin-bottom:14px"><canvas id="chartTemp" height="120"></canvas></div>
           <div><canvas id="chartPrecip" height="120"></canvas></div>
         </div>
@@ -156,31 +157,32 @@
 
       <aside>
         <div class="panel jn-panel">
-          <h2>📋 Jobs JobNimbus <span class="count" id="jnJobCount"></span></h2>
+          <h2>📋 <span data-i18n="state.jnPanelTitle">JobNimbus jobs</span> <span class="count" id="jnJobCount"></span></h2>
           <p id="jnDateHintPanel" class="jn-date-hint-panel"></p>
           <div id="jnPhaseLegend" class="jn-phase-legend"></div>
           <div id="jnStatusSummary" class="jn-phase-filters"></div>
-          <input type="search" id="jnJobSearch" class="jn-search" placeholder="Buscar por nombre, cliente o dirección…" autocomplete="off" />
-          <div id="jnJobs" class="loading">Cargando jobs de JobNimbus…</div>
+          <input type="search" id="jnJobSearch" class="jn-search" placeholder="Search by name, customer, or address…" data-i18n-placeholder="state.jnSearchPh" autocomplete="off" />
+          <div id="jnJobs" class="loading" data-i18n="state.jnPanelLoading">Loading JobNimbus jobs…</div>
         </div>
 
         <div class="panel">
-          <h2>🚨 Alertas activas <span class="count" id="alertCount"></span></h2>
-          <div id="alerts" class="loading">Cargando alertas del NWS…</div>
+          <h2>🚨 <span data-i18n="state.alertsTitle">Active alerts</span> <span class="count" id="alertCount"></span></h2>
+          <div id="alerts" class="loading" data-i18n="state.alertsLoading">Loading NWS alerts…</div>
         </div>
       </aside>
     </div>
   </div>
 
-  <footer class="site">
-    Datos: NOAA/NWS · Open-Meteo · NOAA SPC · Mapas © OpenStreetMap · Geocodificación Nominatim/Zippopotam.
+  <footer class="site" data-i18n="state.footer">
+    Data: NOAA/NWS · Open-Meteo · NOAA SPC · Maps © OpenStreetMap · Geocoding Nominatim / Zippopotam. Informational use only.
   </footer>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="assets/js/i18n.js?v=44"></script>
   <script src="assets/js/config.js?v=15"></script>
   <script src="assets/js/jn-phases.js?v=15"></script>
-  <script src="assets/js/api.js?v=37"></script>
+  <script src="assets/js/api.js?v=41"></script>
   <!-- Datasets de ZIP codes (centroides) cargados como globales window.ZIPDB_XX.
        Se incluyen como <script> para funcionar también con file:// (doble clic). -->
   <script src="assets/data/zips_IL.js?v=11"></script>
@@ -189,6 +191,6 @@
   <script src="assets/data/zips_WI.js?v=11"></script>
   <script src="assets/data/zips_MD.js?v=11"></script>
   <script src="assets/data/zips_FL.js?v=11"></script>
-  <script src="assets/js/state.js?v=40"></script>
+  <script src="assets/js/state.js?v=44"></script>
 </body>
 </html>

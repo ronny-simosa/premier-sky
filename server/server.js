@@ -23,6 +23,17 @@ import {
   recordStormEvent, listStormHistory, getStormEvent, generateStormPdf
 } from "./storm-history.js";
 import { initMail, mailConfigured, mailProvider, sendMail } from "./mail.js";
+import geocodeRouter from "../sales/server/routes/geocode.js";
+import footprintsRouter from "../sales/server/routes/footprints.js";
+import leadsRouter from "../sales/server/routes/leads.js";
+import crmRouter from "../sales/server/routes/crm.js";
+import leadScoreRouter from "../sales/server/routes/leadScore.js";
+import overridesRouter from "../sales/server/routes/overrides.js";
+import {
+  GOOGLE_MAPS_API_KEY as SALES_GOOGLE_KEY,
+  REGRID_API_KEY as SALES_REGRID_KEY,
+  JOBNIMBUS_API_KEY as SALES_JN_KEY
+} from "../sales/server/config.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
@@ -114,11 +125,61 @@ app.use((req, res, next) => {
   if (req.method !== "GET") return next();
   const p = req.path.split("?")[0];
   if (p === "/contract.html" || p === "/login.html") return next();
-  if (p !== "/" && p !== "/index.html" && p !== "/state.html" && !p.startsWith("/state.html")) return next();
+  if (p.startsWith("/api/")) return next();
+  const locked =
+    p === "/" ||
+    p === "/index.html" ||
+    p === "/sky.html" ||
+    p === "/state.html" ||
+    p.startsWith("/state.html") ||
+    p === "/sales" ||
+    p.startsWith("/sales/");
+  if (!locked) return next();
   const session = getSession(req, res);
   if (!session || !canAccessContractGenerator(session.email)) return next();
   return res.redirect(302, "/contract.html");
 });
+
+// --- Premier Sales (mismo deploy) · requiere sesión ----------------
+app.use("/api/geocode", requireAuth, geocodeRouter);
+app.use("/api/footprints", requireAuth, footprintsRouter);
+app.use("/api/leads", requireAuth, leadsRouter);
+app.use("/api/crm", requireAuth, crmRouter);
+app.use("/api/lead-score", requireAuth, leadScoreRouter);
+app.use("/api/lead-overrides", requireAuth, overridesRouter);
+
+app.get("/api/status", requireAuth, (_req, res) => {
+  res.json({
+    live: {
+      "footprints-chicago": true,
+      "parcels-assessor-dupage": true,
+      "footprints-cook": "with local fallback",
+      "footprints-microsoft": true,
+      "roof-intel-satellite": true,
+      geocoding: SALES_GOOGLE_KEY ? "google" : "free fallback",
+      persistence: "sqlite",
+      ...(SALES_GOOGLE_KEY
+        ? { "google-solar": true, "business-contacts (Places)": true }
+        : {})
+    },
+    stubbed: {
+      ...(SALES_GOOGLE_KEY
+        ? {}
+        : { "google-solar (needs key)": true, "business-contacts (needs key)": true }),
+      "storms (Premier Sky pending)": true,
+      permits: true,
+      "person-contacts/email (vendor pending)": true,
+      "jobnimbus-crm": !SALES_JN_KEY,
+      "regrid (non-IL markets)": !SALES_REGRID_KEY
+    }
+  });
+});
+
+const SALES_PUBLIC = path.join(ROOT, "sales", "public");
+app.get(["/sales", "/sales/"], (req, res) => {
+  res.sendFile(path.join(SALES_PUBLIC, "index.html"));
+});
+app.use("/sales", express.static(SALES_PUBLIC, { index: false, redirect: false }));
 
 // --- JobNimbus: jobs por zona (caché 3 min) · requiere sesión --------------
 const jnCache = {};
