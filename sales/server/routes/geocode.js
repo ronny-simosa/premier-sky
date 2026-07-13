@@ -13,7 +13,7 @@
 import { Router } from "express";
 import { fetchJson } from "../lib/http.js";
 import { cached } from "../lib/cache.js";
-import { GOOGLE_MAPS_API_KEY } from "../config.js";
+import { getGoogleMapsApiKey } from "../config.js";
 
 const router = Router();
 
@@ -21,7 +21,7 @@ async function geocodeGoogle(zip) {
   const url =
     `https://maps.googleapis.com/maps/api/geocode/json?components=` +
     encodeURIComponent(`postal_code:${zip}|country:US`) +
-    `&key=${GOOGLE_MAPS_API_KEY}`;
+    `&key=${getGoogleMapsApiKey()}`;
   const data = await fetchJson(url);
   if (data.status !== "OK" || !data.results?.length) {
     throw new Error(`Google geocode failed: ${data.status}`);
@@ -72,7 +72,7 @@ async function geocodeFree(zip) {
 
 export async function geocodeZip(zip) {
   return cached(`geocode:${zip}`, 24 * 60 * 60 * 1000, async () => {
-    if (GOOGLE_MAPS_API_KEY) {
+    if (getGoogleMapsApiKey()) {
       try {
         return await geocodeGoogle(zip);
       } catch {

@@ -1702,15 +1702,7 @@ function setupMaps(){
         rm.style.position = "relative";
         rm.appendChild(overlay);
         requestAnimationFrame(() => { try { map.invalidateSize({ animate: false }); } catch(e){} });
-        // Resolve ZIP center in the background for a better loading map.
-        fetch(`/api/geocode?zip=${encodeURIComponent(state.searchParams.zip)}`, { credentials:"include" })
-          .then(r => r.ok ? r.json() : null)
-          .then(geo => {
-            if(!geo || geo.lat == null || !window._maps.includes(map)) return;
-            state.lastGeo = { lat: Number(geo.lat), lng: Number(geo.lng) };
-            map.setView([state.lastGeo.lat, state.lastGeo.lng], 12);
-          })
-          .catch(()=>{});
+        // ZIP center comes from /api/leads (state.lastGeo) — no extra geocode call.
       } else if(state.results.length){
         rm.innerHTML = `<div class="map-empty">${st("sales.map.noCoords","Leads found, but none have map coordinates yet.")}</div>`;
       } else {

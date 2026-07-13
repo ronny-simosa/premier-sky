@@ -10,12 +10,12 @@
 
 import { fetchJson } from "../lib/http.js";
 import { cacheGet, cacheSet } from "../lib/cache.js";
-import { GOOGLE_MAPS_API_KEY } from "../config.js";
+import { getGoogleMapsApiKey } from "../config.js";
 
 const SQFT_PER_M2 = 10.7639;
 
 export function solarAvailable() {
-  return Boolean(GOOGLE_MAPS_API_KEY);
+  return Boolean(getGoogleMapsApiKey());
 }
 
 /** Roof stats for the building nearest to lat/lng, or null. */
@@ -29,7 +29,7 @@ export async function solarRoofFor(lat, lng) {
     const url =
       `https://solar.googleapis.com/v1/buildingInsights:findClosest` +
       `?location.latitude=${lat}&location.longitude=${lng}` +
-      `&requiredQuality=LOW&key=${GOOGLE_MAPS_API_KEY}`;
+      `&requiredQuality=LOW&key=${getGoogleMapsApiKey()}`;
     const d = await fetchJson(url, { timeoutMs: 12000, retries: 1 });
     const sp = d.solarPotential;
     if (!sp?.wholeRoofStats?.areaMeters2) return cacheSet(key, null, 24 * 3600 * 1000);
@@ -59,15 +59,16 @@ export async function solarRoofFor(lat, lng) {
 }
 
 /** Enrich top records with solarRoof (bounded concurrency, no-op without key). */
-export async function enrichWithSolar(records, { concurrency = 5 } = {}) {
+export async function enrichWithSolar(records, { concurrency = 4, signal } = {}) {
   if (!solarAvailable()) return;
   const queue = records.filter((r) => r.lat != null);
   let idx = 0;
   async function worker() {
     while (idx < queue.length) {
+      if (signal?.aborted) return;
       const rec = queue[idx++];
       rec.solarRoof = await solarRoofFor(rec.lat, rec.lng);
     }
   }
-  await Promise.all(Array.from({ length: Math.min(concurrency, queue.length) }, worker));
+  await Promise.all(Array.from({ length: Math.min(concurrency, queue.length || 1) }, worker));
 }

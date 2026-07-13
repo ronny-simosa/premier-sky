@@ -2,6 +2,12 @@
 // The orchestration route: geocode → route to footprint/parcel source →
 // stub-fill storm/permits/contacts → merge pipeline → SAMPLE_LEADS-shaped
 // records. Response tells the frontend exactly what's live vs. stubbed.
+//
+// Quota discipline (free / metered APIs):
+//  - Full response cached ~30m (same ZIP/radius/types)
+//  - MS footprints: top LEADS_MS_TOP only (default 40)
+//  - Roof/Solar/Places: top LEADS_ENRICH_TOP only (default 12), aborted on timeout
+//  - Core parcel/owner data always returned for the full list
 
 import { Router } from "express";
 import { geocodeZip } from "./geocode.js";
@@ -13,24 +19,35 @@ import { analyzeRoofSurface } from "../lib/roofIntel.js";
 import { enrichWithSolar } from "../sources/googleSolar.js";
 import { enrichWithPlaces } from "../sources/googlePlaces.js";
 import { applyOverrides } from "../lib/db.js";
+import { cacheGet, cacheSet } from "../lib/cache.js";
 
-// Satellite roof-surface pass over the top records — bounded concurrency,
-// best-effort (a failed tile just means no surface row for that lead).
-async function enrichRoofSurfaces(records, { concurrency = 5 } = {}) {
+function envInt(name, fallback, min, max) {
+  const n = Number(process.env[name]);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(Math.max(n, min), max);
+}
+
+// Satellite roof-surface pass — bounded concurrency; stops when signal aborts.
+async function enrichRoofSurfaces(records, { concurrency = 4, signal } = {}) {
   const queue = records.filter((r) => r.lat != null);
   let idx = 0;
   async function worker() {
     while (idx < queue.length) {
+      if (signal?.aborted) return;
       const rec = queue[idx++];
-      rec.roofSurface = await analyzeRoofSurface({
-        ring: rec.footprintRing,
-        lat: rec.lat,
-        lng: rec.lng,
-        roofSqFt: rec.buildingSqFt || rec.parcelAreaSqFt,
-      });
+      try {
+        rec.roofSurface = await analyzeRoofSurface({
+          ring: rec.footprintRing,
+          lat: rec.lat,
+          lng: rec.lng,
+          roofSqFt: rec.buildingSqFt || rec.parcelAreaSqFt,
+        });
+      } catch {
+        /* best-effort */
+      }
     }
   }
-  await Promise.all(Array.from({ length: Math.min(concurrency, queue.length) }, worker));
+  await Promise.all(Array.from({ length: Math.min(concurrency, queue.length || 1) }, worker));
 }
 
 const router = Router();
@@ -44,6 +61,16 @@ router.get("/", async (req, res) => {
     .filter(Boolean);
   if (!/^\d{5}$/.test(zip)) {
     return res.status(400).json({ error: "Provide a 5-digit ZIP: /api/leads?zip=60108&radius=10" });
+  }
+
+  const typesKey = types.slice().sort().join(",");
+  const responseKey = `leads:v2:${zip}:${radius}:${typesKey}`;
+  const responseTtlMs = envInt("LEADS_CACHE_MS", 30 * 60 * 1000, 0, 24 * 60 * 60 * 1000);
+  if (responseTtlMs > 0) {
+    const cached = cacheGet(responseKey);
+    if (cached) {
+      return res.json({ ...cached, cache: "hit" });
+    }
   }
 
   try {
@@ -64,24 +91,28 @@ router.get("/", async (req, res) => {
       });
     }
 
-    // DuPage publishes no building footprints — enrich the top parcels with
-    // REAL footprint areas from Microsoft Building Footprints before scoring
-    // (replaces the parcel-area × lot-coverage roof estimate).
     const top = selectTopRecords(footprintResult.records);
-    if (source.key === "DUPAGE") await enrichWithMsFootprints(top);
+    const msTop = envInt("LEADS_MS_TOP", 40, 0, top.length || 60);
+    if (source.key === "DUPAGE" && msTop > 0) {
+      await enrichWithMsFootprints(top.slice(0, msTop));
+    }
 
-    // Roof/solar/places enrichment is nice-to-have but can take many seconds
-    // (satellite tiles × N leads). Cap wait so map/list stay responsive.
-    const enrichMs = Math.min(Math.max(Number(process.env.LEADS_ENRICH_MS) || 1200, 0), 8000);
-    if (enrichMs > 0) {
+    // Deep enrich only the highest-opportunity slice (saves Esri/Google quota).
+    const enrichTop = envInt("LEADS_ENRICH_TOP", 12, 0, top.length || 60);
+    const enrichMs = envInt("LEADS_ENRICH_MS", 1500, 0, 8000);
+    const deep = enrichTop > 0 ? top.slice(0, enrichTop) : [];
+    if (enrichMs > 0 && deep.length) {
+      const ac = new AbortController();
+      const work = Promise.all([
+        enrichRoofSurfaces(deep, { signal: ac.signal }),
+        enrichWithSolar(deep, { signal: ac.signal }),
+        enrichWithPlaces(deep, { signal: ac.signal }),
+      ]);
       await Promise.race([
-        Promise.all([
-          enrichRoofSurfaces(top),
-          enrichWithSolar(top),
-          enrichWithPlaces(top),
-        ]),
+        work,
         new Promise((resolve) => setTimeout(resolve, enrichMs)),
       ]);
+      ac.abort(); // stop remaining workers — don't keep burning quota after respond
     }
 
     let leads = buildLeads({
@@ -89,10 +120,10 @@ router.get("/", async (req, res) => {
       footprintResult: { ...footprintResult, records: top, allRecords: footprintResult.records },
       storm,
     });
-    applyOverrides(leads); // saved statuses/notes/corrections from the team
+    applyOverrides(leads);
     if (types.length) leads = leads.filter((l) => types.includes(l.propertyType));
 
-    res.json({
+    const payload = {
       leads,
       live: true,
       geo,
@@ -101,7 +132,12 @@ router.get("/", async (req, res) => {
       stubbedDomains: ["storm history", "permits", "contact enrichment", "property manager"],
       note: footprintResult.note || null,
       enrichBudgetMs: enrichMs,
-    });
+      enrichTop,
+      msTop,
+      cache: "miss",
+    };
+    if (responseTtlMs > 0 && leads.length) cacheSet(responseKey, { ...payload, cache: "hit" }, responseTtlMs);
+    res.json(payload);
   } catch (e) {
     res.status(502).json({ error: `Lead search failed: ${e.message}`, leads: [], live: false });
   }

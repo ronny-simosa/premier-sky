@@ -14,10 +14,10 @@
 
 import { fetchJson } from "../lib/http.js";
 import { cacheGet, cacheSet } from "../lib/cache.js";
-import { GOOGLE_MAPS_API_KEY } from "../config.js";
+import { getGoogleMapsApiKey } from "../config.js";
 
 export function placesAvailable() {
-  return Boolean(GOOGLE_MAPS_API_KEY);
+  return Boolean(getGoogleMapsApiKey());
 }
 
 // Types that are never the building's occupant-of-interest.
@@ -63,7 +63,7 @@ export async function placesNear(lat, lng, radiusM = 80) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
+        "X-Goog-Api-Key": getGoogleMapsApiKey(),
         "X-Goog-FieldMask":
           "places.displayName,places.nationalPhoneNumber,places.websiteUri,places.types,places.businessStatus",
       },
@@ -99,12 +99,13 @@ export async function placesNear(lat, lng, radiusM = 80) {
  * Enrich records with the best on-site business contact.
  * Sets rec.placeContact = {name, phone, website, ownerMatch}.
  */
-export async function enrichWithPlaces(records, { concurrency = 5 } = {}) {
+export async function enrichWithPlaces(records, { concurrency = 4, signal } = {}) {
   if (!placesAvailable()) return;
   const queue = records.filter((r) => r.lat != null);
   let idx = 0;
   async function worker() {
     while (idx < queue.length) {
+      if (signal?.aborted) return;
       const rec = queue[idx++];
       // Radius scaled to the parcel, so mall neighbors don't bleed in.
       const sideFt = Math.sqrt(rec.parcelAreaSqFt || rec.buildingSqFt || 40000);
@@ -121,5 +122,5 @@ export async function enrichWithPlaces(records, { concurrency = 5 } = {}) {
       }
     }
   }
-  await Promise.all(Array.from({ length: Math.min(concurrency, queue.length) }, worker));
+  await Promise.all(Array.from({ length: Math.min(concurrency, queue.length || 1) }, worker));
 }
