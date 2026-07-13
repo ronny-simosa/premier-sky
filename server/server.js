@@ -14,7 +14,7 @@ import { fetchJobsForZone, jnConfigured, jnIsReadOnly, jnFetch } from "./jn.js";
 import {
   requestLoginCode, verifyLoginCode, getSession, requireAuth,
   applySessionCookie, destroySession, pageRequiresAuth, redirectToLogin,
-  sessionDurationHours, canAccessContractGenerator
+  sessionDurationHours, canAccessContractGenerator, homeForEmail, resolvePostLoginPath
 } from "./auth.js";
 import { buildStormExport } from "./storm-export.js";
 import { fetchOpenMeteoForecast, fetchPrecipGrid } from "./meteo.js";
@@ -87,18 +87,25 @@ app.post("/api/auth/request-code", async (req, res) => {
 
 app.post("/api/auth/verify", (req, res) => {
   res.set("Access-Control-Allow-Origin", req.headers.origin || "*");
-  const { email, code } = req.body || {};
+  const { email, code, next } = req.body || {};
   const result = verifyLoginCode(email, code);
   if (!result.ok) return res.status(401).json({ error: result.error });
   applySessionCookie(res, result.sid);
-  res.json({ ok: true, email: result.email });
+  const home = resolvePostLoginPath(result.email, next);
+  res.json({ ok: true, email: result.email, home });
 });
 
 app.get("/api/auth/me", (req, res) => {
   res.set("Access-Control-Allow-Origin", req.headers.origin || "*");
   const session = getSession(req, res);
   if (!session) return res.status(401).json({ authenticated: false, sessionExpired: true });
-  res.json({ authenticated: true, email: session.email, sessionHours: sessionDurationHours() });
+  res.json({
+    authenticated: true,
+    email: session.email,
+    sessionHours: sessionDurationHours(),
+    home: homeForEmail(session.email),
+    contractAccess: canAccessContractGenerator(session.email)
+  });
 });
 
 app.post("/api/auth/logout", (req, res) => {

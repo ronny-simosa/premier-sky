@@ -290,6 +290,64 @@ export function canAccessContractGenerator(email) {
   return contractGeneratorEmails().includes(normalizeEmail(email));
 }
 
+/** Canonical landing page after login / for role locks. */
+export function homeForEmail(email) {
+  return canAccessContractGenerator(email) ? "/contract.html" : "/index.html";
+}
+
+const POST_LOGIN_ALLOW = new Set([
+  "/index.html",
+  "/sky.html",
+  "/state.html",
+  "/sales",
+  "/sales/"
+]);
+
+/**
+ * Sanitize ?next= when bouncing an anonymous user to login.
+ * Never sticky-lock role-gated pages (contract) — that caused non-Sharom
+ * users to land on "no access" after OTP.
+ */
+export function sanitizeLoginNext(nextUrl) {
+  let path = String(nextUrl || "/index.html").trim();
+  try {
+    if (path.startsWith("http://") || path.startsWith("https://")) {
+      path = new URL(path).pathname || "/index.html";
+    }
+  } catch {
+    return "/index.html";
+  }
+  // strip query for gate checks; keep state.html?state=IL
+  const qIndex = path.indexOf("?");
+  const pathname = qIndex >= 0 ? path.slice(0, qIndex) : path;
+  const search = qIndex >= 0 ? path.slice(qIndex) : "";
+
+  if (!pathname.startsWith("/") || pathname.startsWith("//")) return "/index.html";
+  if (pathname === "/login.html" || pathname === "/contract.html") return "/index.html";
+  if (pathname === "/" || pathname === "") return "/index.html";
+  if (pathname === "/state.html") return `/state.html${search}`;
+  if (pathname === "/sky.html") return "/sky.html";
+  if (pathname === "/sales" || pathname.startsWith("/sales/")) {
+    return pathname === "/sales" ? "/sales/" : pathname;
+  }
+  if (pathname === "/index.html") return "/index.html";
+  return "/index.html";
+}
+
+/**
+ * Resolve where a logged-in user should go after OTP.
+ * Contract users always → contract. Others never → contract.
+ */
+export function resolvePostLoginPath(email, nextUrl) {
+  if (canAccessContractGenerator(email)) return "/contract.html";
+  const safe = sanitizeLoginNext(nextUrl);
+  if (safe === "/contract.html") return "/index.html";
+  if (POST_LOGIN_ALLOW.has(safe) || safe.startsWith("/state.html") || safe.startsWith("/sales")) {
+    return safe;
+  }
+  return "/index.html";
+}
+
 export function pageRequiresAuth(pathname) {
   if (pathname === "/login.html") return false;
   if (pathname === "/" || pathname === "/index.html" || pathname === "/sky.html") return true;
@@ -300,6 +358,7 @@ export function pageRequiresAuth(pathname) {
 }
 
 export function redirectToLogin(res, nextUrl) {
-  const q = nextUrl ? `?next=${encodeURIComponent(nextUrl)}` : "";
+  const safe = sanitizeLoginNext(nextUrl);
+  const q = safe ? `?next=${encodeURIComponent(safe)}` : "";
   res.redirect(302, `/login.html${q}`);
 }

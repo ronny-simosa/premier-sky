@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title data-i18n-title="login.title">Premier Sky · Team access</title>
   <link rel="icon" type="image/svg+xml" href="assets/img/premier-logo.svg" />
-  <link rel="stylesheet" href="assets/css/styles.css?v=45" />
+  <link rel="stylesheet" href="assets/css/styles.css?v=46" />
   <style>
     .login-wrap {
       max-width: 420px;
@@ -66,7 +66,7 @@
     <p id="loginMsg" class="login-msg"></p>
   </div>
 
-  <script src="assets/js/i18n.js?v=45"></script>
+  <script src="assets/js/i18n.js?v=46"></script>
   <script>
     (async () => {
       await window.I18n.init();
@@ -74,34 +74,16 @@
       window.addEventListener("premier:lang", () => window.I18n.apply(document));
 
       const params = new URLSearchParams(location.search);
-      const rawNext = params.get("next") || "/index.html";
+      let rawNext = params.get("next") || "/index.html";
+      // Defense: never keep sticky contract as client next (server is source of truth)
+      if (rawNext === "/contract.html" || rawNext.startsWith("/contract.html")) {
+        rawNext = "/index.html";
+      }
       const msg = document.getElementById("loginMsg");
       const t = (k) => window.I18n.t(k);
 
-      /** Contract is Sharom-only — never send other users there via ?next= */
-      function safeNext(email, nextPath) {
-        const norm = String(email || "").trim().toLowerCase();
-        let path = String(nextPath || "/index.html");
-        try {
-          if (path.startsWith("http")) path = new URL(path).pathname || "/index.html";
-        } catch { path = "/index.html"; }
-        if (!path.startsWith("/")) path = "/index.html";
-        const isContract = path === "/contract.html" || path.startsWith("/contract.html?");
-        // Sharom (and any CONTRACT_GENERATOR email): always land on contract
-        // Everyone else: hub — ignore sticky ?next=/contract.html from a prior visit
-        return fetch("/api/jn/contract-access", { credentials: "include" })
-          .then((r) => {
-            if (r.ok) return "/contract.html";
-            if (isContract) return "/index.html";
-            if (path === "/" || path === "/login.html") return "/index.html";
-            return path;
-          })
-          .catch(() => (isContract || path === "/login.html" ? "/index.html" : path));
-      }
-
-      async function postLoginRedirect(email) {
-        const dest = await safeNext(email, rawNext);
-        location.href = dest;
+      function goHome(home) {
+        location.replace(home || "/index.html");
       }
 
       if (params.get("expired") === "1") {
@@ -111,7 +93,9 @@
 
       fetch("/api/auth/me", { credentials: "include" })
         .then((r) => r.json())
-        .then((d) => { if (d.authenticated) postLoginRedirect(d.email); })
+        .then((d) => {
+          if (d.authenticated) goHome(d.home || "/index.html");
+        })
         .catch(() => {});
 
       document.getElementById("btnSend").addEventListener("click", async () => {
@@ -154,11 +138,11 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
-            body: JSON.stringify({ email, code })
+            body: JSON.stringify({ email, code, next: rawNext })
           });
           const d = await r.json();
           if (!r.ok) throw new Error(d.error || t("login.invalidCode"));
-          postLoginRedirect(d.email);
+          goHome(d.home || "/index.html");
         } catch (e) {
           msg.className = "login-msg err";
           msg.textContent = e.message;

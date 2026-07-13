@@ -444,7 +444,12 @@ function wmoEmoji(code) {
 // --- JobNimbus (vía proxy local /api/jn) · SOLO LECTURA --------------------
 // Premier Sky no expone ni implementa crear/actualizar/eliminar en JobNimbus.
 function redirectToLogin(sessionExpired) {
-  const next = encodeURIComponent(location.pathname + location.search);
+  // Never sticky ?next=/contract.html — role home is decided by the server after OTP.
+  let path = location.pathname + location.search;
+  if (location.pathname === "/contract.html" || location.pathname === "/login.html") {
+    path = "/index.html";
+  }
+  const next = encodeURIComponent(path);
   const extra = sessionExpired ? "&expired=1" : "";
   location.href = `/login.html?next=${next}${extra}`;
 }

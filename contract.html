@@ -558,7 +558,7 @@ async function jnApiFetch(path, params = {}, signal = null) {
       signal,
     });
     if (response.status === 401) {
-      location.href = "/login.html?next=" + encodeURIComponent(location.pathname);
+      location.href = "/login.html?next=" + encodeURIComponent("/index.html");
       throw new Error(ct("login.expired"));
     }
     if (!response.ok) {
@@ -1094,12 +1094,12 @@ async function initContractAuth() {
   const res = await fetch("/api/auth/me", { credentials: "include" });
   const auth = await res.json().catch(() => ({ authenticated: false }));
   if (!auth.authenticated) {
-    location.href = "/login.html?next=" + encodeURIComponent(location.pathname);
+    location.href = "/login.html?next=" + encodeURIComponent("/index.html");
     return false;
   }
   const allowed = await fetch("/api/jn/contract-access", { credentials: "include" });
   if (!allowed.ok) {
-    document.body.innerHTML = "<p style=\"padding:2rem;font-family:sans-serif\">" + (window.I18n ? window.I18n.t("contract.noAccess") : "You do not have access to this tool.") + "</p>";
+    location.replace("/index.html");
     return false;
   }
   return true;
