@@ -350,7 +350,13 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
 .checkbox-row{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--gray-700);}
 
 /* ---------- Dashboard redesign ---------- */
-.dash-search{display:grid; grid-template-columns:minmax(240px,1.35fr) 180px 1fr 160px; gap:16px; align-items:start;}
+.dash-search{display:grid; grid-template-columns:minmax(240px,1.35fr) 180px 1fr minmax(140px,180px); gap:16px; align-items:start;}
+.search-status{
+  font-size:12px; color:var(--gray-500); line-height:1.35; padding:28px 0 0;
+}
+.search-status.is-loading{
+  color:var(--blue-accent-dark); font-weight:600;
+}
 .zip-combo{position:relative; width:100%; min-width:0;}
 .zip-combo-field{position:relative;}
 .zip-combo-search{width:100%; font-size:12.5px; padding-right:28px;}
@@ -402,6 +408,12 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
 .map-wrap{height:380px; position:relative;}
 #detail-map{height:250px; border-radius:var(--radius-md); overflow:hidden; margin-top:14px; border:1px solid var(--gray-200);}
 .map-empty{display:flex; align-items:center; justify-content:center; height:100%; color:var(--gray-500); font-size:12.5px; background:var(--gray-50); text-align:center; padding:0 30px;}
+.data-banner{
+  margin:0 0 12px; padding:10px 12px; border-radius:10px; font-size:12.5px; line-height:1.45;
+  border:1px solid var(--gray-200);
+}
+.data-banner-warn{background:var(--warm-bg); color:#8A5A12; border-color:#F3E0BE;}
+.data-banner-info{background:var(--blue-soft); color:var(--navy-700); border-color:#CFE4FA;}
 .map-loading-overlay{
   position:absolute; inset:0; z-index:500; display:flex; align-items:center; justify-content:center;
   background:rgba(246,248,250,0.45); pointer-events:none;
@@ -427,7 +439,8 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
 .lead-map-toolbar .lm-field-zip{flex:1.2; min-width:200px;}
 .lead-map-toolbar .lm-field-radius{width:170px;}
 .lead-map-toolbar .lm-field-filters{display:flex; flex-wrap:wrap; align-items:center; gap:12px; flex:1; min-width:220px;}
-.lead-map-toolbar .lm-field-actions{display:flex; align-items:center; gap:10px; margin-left:auto;}
+.lead-map-toolbar .lm-field-actions{display:flex; flex-direction:column; align-items:flex-end; gap:6px; margin-left:auto;}
+.lead-map-toolbar .lm-field-actions .search-status{padding:0; text-align:right;}
 .lead-map-count{font-size:12.5px; color:var(--gray-500); font-family:'IBM Plex Mono',monospace; white-space:nowrap;}
 .lead-map-layout{
   display:grid; grid-template-columns:220px minmax(0,1fr) 300px; gap:12px;
@@ -546,7 +559,8 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
 const SAMPLE_LEADS = [
   {
     id:"PSL-1001", name:"Bloomingdale Corporate Center", address:"123 Lake St, Bloomingdale, IL 60108",
-    zip:"60108", distanceMiles:1.2, propertyType:"Office",
+    zip:"60108",
+    lat:41.957, lng:-88.0809, distanceMiles:1.2, propertyType:"Office",
     manager:"Midwest Property Partners", ownerEntity:"BCC Holdings LLC",
     buildingSqFt:85000, roofSqFt:82000, roofType:"TPO (fully adhered)", yearBuilt:1998, roofAge:18,
     propertyValue:9200000, lastSaleDate:"2016-03-14",
@@ -565,7 +579,8 @@ const SAMPLE_LEADS = [
   },
   {
     id:"PSL-1002", name:"Glendale Heights Industrial Park — Bldg C", address:"455 Fullerton Ave, Glendale Heights, IL 60139",
-    zip:"60139", distanceMiles:4.6, propertyType:"Industrial",
+    zip:"60139",
+    lat:41.9105, lng:-88.066, distanceMiles:4.6, propertyType:"Industrial",
     manager:"Heartland Industrial Management", ownerEntity:"GHIP Bldg C LLC",
     buildingSqFt:62000, roofSqFt:60500, roofType:"EPDM (ballasted)", yearBuilt:1985, roofAge:30,
     propertyValue:4150000, lastSaleDate:"2011-09-01",
@@ -584,7 +599,8 @@ const SAMPLE_LEADS = [
   },
   {
     id:"PSL-1003", name:"Stratford Square Retail Plaza", address:"152 Stratford Square, Bloomingdale, IL 60108",
-    zip:"60108", distanceMiles:0.8, propertyType:"Retail",
+    zip:"60108",
+    lat:41.9495, lng:-88.085, distanceMiles:0.8, propertyType:"Retail",
     manager:"Centro Retail Services", ownerEntity:"Stratford Square Partners LP",
     buildingSqFt:145000, roofSqFt:138000, roofType:"Modified Bitumen", yearBuilt:2004, roofAge:8,
     propertyValue:21500000, lastSaleDate:"2019-11-20",
@@ -600,7 +616,8 @@ const SAMPLE_LEADS = [
   },
   {
     id:"PSL-1004", name:"Meadowbrook Multifamily Apartments", address:"890 Meadowbrook Ln, Carol Stream, IL 60188",
-    zip:"60188", distanceMiles:6.3, propertyType:"Multifamily",
+    zip:"60188",
+    lat:41.8756, lng:-88.09, distanceMiles:6.3, propertyType:"Multifamily",
     manager:"Lincoln Residential Group", ownerEntity:"Meadowbrook JV LLC",
     buildingSqFt:210000, roofSqFt:198000, roofType:"Asphalt Shingle (pitched)", yearBuilt:1992, roofAge:24,
     propertyValue:32800000, lastSaleDate:"2021-06-08",
@@ -619,7 +636,8 @@ const SAMPLE_LEADS = [
   },
   {
     id:"PSL-1005", name:"Keystone Business Park — Office A", address:"701 Keystone Ave, Roselle, IL 60172",
-    zip:"60172", distanceMiles:3.9, propertyType:"Office",
+    zip:"60172",
+    lat:41.98, lng:-88.12, distanceMiles:3.9, propertyType:"Office",
     manager:"Prairie Commercial Management", ownerEntity:"Keystone Office A LLC",
     buildingSqFt:48000, roofSqFt:46500, roofType:"TPO", yearBuilt:2010, roofAge:16,
     propertyValue:6100000, lastSaleDate:"2017-02-27",
@@ -635,7 +653,8 @@ const SAMPLE_LEADS = [
   },
   {
     id:"PSL-1006", name:"Fox Valley Commons Condominiums", address:"340 Fox Valley Dr, Wood Dale, IL 60191",
-    zip:"60191", distanceMiles:7.8, propertyType:"HOA/Condo",
+    zip:"60191",
+    lat:41.94, lng:-88.05, distanceMiles:7.8, propertyType:"HOA/Condo",
     manager:"Sunrise Community Association Management", ownerEntity:"Fox Valley Commons Condo Assoc.",
     buildingSqFt:96000, roofSqFt:91000, roofType:"Asphalt Shingle (pitched)", yearBuilt:1988, roofAge:15,
     propertyValue:14200000, lastSaleDate:"N/A — HOA-held common property",
@@ -654,7 +673,8 @@ const SAMPLE_LEADS = [
   },
   {
     id:"PSL-1007", name:"Addison Mixed-Use Development", address:"1200 Lake St, Addison, IL 60101",
-    zip:"60101", distanceMiles:9.4, propertyType:"Mixed-use",
+    zip:"60101",
+    lat:41.931, lng:-88.007, distanceMiles:9.4, propertyType:"Mixed-use",
     manager:"Centro Retail Services", ownerEntity:"Addison Mixed-Use Partners LLC",
     buildingSqFt:72000, roofSqFt:69000, roofType:"TPO", yearBuilt:2021, roofAge:5,
     propertyValue:11800000, lastSaleDate:"2021-05-12",
@@ -670,7 +690,8 @@ const SAMPLE_LEADS = [
   },
   {
     id:"PSL-1008", name:"Itasca Logistics Center", address:"500 Thorndale Ave, Itasca, IL 60143",
-    zip:"60143", distanceMiles:5.1, propertyType:"Industrial",
+    zip:"60143",
+    lat:41.975, lng:-88.007, distanceMiles:5.1, propertyType:"Industrial",
     manager:"Heartland Industrial Management", ownerEntity:"Itasca Logistics LLC",
     buildingSqFt:310000, roofSqFt:298000, roofType:"TPO (mechanically attached)", yearBuilt:2001, roofAge:14,
     propertyValue:41500000, lastSaleDate:"2018-10-03",
@@ -689,7 +710,8 @@ const SAMPLE_LEADS = [
   },
   {
     id:"PSL-1009", name:"Carol Stream Professional Plaza", address:"222 Schmale Rd, Carol Stream, IL 60188",
-    zip:"60188", distanceMiles:6.9, propertyType:"Office",
+    zip:"60188",
+    lat:41.912, lng:-88.134, distanceMiles:6.9, propertyType:"Office",
     manager:"Prairie Commercial Management", ownerEntity:"CSPP Holdings LLC",
     buildingSqFt:34000, roofSqFt:33000, roofType:"TPO", yearBuilt:2016, roofAge:10,
     propertyValue:5200000, lastSaleDate:"2016-08-19",
@@ -705,7 +727,8 @@ const SAMPLE_LEADS = [
   },
   {
     id:"PSL-1010", name:"Wood Dale Shopping Center", address:"815 Irving Park Rd, Wood Dale, IL 60191",
-    zip:"60191", distanceMiles:8.2, propertyType:"Retail",
+    zip:"60191",
+    lat:41.963, lng:-87.978, distanceMiles:8.2, propertyType:"Retail",
     manager:"Sunrise Community Association Management", ownerEntity:"Wood Dale Retail LLC",
     buildingSqFt:58000, roofSqFt:55500, roofType:"Modified Bitumen", yearBuilt:1999, roofAge:20,
     propertyValue:7300000, lastSaleDate:"2014-04-30",
@@ -721,7 +744,8 @@ const SAMPLE_LEADS = [
   },
   {
     id:"PSL-1011", name:"Schaumburg Corporate Campus", address:"1900 E Higgins Rd, Schaumburg, IL 60173",
-    zip:"60173", distanceMiles:12.6, propertyType:"Commercial",
+    zip:"60173",
+    lat:42.033, lng:-88.05, distanceMiles:12.6, propertyType:"Commercial",
     manager:"Midwest Property Partners", ownerEntity:"Schaumburg Campus Holdings LLC",
     buildingSqFt:265000, roofSqFt:252000, roofType:"TPO", yearBuilt:1994, roofAge:22,
     propertyValue:38900000, lastSaleDate:"2015-01-22",
@@ -740,7 +764,8 @@ const SAMPLE_LEADS = [
   },
   {
     id:"PSL-1012", name:"Roselle Community Townhomes HOA", address:"60 Prospect St, Roselle, IL 60172",
-    zip:"60172", distanceMiles:4.2, propertyType:"HOA/Condo",
+    zip:"60172",
+    lat:41.88, lng:-87.98, distanceMiles:4.2, propertyType:"HOA/Condo",
     manager:"Sunrise Community Association Management", ownerEntity:"Roselle Community Townhomes Assoc.",
     buildingSqFt:78000, roofSqFt:74000, roofType:"Asphalt Shingle (pitched)", yearBuilt:2013, roofAge:13,
     propertyValue:9600000, lastSaleDate:"N/A — HOA-held common property",
@@ -769,6 +794,8 @@ const SAMPLE_LEADS = [
 // (/api/geocode: Google when key is set, free fallback otherwise) — the old
 // hardcoded DEMO_ZIP_COUNTY_MAP / DEMO_ZIP_COORDS tables are gone.
 // ---------------------------------------------------------------------------
+const ALL_TYPES = ["Commercial","Multifamily","Retail","Industrial","Office","HOA/Condo","Mixed-use"];
+
 async function fetchBuildingFootprint(zip, radiusMiles){
   try{
     const res = await fetch(`/api/footprints?zip=${encodeURIComponent(zip)}&radius=${radiusMiles||10}`, {credentials:"include"});
@@ -788,10 +815,12 @@ async function fetchBuildingFootprint(zip, radiusMiles){
 // Falls back to SAMPLE_LEADS demo data if the backend is unreachable.
 // ---------------------------------------------------------------------------
 async function fetchLeadsForOneZip(zip, searchParams){
+  // Always request the full type set from the API. Property-type chips filter
+  // client-side so toggling them never burns another GIS round-trip.
   const params = new URLSearchParams({
     zip,
     radius: String(searchParams.radius),
-    types: searchParams.propertyTypes.join(",")
+    types: ALL_TYPES.join(",")
   });
   const res = await fetch(`/api/leads?${params}`, {credentials:"include"});
   const data = await res.json();
@@ -812,6 +841,7 @@ function mergeLeadsById(lists){
 
 async function fetchHubBatchLeads(hubs, searchParams){
   const lists = [];
+  let anyLive = false;
   // Sequential batches of 3 — reuse LEADS_CACHE_MS and avoid stampeding free APIs.
   for(let i=0; i<hubs.length; i+=3){
     const batch = hubs.slice(i, i+3);
@@ -819,13 +849,16 @@ async function fetchHubBatchLeads(hubs, searchParams){
       try{
         const { res, data } = await fetchLeadsForOneZip(z, searchParams);
         if(data?.geo?.lat != null) state.lastGeo = { lat:Number(data.geo.lat), lng:Number(data.geo.lng) };
-        if(res.ok && data.live) return data.leads || [];
+        if(res.ok && data.live){
+          anyLive = true;
+          return data.leads || [];
+        }
         return [];
       }catch{ return []; }
     }));
     lists.push(...parts);
   }
-  return mergeLeadsById(lists).slice(0, 120);
+  return { leads: mergeLeadsById(lists).slice(0, 120), anyLive };
 }
 
 async function fetchLeadsForSearch(searchParams){
@@ -833,11 +866,13 @@ async function fetchLeadsForSearch(searchParams){
   const hubs = zipCatalog && zipCatalog.hubsForSelection(searchParams.zip);
   try{
     if(hubs && hubs.length){
-      const merged = await fetchHubBatchLeads(hubs, searchParams);
+      const { leads: merged, anyLive } = await fetchHubBatchLeads(hubs, searchParams);
       if(!merged.length){
+        state.resultsMode = "demo";
         showToast(st("sales.toast.demo","Live search unavailable — showing demo data"));
         return SAMPLE_LEADS.filter(l => searchParams.propertyTypes.includes(l.propertyType));
       }
+      state.resultsMode = anyLive ? "live" : "demo";
       return merged;
     }
 
@@ -846,14 +881,45 @@ async function fetchLeadsForSearch(searchParams){
       state.lastGeo = { lat: Number(data.geo.lat), lng: Number(data.geo.lng) };
     }
     if(!res.ok || !data.live){
+      state.resultsMode = "demo";
       showToast(data.note || data.error || st("sales.toast.demo","Live search unavailable — showing demo data"));
       return SAMPLE_LEADS.filter(l => searchParams.propertyTypes.includes(l.propertyType));
     }
+    state.resultsMode = "live";
     return data.leads;
   } catch(err){
+    state.resultsMode = "demo";
     showToast(st("sales.toast.backendDown","Backend unreachable — showing demo data"));
     return SAMPLE_LEADS.filter(l => searchParams.propertyTypes.includes(l.propertyType));
   }
+}
+
+function leadLatLng(l){
+  if(!l) return null;
+  const lat = Number(l.lat);
+  const lng = Number(l.lng);
+  if(!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if(Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  return { lat, lng };
+}
+function leadsCoordStats(leads = getFilteredSortedLeads()){
+  const total = leads.length;
+  const withCoords = leads.filter(l => leadLatLng(l)).length;
+  return { total, withCoords, missing: Math.max(0, total - withCoords) };
+}
+
+function dataModeBannerHtml(){
+  const stats = leadsCoordStats();
+  const parts = [];
+  if(state.resultsMode === "demo"){
+    parts.push(`<div class="data-banner data-banner-warn">${st("sales.banner.demo","Demo data — live GIS did not return leads for this search. Markers use sample coordinates.")}</div>`);
+  }
+  if(stats.total > 0 && stats.withCoords === 0){
+    parts.push(`<div class="data-banner data-banner-warn">${st("sales.banner.noCoords","{n} leads found, but none have map coordinates yet — the map cannot place markers.", {n: stats.total})}</div>`);
+  } else if(stats.missing > 0){
+    parts.push(`<div class="data-banner data-banner-info">${st("sales.banner.partialCoords","{on} of {n} leads have map coordinates · {missing} without pins", {on: stats.withCoords, n: stats.total, missing: stats.missing})}</div>`);
+  }
+  return parts.join("");
 }
 
 function zipDisplayLabel(zip){
@@ -940,9 +1006,10 @@ function renderZipComboList(query){
   list.innerHTML = html;
 }
 
-function setZipSelection(value, { syncSearch = true, close = true } = {}){
+function setZipSelection(value, { syncSearch = true, close = true, autoSearch = true } = {}){
   const cat = window.IL_COVERED_ZIPS;
   if(cat && !cat.isValidSelection(value)) return;
+  const prev = state.searchParams.zip;
   state.searchParams.zip = value;
   if(cat) cat.saveZip(value);
   const hidden = document.getElementById("zip-input");
@@ -950,6 +1017,10 @@ function setZipSelection(value, { syncSearch = true, close = true } = {}){
   const search = document.getElementById("zip-combo-search");
   if(search && syncSearch) search.value = zipDisplayLabel(value);
   if(close) closeZipCombo();
+  if(autoSearch && value !== prev){
+    render();
+    scheduleAutoSearch();
+  }
 }
 
 function openZipCombo(filterText){
@@ -1065,8 +1136,60 @@ function getLeadById(id){
   return state.results.find(l=>l.id===id) || SAMPLE_LEADS.find(l=>l.id===id) || null;
 }
 function searchFetchKey(sp = state.searchParams){
-  const types = [...(sp.propertyTypes || [])].sort().join(",");
-  return `${sp.zip}|${sp.radius}|${types}`;
+  // Types are client-side only — ZIP + radius define the live fetch.
+  return `${sp.zip}|${sp.radius}`;
+}
+function isMultiAreaZip(zip = state.searchParams.zip){
+  const cat = window.IL_COVERED_ZIPS;
+  if(!cat) return false;
+  return zip === cat.ALL_VALUE || /^__ZONE:(DuPage|Cook|Chicago)__$/.test(zip || "");
+}
+
+let _autoSearchTimer = null;
+let _autoSearchSeq = 0;
+
+/** Debounced live search: ZIP/radius changes only. Types/filters stay local. */
+function scheduleAutoSearch({ immediate = false } = {}){
+  clearTimeout(_autoSearchTimer);
+  const delay = immediate ? 0 : (isMultiAreaZip() ? 800 : 450);
+  _autoSearchTimer = setTimeout(() => { runLiveSearch(); }, delay);
+}
+
+async function runLiveSearch(){
+  commitZipFromSearchBox();
+  if(window.IL_COVERED_ZIPS) window.IL_COVERED_ZIPS.saveZip(state.searchParams.zip);
+  const key = searchFetchKey();
+  if(state.fetchedSearchKey === key && state.results.length && !state.loading){
+    state.hasSearched = true;
+    render();
+    return;
+  }
+  const seq = ++_autoSearchSeq;
+  state.loading = true;
+  render();
+  try{
+    const leads = await fetchLeadsForSearch(state.searchParams);
+    if(seq !== _autoSearchSeq) return; // newer search started
+    state.results = leads;
+    state.fetchedSearchKey = key;
+    state.hasSearched = true;
+  } finally {
+    if(seq === _autoSearchSeq){
+      state.loading = false;
+      render();
+      showToast(st("sales.toast.found","{n} leads near {zip}", {
+        n: getFilteredSortedLeads().length,
+        zip: zipDisplayLabel(state.searchParams.zip)
+      }));
+    }
+  }
+}
+
+function searchStatusHtml(){
+  if(state.loading){
+    return `<div class="search-status is-loading" aria-live="polite">${st("sales.search.updating","Updating…")}</div>`;
+  }
+  return `<div class="search-status">${st("sales.search.liveHint","Updates when you change ZIP or radius")}</div>`;
 }
 function isStormDataStubbed(){
   const s = state.sourceStatus;
@@ -1372,16 +1495,16 @@ const state = {
   sortBy:"leadScore", // leadScore | roofSqFt | propertyValue | hailWindRisk
   activeLeadId:null,
   mapFocusLeadId:null, // Lead Map selection sync (list ↔ marker)
-  mapLayers:{ office:true, radius:true, cluster:true, heat:false },
+  mapLayers:{ office:true, radius:true, cluster:false, heat:false },
   detailReturnView:"results", // Map | Results | Dashboard — Back from Detail
   fetchedSearchKey:null, // zip|radius|types of last successful /api/leads fetch
+  resultsMode:"live", // live | demo — demo = SAMPLE_LEADS fallback (now has coords)
   hasSearched:false,
   showResultsMap:false, // dashboard owns the big map; the results-page map is opt-in
   sourceStatus:null,    // /api/status cache for the dashboard panel
   sessionEmail:null,    // from /api/auth/me — same session as Sky
 };
 const RISK_ORDER = {Severe:4, High:3, Moderate:2, Low:1};
-const ALL_TYPES = ["Commercial","Multifamily","Retail","Industrial","Office","HOA/Condo","Mixed-use"];
 
 function escHtml(s){
   return String(s ?? "").replace(/[&<>"']/g, c => ({
@@ -1623,6 +1746,7 @@ function iconBack(){ return `<svg width="13" height="13" viewBox="0 0 24 24" fil
 function renderDashboard(){
   const sp = state.searchParams;
   const leads = getFilteredSortedLeads();
+  const coordStats = leadsCoordStats(leads);
   const hot = leads.filter(l=>l.priority==="Hot").length;
   const warm = leads.filter(l=>l.priority==="Warm").length;
   const cold = leads.filter(l=>l.priority==="Cold").length;
@@ -1634,6 +1758,7 @@ function renderDashboard(){
   const topGroups = groupLeadsByOwner(leads).slice(0,8);
 
   return `
+  ${dataModeBannerHtml()}
   <div class="panel panel-pad section-gap">
     <div class="dash-search">
       <div>
@@ -1652,14 +1777,15 @@ function renderDashboard(){
           ${ALL_TYPES.map(t => `<button class="type-chip ${sp.propertyTypes.includes(t)?"selected":""}" data-type-toggle="${t}">${sp.propertyTypes.includes(t)?"✓ ":""}${t}</button>`).join("")}
         </div>
       </div>
-      <div style="display:flex; flex-direction:column; justify-content:flex-end;">
-        <button class="btn btn-accent" data-action="run-search" style="justify-content:center; padding:10px 14px;">${iconSearch2()}${st("sales.search.run","Search leads")}</button>
+      <div>
+        <label class="field-label">${st("sales.search.status","Status")}</label>
+        ${searchStatusHtml()}
       </div>
     </div>
   </div>
 
   <div class="stat-grid">
-    <div class="stat-card"><div class="stat-label">${st("sales.stat.found","Leads found")}</div><div class="stat-value mono">${leads.length}</div><div class="stat-foot">${zipDisplayLabel(sp.zip)} · ${sp.radius} mi</div></div>
+    <div class="stat-card"><div class="stat-label">${st("sales.stat.found","Leads found")}</div><div class="stat-value mono">${leads.length}</div><div class="stat-foot">${zipDisplayLabel(sp.zip)} · ${sp.radius} mi · ${st("sales.stat.onMap","{n} on map", {n: coordStats.withCoords})}</div></div>
     <div class="stat-card"><div class="stat-label">${st("sales.stat.priority","Priority")}</div><div class="stat-value mono"><span style="color:var(--hot)">${hot}</span><span style="color:var(--gray-300); font-size:18px;"> / </span><span style="color:var(--warm)">${warm}</span><span style="color:var(--gray-300); font-size:18px;"> / </span><span style="color:var(--cold)">${cold}</span></div><div class="stat-foot">${st("sales.stat.priorityFoot","Hot / Warm / Cold — hot requires storm data (pending)")}</div></div>
     <div class="stat-card"><div class="stat-label">${st("sales.stat.avgRoof","Average roof size")}</div><div class="stat-value mono">${fmtSqFt(avgRoof)}</div><div class="stat-foot">${st("sales.stat.stormFoot","{n} properties with storm on record", {n: stormAffected})}</div></div>
     <div class="stat-card"><div class="stat-label">${st("sales.stat.opportunity","Estimated opportunity")}</div><div class="stat-value accent mono">${fmtMoney(totalOpportunity)}</div><div class="stat-foot">${st("sales.stat.oppFoot","Modeled at ${rate}/sf, weighted by priority", {rate: OPPORTUNITY_RATE_PER_SF})}</div></div>
@@ -1739,9 +1865,11 @@ function iconSearch2(){ return `<svg width="14" height="14" viewBox="0 0 24 24" 
 function renderResults(){
   const leads = getFilteredSortedLeads();
   const sp = state.searchParams;
+  const coordStats = leadsCoordStats(leads);
   const toolbar = `
+    ${dataModeBannerHtml()}
     <div class="results-toolbar">
-      <div style="font-size:13px; color:var(--gray-500);">${st("sales.results.count","{n} leads · ZIP {zip}, {radius} mi", {n: leads.length, zip: sp.zip, radius: sp.radius})}</div>
+      <div style="font-size:13px; color:var(--gray-500);">${st("sales.results.count","{n} leads · ZIP {zip}, {radius} mi", {n: leads.length, zip: sp.zip, radius: sp.radius})} · ${st("sales.stat.onMap","{n} on map", {n: coordStats.withCoords})}</div>
       <div style="display:flex; align-items:center; gap:14px;">
         <div class="sort-select">
           ${st("sales.results.sortBy","Sort by")}
@@ -2015,6 +2143,7 @@ function renderLeadMap(){
   const sp = state.searchParams;
   const layers = state.mapLayers;
   const focusId = state.mapFocusLeadId;
+  const coordStats = leadsCoordStats(leads);
 
   const listHtml = !state.hasSearched && !leads.length
     ? `<div class="lm-empty"><h3>${st("sales.mapView.emptyTitle","No leads on the map yet")}</h3>${st("sales.mapView.emptyBody","Search a ZIP above to load sales leads. Markers use priority and score — not weather layers.")}</div>`
@@ -2024,7 +2153,7 @@ function renderLeadMap(){
         <div class="lm-lead ${focusId===l.id?"active":""}" data-focus-lead="${l.id}">
           <div style="min-width:0;">
             <div class="lm-lead-name">${escHtml(l.name)}</div>
-            <div class="lm-lead-addr">${escHtml(l.address)}</div>
+            <div class="lm-lead-addr">${escHtml(l.address)}${l.lat == null ? ` · <span style="color:var(--warm)">${st("sales.mapView.noPin","no pin")}</span>` : ""}</div>
             ${l.ownerEntity ? `<div class="lm-lead-owner">${escHtml(l.ownerEntity)}</div>` : ""}
           </div>
           <span class="score-pill ${scoreClass(l.priority)}" style="font-size:12px; padding:3px 7px; align-self:start;">${l.leadScore}<span class="max">/100</span></span>
@@ -2042,6 +2171,7 @@ function renderLeadMap(){
 
   return `
   <div class="lead-map-page">
+    ${dataModeBannerHtml()}
     <div class="lead-map-toolbar">
       <div class="lm-field lm-field-zip">
         <label class="field-label">${st("sales.search.zip","ZIP / area")}</label>
@@ -2059,8 +2189,8 @@ function renderLeadMap(){
         <span class="sort-select">${st("sales.filter.priority","Priority")} <select class="input" id="priority-filter" style="width:auto; padding:6px 10px;">${["All","Hot","Warm","Cold"].map(p=>`<option value="${p}" ${sp.priorityFilter===p?"selected":""}>${p==="All"?st("sales.filter.all","All"):priorityLabel(p)}</option>`).join("")}</select></span>
       </div>
       <div class="lm-field lm-field-actions">
-        <span class="lead-map-count">${st("sales.mapView.count","{n} leads", {n: leads.length})}</span>
-        <button class="btn btn-accent" data-action="run-search">${iconSearch2()}${st("sales.search.run","Search leads")}</button>
+        <span class="lead-map-count">${st("sales.mapView.count","{n} leads", {n: leads.length})} · ${st("sales.stat.onMap","{n} on map", {n: coordStats.withCoords})}</span>
+        ${searchStatusHtml()}
       </div>
     </div>
 
@@ -2165,13 +2295,20 @@ function attachEvents(){
   // Search panel
   attachZipCombo();
   document.querySelectorAll("[data-radius]").forEach(el=>{
-    el.addEventListener("click", ()=>{ state.searchParams.radius = parseInt(el.dataset.radius); render(); });
+    el.addEventListener("click", ()=>{
+      const r = parseInt(el.dataset.radius, 10);
+      if(state.searchParams.radius === r) return;
+      state.searchParams.radius = r;
+      render();
+      scheduleAutoSearch();
+    });
   });
   document.querySelectorAll("[data-type-toggle]").forEach(el=>{
     el.addEventListener("click", ()=>{
       const t = el.dataset.typeToggle;
       const idx = state.searchParams.propertyTypes.indexOf(t);
       if(idx>-1) state.searchParams.propertyTypes.splice(idx,1); else state.searchParams.propertyTypes.push(t);
+      // Types filter client-side only — no /api/leads round-trip.
       render();
     });
   });
@@ -2191,37 +2328,6 @@ function attachEvents(){
   if(lmCluster) lmCluster.addEventListener("change", e=>{ state.mapLayers.cluster = e.target.checked; render(); });
   const lmHeat = document.getElementById("lm-layer-heat");
   if(lmHeat) lmHeat.addEventListener("change", e=>{ state.mapLayers.heat = e.target.checked; render(); });
-
-  const runSearch = document.querySelector('[data-action="run-search"]');
-  if(runSearch) runSearch.addEventListener("click", async ()=>{
-    commitZipFromSearchBox();
-    if(window.IL_COVERED_ZIPS) window.IL_COVERED_ZIPS.saveZip(state.searchParams.zip);
-    const key = searchFetchKey();
-    // Skip redundant /api/leads when ZIP + radius + types are unchanged.
-    if(state.fetchedSearchKey === key && state.results.length && !state.loading){
-      state.hasSearched = true;
-      render();
-      showToast(st("sales.toast.cached","Using cached leads · {n} near {zip}", {
-        n: getFilteredSortedLeads().length,
-        zip: zipDisplayLabel(state.searchParams.zip)
-      }));
-      return;
-    }
-    runSearch.disabled = true;
-    runSearch.textContent = st("sales.search.searching","Searching...");
-    state.loading = true;
-    // Keep previous results visible while loading (no blank flash / no forced empty).
-    render();
-    try{
-      state.results = await fetchLeadsForSearch(state.searchParams); // API HOOK
-      state.fetchedSearchKey = key;
-      state.hasSearched = true;
-    } finally {
-      state.loading = false;
-      render();
-    }
-    showToast(st("sales.toast.found","{n} leads near {zip}", { n: getFilteredSortedLeads().length, zip: zipDisplayLabel(state.searchParams.zip) }));
-  });
 
   // Results toolbar
   document.querySelectorAll("[data-results-view]").forEach(el=>{
@@ -2309,7 +2415,7 @@ window._crmFromMap = (id, action)=>{
   if(action === "task") confirmCreateTask(id);
   else confirmSendToCrm(id);
 };
-window._focusLeadOnMap = (id)=>{
+window._focusLeadOnMap = async (id)=>{
   state.mapFocusLeadId = id;
   // Soft-update list selection without full remount
   document.querySelectorAll(".lm-lead").forEach(el=>{
@@ -2317,21 +2423,74 @@ window._focusLeadOnMap = (id)=>{
   });
   const row = document.querySelector(`.lm-lead[data-focus-lead="${CSS.escape(id)}"]`);
   if(row) row.scrollIntoView({ block:"nearest", behavior:"smooth" });
+
+  const lead = getLeadById(id);
+  if(!lead){
+    showToast(st("sales.mapView.focusMissing","Lead not found in current results"));
+    return;
+  }
+
+  // If this lead has no pin yet, geocode the address once, then remount markers.
+  if(!leadLatLng(lead) && lead.address && !lead._geoTried){
+    lead._geoTried = true;
+    showToast(st("sales.mapView.geocoding","Locating {name} on the map…", { name: lead.name || lead.address }));
+    try{
+      const res = await fetch(`/api/geocode?address=${encodeURIComponent(lead.address)}`, { credentials:"include" });
+      const data = await res.json();
+      if(res.ok && data.lat != null && data.lng != null){
+        lead.lat = Number(data.lat);
+        lead.lng = Number(data.lng);
+        lead._approxGeo = true;
+        lead._geoProvider = data.provider || "address";
+        render();
+        // After remount, focus again (now has coords)
+        requestAnimationFrame(()=> window._focusLeadOnMap(id));
+        return;
+      }
+      showToast(data.error || st("sales.mapView.noPinToast","No map pin for this lead — address could not be located"));
+      return;
+    }catch(e){
+      showToast(st("sales.mapView.noPinToast","No map pin for this lead — address could not be located"));
+      return;
+    }
+  }
+
   const marker = window._leadMapMarkers && window._leadMapMarkers[id];
   const map = window._leadMap;
   if(map && marker){
     try{
       if(marker.__parent && typeof marker.__parent.zoomToShowLayer === "function"){
         marker.__parent.zoomToShowLayer(marker, ()=>{
-          map.setView(marker.getLatLng(), Math.max(map.getZoom(), 14));
+          map.setView(marker.getLatLng(), Math.max(map.getZoom(), 15));
           marker.openPopup();
         });
       } else {
-        map.setView(marker.getLatLng(), Math.max(map.getZoom(), 14));
+        map.setView(marker.getLatLng(), Math.max(map.getZoom(), 15));
         marker.openPopup();
       }
-    }catch(e){}
+      showToast(st("sales.mapView.focused","Focused: {name}", { name: lead.name || lead.address }), { ms: 1600 });
+    }catch(e){
+      showToast(st("sales.mapView.focusFail","Could not focus marker on the map"));
+    }
+    return;
   }
+
+  if(leadLatLng(lead)){
+    // Coords exist but marker layer isn't ready — remount map once.
+    render();
+    requestAnimationFrame(()=>{
+      const m = window._leadMapMarkers && window._leadMapMarkers[id];
+      const map2 = window._leadMap;
+      if(map2 && m){
+        map2.setView(m.getLatLng(), 15);
+        try{ m.openPopup(); }catch(e){}
+        showToast(st("sales.mapView.focused","Focused: {name}", { name: lead.name || lead.address }), { ms: 1600 });
+      }
+    });
+    return;
+  }
+
+  showToast(st("sales.mapView.noPinToast","No map pin for this lead — missing coordinates"));
 };
 
 function milesToMeters(mi){ return mi * 1609.344; }
@@ -2379,7 +2538,11 @@ function setupLeadMap(){
     fadeAnimation: false,
     markerZoomAnimation: false,
   };
-  const mappable = getFilteredSortedLeads().filter(l => l.lat != null && l.lng != null);
+  const mappable = getFilteredSortedLeads().map(l => {
+    const ll = leadLatLng(l);
+    if(!ll) return null;
+    return { lead: l, ...ll };
+  }).filter(Boolean);
   const center = state.lastGeo || { lat: SALES_OFFICE.lat, lng: SALES_OFFICE.lng };
 
   if(!mappable.length){
@@ -2429,28 +2592,34 @@ function setupLeadMap(){
   addSalesGeoLayers(map);
 
   if(state.mapLayers.heat && typeof L.heatLayer === "function"){
-    const heatPts = mappable.map(l => {
-      const w = Math.max(0.12, Math.min(1, (Number(l.leadScore) || 0) / 100));
-      return [l.lat, l.lng, w];
+    const heatPts = mappable.map(row => {
+      const w = Math.max(0.12, Math.min(1, (Number(row.lead.leadScore) || 0) / 100));
+      return [row.lat, row.lng, w];
     });
     L.heatLayer(heatPts, { radius: 28, blur: 22, maxZoom: 16, minOpacity: 0.25 }).addTo(map);
   }
 
   const bounds = [];
   const markerById = {};
-  const markerLayer = useCluster
-    ? L.markerClusterGroup({
-        maxClusterRadius: 48,
-        spiderfyOnMaxZoom: true,
-        showCoverageOnHover: false,
-        disableClusteringAtZoom: 16,
-      })
-    : L.layerGroup();
+  let markerLayer;
+  try {
+    markerLayer = useCluster
+      ? L.markerClusterGroup({
+          maxClusterRadius: 48,
+          spiderfyOnMaxZoom: true,
+          showCoverageOnHover: false,
+          disableClusteringAtZoom: 16,
+        })
+      : L.layerGroup();
+  } catch (e) {
+    markerLayer = L.layerGroup();
+  }
   markerLayer.addTo(map);
 
-  mappable.forEach(l => {
+  mappable.forEach(row => {
+    const l = row.lead;
     const selected = state.mapFocusLeadId === l.id;
-    const marker = L.circleMarker([l.lat, l.lng], {
+    const marker = L.circleMarker([row.lat, row.lng], {
       radius: markerRadiusForScore(l.leadScore) + (selected ? 2 : 0),
       color: selected ? "#0B2036" : "#FFFFFF",
       weight: selected ? 2.5 : 1.5,
@@ -2462,7 +2631,9 @@ function setupLeadMap(){
       <b style="font-size:13px;">${escHtml(l.name)}</b><br>
       <span style="color:#64748B; font-size:11.5px;">${escHtml(l.address)}</span><br>
       ${l.ownerEntity ? `<span style="color:#64748B; font-size:11px;">${escHtml(l.ownerEntity)}</span><br>` : ""}
-      <span class="mono" style="font-size:12px;">Score ${l.leadScore}/100 · ${priorityLabel(l.priority)}${l.roofSqFt ? " · " + fmtSqFt(l.roofSqFt) + " roof" : ""}</span><br>
+      <span class="mono" style="font-size:12px;">Score ${l.leadScore}/100 · ${priorityLabel(l.priority)}${l.roofSqFt ? " · " + fmtSqFt(l.roofSqFt) + " roof" : ""}</span>
+      ${l._approxGeo ? `<br><span style="color:#C97A1F;font-size:11px;">${st("sales.mapView.approxPin","Approximate pin")}</span>` : ""}
+      <br>
       <span class="status-chip ${statusClass(l.status)}" style="margin-top:6px; display:inline-block;">${escHtml(l.status)}</span><br>
       <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
         <a href="#" style="color:#1D6FBF; font-weight:600; font-size:12px;" onclick="window._crmFromMap('${l.id}','crm'); return false;">${st("sales.mapView.sendCrm","CRM")}</a>
@@ -2473,7 +2644,7 @@ function setupLeadMap(){
     marker.on("click", ()=>{ window._focusLeadOnMap(l.id); });
     markerLayer.addLayer(marker);
     markerById[l.id] = marker;
-    bounds.push([l.lat, l.lng]);
+    bounds.push([row.lat, row.lng]);
   });
   window._leadMapMarkers = markerById;
 
@@ -2517,7 +2688,10 @@ function setupMaps(){
 
   const rm = document.getElementById("results-map");
   if(rm){
-    const mappable = getFilteredSortedLeads().filter(l => l.lat != null && l.lng != null);
+    const mappable = getFilteredSortedLeads().map(l => {
+      const ll = leadLatLng(l);
+      return ll ? { lead: l, ...ll } : null;
+    }).filter(Boolean);
     if(!mappable.length){
       if(state.loading){
         // Keep a real basemap visible while /api/leads runs (don't leave a blank panel).
@@ -2548,19 +2722,20 @@ function setupMaps(){
       const bounds = [];
       // Canvas layer for many circle markers (faster than SVG DOM nodes)
       const markerLayer = L.layerGroup().addTo(map);
-      mappable.forEach(l => {
-        const marker = L.circleMarker([l.lat, l.lng], {
+      mappable.forEach(row => {
+        const l = row.lead;
+        const marker = L.circleMarker([row.lat, row.lng], {
           radius:8, color:"#FFFFFF", weight:1.5,
           fillColor:PRIORITY_COLORS[l.priority] || "#5C7086", fillOpacity:0.92,
           renderer: map.options.renderer
         }).addTo(markerLayer);
         marker.bindPopup(`<div style="min-width:190px;">
-          <b style="font-size:13px;">${l.name}</b><br>
-          <span style="color:#64748B; font-size:11.5px;">${l.address}</span><br>
+          <b style="font-size:13px;">${escHtml(l.name)}</b><br>
+          <span style="color:#64748B; font-size:11.5px;">${escHtml(l.address)}</span><br>
           <span class="mono" style="font-size:12px;">Score ${l.leadScore}/100 · ${priorityLabel(l.priority)}${l.roofSqFt ? " · " + fmtSqFt(l.roofSqFt) + " roof" : ""}</span><br>
           <a href="#" style="color:#1D6FBF; font-weight:600; font-size:12px;" onclick="window._openLeadFromMap('${l.id}'); return false;">${st("sales.map.viewProfile","View full profile →")}</a>
         </div>`);
-        bounds.push([l.lat, l.lng]);
+        bounds.push([row.lat, row.lng]);
       });
       map.fitBounds(bounds, {padding:[30,30], maxZoom:15});
       // Layout can settle after SPA re-render; invalidate once so tiles aren't stuck blank.

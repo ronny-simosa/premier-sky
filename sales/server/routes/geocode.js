@@ -70,6 +70,44 @@ async function geocodeFree(zip) {
   };
 }
 
+/** Geocode a free-text address (Nominatim). Used to place pins when parcel centroid is missing. */
+export async function geocodeAddress(query) {
+  const q = String(query || "").trim();
+  if (q.length < 8) throw new Error("Address too short");
+  return cached(`geocode:addr:${q.toLowerCase()}`, 7 * 24 * 60 * 60 * 1000, async () => {
+    if (getGoogleMapsApiKey()) {
+      try {
+        const url =
+          `https://maps.googleapis.com/maps/api/geocode/json?address=` +
+          encodeURIComponent(q) +
+          `&key=${getGoogleMapsApiKey()}`;
+        const data = await fetchJson(url);
+        if (data.status === "OK" && data.results?.[0]) {
+          const loc = data.results[0].geometry.location;
+          return { lat: loc.lat, lng: loc.lng, provider: "google", query: q };
+        }
+      } catch {
+        /* fall through */
+      }
+    }
+    const url =
+      `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q=` +
+      encodeURIComponent(q);
+    const data = await fetchJson(url, {
+      retries: 1,
+      headers: { "User-Agent": "PremierSales/1.0 (premierchi.com; sales-map)" },
+    });
+    const hit = Array.isArray(data) ? data[0] : null;
+    if (!hit) throw new Error("Address not found");
+    return {
+      lat: Number(hit.lat),
+      lng: Number(hit.lon),
+      provider: "nominatim",
+      query: q,
+    };
+  });
+}
+
 export async function geocodeZip(zip) {
   return cached(`geocode:${zip}`, 24 * 60 * 60 * 1000, async () => {
     if (getGoogleMapsApiKey()) {
@@ -84,9 +122,19 @@ export async function geocodeZip(zip) {
 }
 
 router.get("/", async (req, res) => {
+  const address = String(req.query.address || req.query.q || "").trim();
+  if (address) {
+    try {
+      return res.json(await geocodeAddress(address));
+    } catch (e) {
+      return res.status(502).json({ error: `Address geocoding failed: ${e.message}` });
+    }
+  }
   const zip = String(req.query.zip || "").trim();
   if (!/^\d{5}$/.test(zip)) {
-    return res.status(400).json({ error: "Provide a 5-digit ZIP: /api/geocode?zip=60108" });
+    return res.status(400).json({
+      error: "Provide ?zip=60108 or ?address=123 Main St, Addison, IL",
+    });
   }
   try {
     res.json(await geocodeZip(zip));

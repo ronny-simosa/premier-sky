@@ -3,6 +3,36 @@
 
 import { fetchJson } from "./http.js";
 
+/** Centroid from ArcGIS geometry (point / polygon / multipoint) in outSR 4326. */
+function centroidFromGeometry(geom) {
+  if (!geom) return null;
+  if (typeof geom.x === "number" && typeof geom.y === "number") {
+    return { lng: geom.x, lat: geom.y };
+  }
+  const rings =
+    geom.rings ||
+    (Array.isArray(geom.points) ? [geom.points] : null) ||
+    null;
+  if (!rings || !rings.length) return null;
+  let n = 0;
+  let sLng = 0;
+  let sLat = 0;
+  for (const ring of rings) {
+    if (!Array.isArray(ring)) continue;
+    for (const p of ring) {
+      if (!Array.isArray(p) || p.length < 2) continue;
+      const lng = Number(p[0]);
+      const lat = Number(p[1]);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+      sLng += lng;
+      sLat += lat;
+      n += 1;
+    }
+  }
+  if (!n) return null;
+  return { lng: sLng / n, lat: sLat / n };
+}
+
 /**
  * Query an ArcGIS layer with an envelope, paging through results.
  *  - endpoint: full .../query URL
@@ -26,8 +56,10 @@ export async function queryEnvelope(endpoint, envelope, outFields, opts = {}) {
       outSR: "4326",
       spatialRel: "esriSpatialRelIntersects",
       outFields: outFields.join(","),
-      returnGeometry: "false",
-      returnCentroid: "true", // FeatureServers honor this; MapServers ignore it
+      // FeatureServers return centroid; MapServers often ignore it — keep
+      // geometry as a fallback so we can still place markers on the map.
+      returnGeometry: "true",
+      returnCentroid: "true",
       resultOffset: String(offset),
       resultRecordCount: String(pageSize),
     });
@@ -43,6 +75,12 @@ export async function queryEnvelope(endpoint, envelope, outFields, opts = {}) {
       if (f.centroid) {
         rec._centroidLng = f.centroid.x;
         rec._centroidLat = f.centroid.y;
+      } else {
+        const c = centroidFromGeometry(f.geometry);
+        if (c) {
+          rec._centroidLng = c.lng;
+          rec._centroidLat = c.lat;
+        }
       }
       features.push(rec);
     }

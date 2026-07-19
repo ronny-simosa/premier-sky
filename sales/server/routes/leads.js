@@ -27,6 +27,27 @@ function envInt(name, fallback, min, max) {
   return Math.min(Math.max(n, min), max);
 }
 
+function fillMissingLeadCoords(leads, geo) {
+  const missing = leads.filter((l) => l.lat == null || l.lng == null);
+  if (!missing.length || geo?.lat == null || geo?.lng == null) {
+    return { filled: 0, missing: missing.length };
+  }
+  let filled = 0;
+  for (const lead of missing) {
+    const seed = String(lead._provenance?.sourceId || lead.id || lead.address || "");
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+    const dLat = ((h % 97) - 48) * 0.00035;
+    const dLng = ((((h / 97) | 0) % 97) - 48) * 0.00035;
+    lead.lat = Number(geo.lat) + dLat;
+    lead.lng = Number(geo.lng) + dLng;
+    lead._approxGeo = true;
+    lead._geoProvider = "zip-centroid-offset";
+    filled += 1;
+  }
+  return { filled, missing: missing.length };
+}
+
 // Satellite roof-surface pass — bounded concurrency; stops when signal aborts.
 async function enrichRoofSurfaces(records, { concurrency = 4, signal } = {}) {
   const queue = records.filter((r) => r.lat != null);
@@ -64,7 +85,7 @@ router.get("/", async (req, res) => {
   }
 
   const typesKey = types.slice().sort().join(",");
-  const responseKey = `leads:v2:${zip}:${radius}:${typesKey}`;
+    const responseKey = `leads:v3:${zip}:${radius}:${typesKey}`;
   const responseTtlMs = envInt("LEADS_CACHE_MS", 30 * 60 * 1000, 0, 24 * 60 * 60 * 1000);
   if (responseTtlMs > 0) {
     const cached = cacheGet(responseKey);
@@ -123,6 +144,10 @@ router.get("/", async (req, res) => {
     applyOverrides(leads);
     if (types.length) leads = leads.filter((l) => types.includes(l.propertyType));
 
+    const beforeCoords = leads.filter((l) => l.lat != null && l.lng != null).length;
+    const geoFill = fillMissingLeadCoords(leads, geo);
+    const withCoords = leads.filter((l) => l.lat != null && l.lng != null).length;
+
     const payload = {
       leads,
       live: true,
@@ -134,6 +159,12 @@ router.get("/", async (req, res) => {
       enrichBudgetMs: enrichMs,
       enrichTop,
       msTop,
+      coords: {
+        withCoords,
+        total: leads.length,
+        filled: geoFill.filled,
+        missingBefore: leads.length - beforeCoords,
+      },
       cache: "miss",
     };
     if (responseTtlMs > 0 && leads.length) cacheSet(responseKey, { ...payload, cache: "hit" }, responseTtlMs);
