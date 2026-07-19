@@ -10,7 +10,11 @@
 <link rel="dns-prefetch" href="https://server.arcgisonline.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <style>
 /* ============================================================================
    PREMIER SALES DEVELOPER MACHINE — DESIGN TOKENS
@@ -92,6 +96,18 @@ a{color:inherit;}
   margin:10px 0 4px; padding:10px 12px; border-radius:8px; background:var(--good-bg);
   color:var(--good); font-size:12px; line-height:1.45; border:1px solid #C9E9DB;
 }
+.crm-force-row{
+  margin:12px 0 0; display:flex; align-items:flex-start; gap:8px;
+  font-size:12.5px; color:var(--gray-700); line-height:1.4; cursor:pointer;
+}
+.crm-force-row input{margin-top:2px;}
+.crm-badge{
+  display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:999px;
+  font-size:10.5px; font-weight:700; letter-spacing:.02em; text-transform:uppercase;
+  background:var(--good-bg); color:var(--good); border:1px solid #C9E9DB; white-space:nowrap;
+}
+.crm-badge a{color:inherit; text-decoration:none;}
+.crm-badge a:hover{text-decoration:underline;}
 .crm-modal-foot{
   display:flex; gap:8px; justify-content:flex-end; padding:14px 20px 18px;
   border-top:1px solid var(--gray-100); background:var(--gray-50);
@@ -334,7 +350,26 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
 .checkbox-row{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--gray-700);}
 
 /* ---------- Dashboard redesign ---------- */
-.dash-search{display:grid; grid-template-columns:130px 210px 1fr 170px; gap:16px; align-items:start;}
+.dash-search{display:grid; grid-template-columns:minmax(240px,1.35fr) 180px 1fr 160px; gap:16px; align-items:start;}
+.zip-combo{position:relative; width:100%; min-width:0;}
+.zip-combo-field{position:relative;}
+.zip-combo-search{width:100%; font-size:12.5px; padding-right:28px;}
+.zip-combo-caret{position:absolute; right:10px; top:50%; transform:translateY(-50%); pointer-events:none; color:var(--gray-500); font-size:10px; line-height:1;}
+.zip-combo-list{
+  position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:40;
+  max-height:280px; overflow:auto; background:var(--white); border:1px solid var(--gray-200);
+  border-radius:10px; box-shadow:var(--shadow-pop); padding:4px;
+}
+.zip-combo-list[hidden]{display:none !important;}
+.zip-opt{
+  display:block; width:100%; text-align:left; border:0; background:transparent; cursor:pointer;
+  padding:8px 10px; border-radius:8px; font-size:12.5px; color:var(--ink); line-height:1.35;
+}
+.zip-opt:hover, .zip-opt.active{background:var(--blue-soft);}
+.zip-opt.special{font-weight:600; color:var(--blue-accent-dark);}
+.zip-opt-group{font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--gray-500); padding:8px 10px 4px;}
+.zip-combo-empty{padding:10px; font-size:12px; color:var(--gray-500);}
+.zip-hint{font-size:11px; color:var(--gray-500); margin-top:6px; line-height:1.35;}
 .dash-main{display:grid; grid-template-columns:1.75fr 1fr; gap:16px; margin-bottom:20px;}
 .top-lead-list{display:flex; flex-direction:column; overflow-y:auto; max-height:400px; margin:4px 0 12px;}
 .top-lead{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:9px 8px; border-bottom:1px solid var(--gray-100); cursor:pointer; border-radius:8px; transition:background .1s;}
@@ -380,11 +415,93 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
 .leaflet-container{font-family:'Inter',system-ui,sans-serif; z-index:1;}
 .leaflet-popup-content-wrapper{border-radius:10px;}
 
+/* ---------- Lead Map (Sky-inspired layout, Sales layers only) ---------- */
+.main.view-map .content{padding:14px 16px 16px;}
+.lead-map-page{display:flex; flex-direction:column; gap:12px; min-height:calc(100vh - 88px);}
+.lead-map-toolbar{
+  display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px 16px;
+  background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius-md);
+  padding:12px 14px; box-shadow:var(--shadow-card);
+}
+.lead-map-toolbar .lm-field{min-width:0;}
+.lead-map-toolbar .lm-field-zip{flex:1.2; min-width:200px;}
+.lead-map-toolbar .lm-field-radius{width:170px;}
+.lead-map-toolbar .lm-field-filters{display:flex; flex-wrap:wrap; align-items:center; gap:12px; flex:1; min-width:220px;}
+.lead-map-toolbar .lm-field-actions{display:flex; align-items:center; gap:10px; margin-left:auto;}
+.lead-map-count{font-size:12.5px; color:var(--gray-500); font-family:'IBM Plex Mono',monospace; white-space:nowrap;}
+.lead-map-layout{
+  display:grid; grid-template-columns:220px minmax(0,1fr) 300px; gap:12px;
+  flex:1; min-height:560px; align-items:stretch;
+}
+.lead-map-rail{
+  background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-card); padding:14px 14px 12px; display:flex; flex-direction:column;
+  min-height:0; overflow:hidden;
+}
+.lead-map-rail h2{margin:0 0 2px; font-size:14px; font-weight:700; letter-spacing:-0.01em; color:var(--navy-900);}
+.lead-map-rail .rail-hint{margin:0 0 12px; font-size:11.5px; color:var(--gray-500); line-height:1.4;}
+.lead-map-legend{flex:1; min-height:0; overflow-y:auto; padding-right:2px;}
+.lead-map-legend h4{
+  margin:14px 0 6px; font-size:10.5px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--gray-500);
+}
+.lead-map-legend h4:first-child{margin-top:0;}
+.lm-row{display:flex; align-items:center; gap:8px; margin:5px 0; font-size:12.5px; color:var(--ink);}
+.lm-sw{width:12px; height:12px; border-radius:3px; flex-shrink:0; display:inline-block; border:1px solid rgba(11,32,54,0.08);}
+.lm-sw.round{border-radius:50%;}
+.lm-sw.ring{background:transparent; border:2px solid var(--blue-accent); border-radius:50%; width:12px; height:12px; box-sizing:border-box;}
+.lm-sw.office{background:var(--navy-800); border-radius:50%; box-shadow:0 0 0 3px rgba(46,139,230,0.28);}
+.lm-layer-toggles{margin-top:12px; padding-top:12px; border-top:1px solid var(--gray-100); display:flex; flex-direction:column; gap:8px;}
+.lm-layer-toggles label{font-size:12.5px; color:var(--gray-700); display:flex; align-items:center; gap:8px; cursor:pointer;}
+.checkbox-row.storm-stubbed{opacity:0.72; cursor:not-allowed;}
+.checkbox-row.storm-stubbed input{cursor:not-allowed;}
+.stub-pill{
+  display:inline-block; margin-left:6px; padding:1px 7px; border-radius:999px;
+  font-size:10px; font-weight:700; letter-spacing:.02em; text-transform:uppercase;
+  background:var(--gray-100); color:var(--gray-500); border:1px solid var(--gray-200);
+}
+.lm-lead-actions{display:flex; flex-wrap:wrap; gap:4px; margin-left:auto;}
+.lm-lead-actions .btn{padding:3px 8px; font-size:11.5px;}
+.marker-cluster-small, .marker-cluster-medium, .marker-cluster-large{
+  background-color:rgba(46,139,230,0.22);
+}
+.marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div{
+  background-color:rgba(15,42,67,0.88); color:#fff; font-family:'IBM Plex Mono',monospace; font-weight:600;
+}
+.lead-map-center{
+  min-width:0; min-height:0; display:flex; flex-direction:column;
+  background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-card); overflow:hidden;
+}
+#lead-map{flex:1; min-height:520px; width:100%;}
+.lead-map-list{flex:1; min-height:0; overflow-y:auto; margin:0 -4px; padding:0 4px;}
+.lm-lead{
+  display:grid; grid-template-columns:1fr auto; gap:6px 10px; padding:10px 10px;
+  border-radius:10px; border:1px solid transparent; cursor:pointer; transition:background .1s, border-color .1s;
+  margin-bottom:4px;
+}
+.lm-lead:hover{background:var(--blue-soft);}
+.lm-lead.active{background:var(--blue-soft); border-color:#CFE4FA;}
+.lm-lead-name{font-size:12.8px; font-weight:650; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.lm-lead-addr{font-size:11px; color:var(--gray-500); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px;}
+.lm-lead-meta{display:flex; flex-wrap:wrap; align-items:center; gap:6px; grid-column:1 / -1;}
+.lm-lead-owner{font-size:11px; color:var(--gray-500); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.lm-empty{
+  text-align:center; padding:40px 16px; color:var(--gray-500); font-size:12.5px; line-height:1.5;
+}
+.lm-empty h3{margin:0 0 6px; font-size:14px; color:var(--ink);}
+
 @media (max-width: 1100px){
   .search-grid{grid-template-columns:1fr; }
   .filter-row{grid-template-columns:1fr 1fr;}
   .detail-grid{grid-template-columns:1fr;}
   .stat-grid{grid-template-columns:repeat(2,1fr);}
+  .lead-map-layout{grid-template-columns:1fr; min-height:0;}
+  .lead-map-center{order:1;}
+  .lead-map-rail-left{order:2;}
+  .lead-map-rail-right{order:3;}
+  #lead-map{min-height:48vh;}
+  .lead-map-list{max-height:340px;}
 }
 @media (max-width: 780px){
   .sidebar{display:none;}
@@ -398,6 +515,7 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
 <div class="toast" id="toast"></div>
 
 <script src="/assets/js/i18n.js?v=44"></script>
+<script src="/sales/js/il-covered-zips.js?v=2"></script>
 <script>
 /* ============================================================================
    PREMIER SALES DEVELOPER MACHINE
@@ -669,15 +787,61 @@ async function fetchBuildingFootprint(zip, radiusMiles){
 // still backend STUBS (the response says exactly which domains are stubbed).
 // Falls back to SAMPLE_LEADS demo data if the backend is unreachable.
 // ---------------------------------------------------------------------------
+async function fetchLeadsForOneZip(zip, searchParams){
+  const params = new URLSearchParams({
+    zip,
+    radius: String(searchParams.radius),
+    types: searchParams.propertyTypes.join(",")
+  });
+  const res = await fetch(`/api/leads?${params}`, {credentials:"include"});
+  const data = await res.json();
+  return { res, data, zip };
+}
+
+function mergeLeadsById(lists){
+  const map = new Map();
+  for(const leads of lists){
+    for(const lead of leads || []){
+      const key = lead.id || (lead._provenance && lead._provenance.sourceId) || `${lead.lat},${lead.lng},${lead.address}`;
+      const prev = map.get(key);
+      if(!prev || (lead.leadScore||0) > (prev.leadScore||0)) map.set(key, lead);
+    }
+  }
+  return [...map.values()].sort((a,b)=>(b.leadScore||0)-(a.leadScore||0));
+}
+
+async function fetchHubBatchLeads(hubs, searchParams){
+  const lists = [];
+  // Sequential batches of 3 — reuse LEADS_CACHE_MS and avoid stampeding free APIs.
+  for(let i=0; i<hubs.length; i+=3){
+    const batch = hubs.slice(i, i+3);
+    const parts = await Promise.all(batch.map(async (z)=>{
+      try{
+        const { res, data } = await fetchLeadsForOneZip(z, searchParams);
+        if(data?.geo?.lat != null) state.lastGeo = { lat:Number(data.geo.lat), lng:Number(data.geo.lng) };
+        if(res.ok && data.live) return data.leads || [];
+        return [];
+      }catch{ return []; }
+    }));
+    lists.push(...parts);
+  }
+  return mergeLeadsById(lists).slice(0, 120);
+}
+
 async function fetchLeadsForSearch(searchParams){
+  const zipCatalog = window.IL_COVERED_ZIPS;
+  const hubs = zipCatalog && zipCatalog.hubsForSelection(searchParams.zip);
   try{
-    const params = new URLSearchParams({
-      zip: searchParams.zip,
-      radius: String(searchParams.radius),
-      types: searchParams.propertyTypes.join(",")
-    });
-    const res = await fetch(`/api/leads?${params}`, {credentials:"include"});
-    const data = await res.json();
+    if(hubs && hubs.length){
+      const merged = await fetchHubBatchLeads(hubs, searchParams);
+      if(!merged.length){
+        showToast(st("sales.toast.demo","Live search unavailable — showing demo data"));
+        return SAMPLE_LEADS.filter(l => searchParams.propertyTypes.includes(l.propertyType));
+      }
+      return merged;
+    }
+
+    const { res, data } = await fetchLeadsForOneZip(searchParams.zip, searchParams);
     if(data?.geo?.lat != null && data?.geo?.lng != null){
       state.lastGeo = { lat: Number(data.geo.lat), lng: Number(data.geo.lng) };
     }
@@ -692,12 +856,241 @@ async function fetchLeadsForSearch(searchParams){
   }
 }
 
+function zipDisplayLabel(zip){
+  const cat = window.IL_COVERED_ZIPS;
+  if(!cat) return zip;
+  if(zip === cat.ALL_VALUE) return st("sales.search.zipAllShort","Multi-area overview");
+  const zm = /^__ZONE:(DuPage|Cook|Chicago)__$/.exec(zip || "");
+  if(zm) return st("sales.search.zipZoneAllShort","All {zone}", { zone: zm[1] });
+  const row = cat.find(zip);
+  return row ? cat.label(row) : zip;
+}
+
+function zipSelectHtml(selectedZip){
+  const cat = window.IL_COVERED_ZIPS;
+  if(!cat){
+    return `<input class="input" id="zip-input" type="text" maxlength="5" value="${selectedZip||""}" placeholder="60108">`;
+  }
+  const display = zipDisplayLabel(selectedZip);
+  const ph = st("sales.search.zipSearchPh","Type ZIP, city, or zone…");
+  return `
+    <div class="zip-combo" id="zip-combo">
+      <input type="hidden" id="zip-input" value="${escHtml(selectedZip||"")}">
+      <div class="zip-combo-field">
+        <input class="input zip-combo-search" id="zip-combo-search" type="text" autocomplete="off"
+          value="${escHtml(display)}" placeholder="${escHtml(ph)}" aria-autocomplete="list" aria-expanded="false" aria-controls="zip-combo-list">
+        <span class="zip-combo-caret" aria-hidden="true">▾</span>
+      </div>
+      <div class="zip-combo-list" id="zip-combo-list" hidden role="listbox"></div>
+    </div>
+    <div class="zip-hint">${st("sales.search.zipHint","Live data: DuPage · Cook · Chicago. Type to filter · zone options use hub scans (quota-safe).")}</div>`;
+}
+
+function buildZipComboOptions(query){
+  const cat = window.IL_COVERED_ZIPS;
+  if(!cat) return [];
+  const q = String(query || "").trim().toLowerCase();
+  const specials = [
+    { value: cat.ALL_VALUE, label: st("sales.search.zipAll","Multi-area overview (18 hubs)"), special: true, hay: "multi area overview all hubs covered" },
+    ...cat.ZONES.map(zone => ({
+      value: cat.zoneAllValue(zone),
+      label: st("sales.search.zipZoneAll","All {zone} (hubs)", { zone }),
+      special: true,
+      hay: `all ${zone} hubs zone`.toLowerCase()
+    }))
+  ];
+  const zips = cat.ZIPS.map(row => ({
+    value: row.zip,
+    label: cat.label(row),
+    zone: row.zone,
+    special: false,
+    hay: `${row.zip} ${row.city} ${row.zone}`.toLowerCase()
+  }));
+  const all = [...specials, ...zips];
+  if(!q) return all;
+  return all.filter(o => o.hay.includes(q) || o.label.toLowerCase().includes(q));
+}
+
+function renderZipComboList(query){
+  const list = document.getElementById("zip-combo-list");
+  if(!list) return;
+  const opts = buildZipComboOptions(query);
+  if(!opts.length){
+    list.innerHTML = `<div class="zip-combo-empty">${st("sales.search.zipNoMatch","No matching ZIP or area")}</div>`;
+    return;
+  }
+  let html = "";
+  let lastZone = null;
+  let specialDone = false;
+  for(const o of opts){
+    if(o.special){
+      html += `<button type="button" class="zip-opt special" role="option" data-zip-value="${escHtml(o.value)}">${escHtml(o.label)}</button>`;
+      specialDone = true;
+      continue;
+    }
+    if(specialDone && lastZone === null){
+      // separator after specials when showing mixed results
+    }
+    if(o.zone && o.zone !== lastZone){
+      lastZone = o.zone;
+      html += `<div class="zip-opt-group">${escHtml(o.zone)}</div>`;
+    }
+    html += `<button type="button" class="zip-opt" role="option" data-zip-value="${escHtml(o.value)}">${escHtml(o.label)}</button>`;
+  }
+  list.innerHTML = html;
+}
+
+function setZipSelection(value, { syncSearch = true, close = true } = {}){
+  const cat = window.IL_COVERED_ZIPS;
+  if(cat && !cat.isValidSelection(value)) return;
+  state.searchParams.zip = value;
+  if(cat) cat.saveZip(value);
+  const hidden = document.getElementById("zip-input");
+  if(hidden) hidden.value = value;
+  const search = document.getElementById("zip-combo-search");
+  if(search && syncSearch) search.value = zipDisplayLabel(value);
+  if(close) closeZipCombo();
+}
+
+function openZipCombo(filterText){
+  const list = document.getElementById("zip-combo-list");
+  const search = document.getElementById("zip-combo-search");
+  if(!list || !search) return;
+  renderZipComboList(filterText != null ? filterText : "");
+  list.hidden = false;
+  search.setAttribute("aria-expanded","true");
+}
+
+function closeZipCombo(){
+  const list = document.getElementById("zip-combo-list");
+  const search = document.getElementById("zip-combo-search");
+  if(list) list.hidden = true;
+  if(search){
+    search.setAttribute("aria-expanded","false");
+    search.value = zipDisplayLabel(state.searchParams.zip);
+  }
+}
+
+function attachZipCombo(){
+  const root = document.getElementById("zip-combo");
+  const search = document.getElementById("zip-combo-search");
+  const list = document.getElementById("zip-combo-list");
+  if(!root || !search || !list) return;
+
+  let activeIdx = -1;
+  const optionButtons = () => [...list.querySelectorAll("[data-zip-value]")];
+
+  function highlight(idx){
+    const btns = optionButtons();
+    btns.forEach((b,i)=> b.classList.toggle("active", i===idx));
+    if(idx>=0 && btns[idx]) btns[idx].scrollIntoView({ block:"nearest" });
+    activeIdx = idx;
+  }
+
+  search.addEventListener("focus", ()=>{
+    search.select();
+    openZipCombo("");
+    activeIdx = -1;
+  });
+  search.addEventListener("input", ()=>{
+    openZipCombo(search.value);
+    activeIdx = -1;
+  });
+  search.addEventListener("keydown", (e)=>{
+    const btns = optionButtons();
+    if(e.key === "ArrowDown"){
+      e.preventDefault();
+      if(list.hidden) openZipCombo(search.value);
+      highlight(Math.min((activeIdx < 0 ? -1 : activeIdx) + 1, Math.max(optionButtons().length - 1, 0)));
+    } else if(e.key === "ArrowUp"){
+      e.preventDefault();
+      highlight(Math.max(activeIdx - 1, 0));
+    } else if(e.key === "Enter"){
+      e.preventDefault();
+      const fresh = optionButtons();
+      const pick = activeIdx >= 0 ? fresh[activeIdx] : fresh[0];
+      if(pick) setZipSelection(pick.dataset.zipValue);
+    } else if(e.key === "Escape"){
+      e.preventDefault();
+      closeZipCombo();
+      search.blur();
+    }
+  });
+  search.addEventListener("blur", ()=>{
+    setTimeout(()=>{
+      if(!root.contains(document.activeElement)) closeZipCombo();
+    }, 140);
+  });
+  list.addEventListener("mousedown", (e)=>{
+    const btn = e.target.closest("[data-zip-value]");
+    if(!btn) return;
+    e.preventDefault();
+    setZipSelection(btn.dataset.zipValue);
+  });
+}
+
+function commitZipFromSearchBox(){
+  const search = document.getElementById("zip-combo-search");
+  const cat = window.IL_COVERED_ZIPS;
+  if(!search) return;
+  const raw = search.value.trim();
+  if(!raw) return;
+  if(zipDisplayLabel(state.searchParams.zip) === raw) return;
+  if(!cat){
+    const digits = raw.replace(/\D/g,"").slice(0,5);
+    if(/^\d{5}$/.test(digits)) state.searchParams.zip = digits;
+    return;
+  }
+  const digits = raw.replace(/\D/g,"").slice(0,5);
+  if(/^\d{5}$/.test(digits) && cat.find(digits)){
+    setZipSelection(digits);
+    return;
+  }
+  const opts = buildZipComboOptions(raw).filter(o => !o.special || o.label.toLowerCase().includes(raw.toLowerCase()));
+  const exactZip = opts.find(o => o.value === digits);
+  if(exactZip){ setZipSelection(exactZip.value); return; }
+  if(opts.length === 1){ setZipSelection(opts[0].value); return; }
+  closeZipCombo();
+}
+
 // ---------------------------------------------------------------------------
 // CRM actions → JobNimbus via /api/crm/* (confirm modal first, then POST)
 // Preview is built client-side so the modal always opens even if /preview 404s.
 // ---------------------------------------------------------------------------
 function getActiveLead(){
   return state.results.find(l=>l.id===state.activeLeadId) || SAMPLE_LEADS.find(l=>l.id===state.activeLeadId);
+}
+function getLeadById(id){
+  if(!id) return getActiveLead();
+  return state.results.find(l=>l.id===id) || SAMPLE_LEADS.find(l=>l.id===id) || null;
+}
+function searchFetchKey(sp = state.searchParams){
+  const types = [...(sp.propertyTypes || [])].sort().join(",");
+  return `${sp.zip}|${sp.radius}|${types}`;
+}
+function isStormDataStubbed(){
+  const s = state.sourceStatus;
+  if(!s || !s.stubbed) return true; // assume stub until /api/status says otherwise
+  return Boolean(s.stubbed["storms (Premier Sky pending)"]);
+}
+function stormOnlyControlHtml(sp){
+  const stubbed = isStormDataStubbed();
+  if(stubbed){
+    return `<label class="checkbox-row storm-stubbed" title="${escHtml(st("sales.filter.stormStubTitle","Storm history is still a stub — filter disabled until Premier Sky storm data is wired."))}">
+      <input type="checkbox" id="storm-only" disabled/>
+      ${st("sales.filter.stormOnly","Only storm-affected properties")}
+      <span class="stub-pill">${st("sales.filter.stormStub","Demo / stub")}</span>
+    </label>`;
+  }
+  return `<label class="checkbox-row"><input type="checkbox" id="storm-only" ${sp.stormOnly?"checked":""}/> ${st("sales.filter.stormOnly","Only storm-affected properties")}</label>`;
+}
+function openLeadProfile(id, fromView){
+  if(!id) return;
+  state.activeLeadId = id;
+  state.detailReturnView = fromView || state.view || "results";
+  state.view = "detail";
+  render();
+  window.scrollTo(0,0);
 }
 function readFollowUpDate(){
   const el = document.getElementById("follow-up-date");
@@ -706,7 +1099,7 @@ function readFollowUpDate(){
 function closeCrmModal(){
   document.getElementById("crm-modal-root")?.remove();
 }
-function openCrmModal({title, subtitle, rows, warnings, oks, confirmLabel, onConfirm}){
+function openCrmModal({title, subtitle, rows, warnings, oks, confirmLabel, forceNewLabel, onConfirm}){
   closeCrmModal();
   const root = document.createElement("div");
   root.id = "crm-modal-root";
@@ -721,6 +1114,7 @@ function openCrmModal({title, subtitle, rows, warnings, oks, confirmLabel, onCon
         ${rows.map(([k,v]) => `<div class="crm-kv"><span>${k}</span><b>${v || "—"}</b></div>`).join("")}
         ${(warnings||[]).map(w => `<div class="crm-warn">${w}</div>`).join("")}
         ${(oks||[]).map(w => `<div class="crm-ok">${w}</div>`).join("")}
+        ${forceNewLabel ? `<label class="crm-force-row"><input type="checkbox" id="crm-force-new"/> ${forceNewLabel}</label>` : ""}
       </div>
       <div class="crm-modal-foot">
         <button type="button" class="btn btn-sm" data-crm-cancel>${st("sales.crm.cancel","Cancel")}</button>
@@ -732,9 +1126,10 @@ function openCrmModal({title, subtitle, rows, warnings, oks, confirmLabel, onCon
   root.querySelector("[data-crm-cancel]").addEventListener("click", closeCrmModal);
   const conf = root.querySelector("[data-crm-confirm]");
   conf.addEventListener("click", async ()=>{
+    const forceNew = Boolean(root.querySelector("#crm-force-new")?.checked);
     conf.disabled = true;
     conf.textContent = st("sales.toast.sending","Sending...");
-    try { await onConfirm(); }
+    try { await onConfirm({ forceNew }); }
     finally { closeCrmModal(); }
   });
 }
@@ -797,8 +1192,8 @@ async function crmFetchJson(url, body){
 async function sendLeadToCRM(lead, {forceNew=false}={}){
   return crmFetchJson("/api/crm/leads", { lead, forceNew });
 }
-async function createFollowUpTask(lead, dueDate){
-  return crmFetchJson("/api/crm/tasks", { lead, dueDate });
+async function createFollowUpTask(lead, dueDate, {forceNew=false}={}){
+  return crmFetchJson("/api/crm/tasks", { lead, dueDate, forceNew });
 }
 async function crmConfiguredHint(){
   try{
@@ -808,11 +1203,41 @@ async function crmConfiguredHint(){
     return data;
   }catch{ return null; }
 }
-function applyJnidToLead(lead, jnid){
+function inCrmBadge(lead){
+  if(!lead || !lead.jnid) return "";
+  const url = lead.jnUrl || `https://app.jobnimbus.com/contact/${encodeURIComponent(lead.jnid)}`;
+  return `<span class="crm-badge" title="${escHtml(lead.jnid)}"><a href="${url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${st("sales.crm.inCrm","In CRM")}</a></span>`;
+}
+async function applyJnidToLead(lead, jnid, { status, jnUrl } = {}){
   if(!lead || !jnid) return;
   lead.jnid = jnid;
+  if(jnUrl) lead.jnUrl = jnUrl;
+  if(status) lead.status = status;
+  else if(lead.status === "New" || !lead.status) lead.status = "Contacted";
+  const sid = lead._provenance && lead._provenance.sourceId;
+  if(!sid) return;
+  try{
+    await fetch(`/api/lead-overrides/${encodeURIComponent(sid)}`, {
+      method:"PATCH",
+      credentials:"include",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        source: lead._provenance.source,
+        jnid,
+        status: lead.status,
+      }),
+    });
+  }catch(e){ /* server persistJnid is the primary path */ }
 }
-async function confirmSendToCrm(){
+function crmResultToast(r, fallback){
+  let msg = r.note || fallback;
+  if(r.updated) msg = r.note || st("sales.toast.crmUpdated","Updated existing JobNimbus record");
+  else if(r.existing && !r.created) msg = r.note || st("sales.toast.crmLinked","Already in CRM — linked");
+  else if(r.created) msg = r.note || st("sales.toast.crmCreated","Created in JobNimbus CRM");
+  crmSuccessToast({ ...r, note: msg }, fallback);
+}
+async function confirmSendToCrm(leadId){
+  if(leadId) state.activeLeadId = leadId;
   const lead = getActiveLead();
   if(!lead) return;
   const p = localContactPreview(lead);
@@ -821,13 +1246,22 @@ async function confirmSendToCrm(){
   if(status?.contactStatus) p.status_name = status.contactStatus;
   const configured = status == null ? null : Boolean(status.configured);
   const warnings = [];
+  const oks = [st("sales.crm.geoOk","Map coordinates are included when available.")];
   if(configured === false) warnings.push(st("sales.crm.noKey","JobNimbus API key is not configured on the server."));
   if(p.missingPhone) warnings.push(st("sales.crm.warnPhone","No phone on this lead — contact will be created without a phone number."));
   if(p.missingEmail) warnings.push(st("sales.crm.warnEmail","No email on this lead — contact will be created without an email."));
-  if(lead.jnid) warnings.push(st("sales.crm.warnLinked","Already linked to JobNimbus ({id}). Confirm to search or create again.").replace("{id}", lead.jnid));
+  if(lead.jnid){
+    warnings.push(st("sales.crm.warnLinked","Already linked to JobNimbus ({id}). Confirm to update if fields changed.").replace("{id}", lead.jnid));
+    oks.push(st("sales.crm.sameUpdates","Same contact → update in CRM. Different contact → create new (use checkbox)."));
+  } else {
+    oks.push(st("sales.crm.matchOrCreate","We match by company + address. Same → update/link. New → create and mark In CRM."));
+  }
+  const already = Boolean(lead.jnid);
   openCrmModal({
-    title: st("sales.crm.confirmContactTitle","Create JobNimbus contact?"),
-    subtitle: st("sales.crm.confirmContactSub","Review what will be sent. Duplicates are matched by company + address."),
+    title: already
+      ? st("sales.crm.confirmUpdateTitle","Update JobNimbus contact?")
+      : st("sales.crm.confirmContactTitle","Create JobNimbus contact?"),
+    subtitle: st("sales.crm.confirmContactSub","Review what will be sent. Same contact is updated; a new one is created only when different."),
     rows: [
       [st("sales.crm.company","Company"), p.company],
       [st("sales.crm.address","Address"), [p.address_line1, p.city, p.state_text, p.zip].filter(Boolean).join(", ")],
@@ -835,18 +1269,21 @@ async function confirmSendToCrm(){
       [st("sales.crm.email","Email"), p.email || "—"],
       [st("sales.crm.type","JN type / status"), (p.record_type_name||"") + " · " + (p.status_name||"")],
       [st("sales.crm.priority","Priority / score"), (lead.priority || "—") + " · " + (lead.leadScore ?? "—")],
+      [st("sales.crm.jnid","JN contact"), lead.jnid || st("sales.crm.willCreate","Will create / match")],
     ],
     warnings,
-    oks: [st("sales.crm.geoOk","Map coordinates are included when available.")],
-    confirmLabel: st("sales.crm.createContact","Create contact"),
-    onConfirm: async ()=>{
+    oks,
+    confirmLabel: already
+      ? st("sales.crm.updateContact","Update / sync contact")
+      : st("sales.crm.createContact","Create contact"),
+    forceNewLabel: st("sales.crm.forceNew","Force create a new JobNimbus contact (skip match)"),
+    onConfirm: async ({ forceNew } = {})=>{
       try{
-        const r = await sendLeadToCRM(lead);
-        if(r.jnid) applyJnidToLead(lead, r.jnid);
+        const r = await sendLeadToCRM(lead, { forceNew: Boolean(forceNew) });
+        if(r.jnid) await applyJnidToLead(lead, r.jnid, { jnUrl: r.jnUrl, status: "Contacted" });
         if(r.success){
-          if(lead && lead.status === "New") lead.status = "Contacted";
           if(r.jnUrl) lead.jnUrl = r.jnUrl;
-          crmSuccessToast(r, st("sales.toast.crmOk","Sent to JobNimbus CRM"));
+          crmResultToast(r, st("sales.toast.crmOk","Sent to JobNimbus CRM"));
           render();
         } else {
           showToast(r.error || st("sales.toast.crmFail","CRM push failed"));
@@ -857,7 +1294,8 @@ async function confirmSendToCrm(){
     }
   });
 }
-async function confirmCreateTask(){
+async function confirmCreateTask(leadId){
+  if(leadId) state.activeLeadId = leadId;
   const lead = getActiveLead();
   if(!lead) return;
   const dueDate = readFollowUpDate();
@@ -866,6 +1304,7 @@ async function confirmCreateTask(){
   if(status?.taskType) p.record_type_name = status.taskType;
   const configured = status == null ? null : Boolean(status.configured);
   const warnings = [];
+  const oks = [st("sales.crm.taskSameHint","Same open task (due day / title) → update. Different → create new.")];
   if(configured === false) warnings.push(st("sales.crm.noKey","JobNimbus API key is not configured on the server."));
   if(p.needsDueDate) warnings.push(st("sales.crm.warnDue","Set a follow-up date in Sales notes before creating the task."));
   if(!lead.jnid) warnings.push(st("sales.crm.warnNoContact","No JobNimbus contact linked yet — a contact will be created or matched first, then the task."));
@@ -880,19 +1319,20 @@ async function confirmCreateTask(){
       [st("sales.crm.jnid","JN contact"), lead.jnid || st("sales.crm.willCreate","Will create / match")],
     ],
     warnings,
-    confirmLabel: st("sales.crm.createTaskBtn","Create task"),
-    onConfirm: async ()=>{
+    oks,
+    confirmLabel: st("sales.crm.createTaskBtn","Save task"),
+    forceNewLabel: st("sales.crm.forceNewTask","Force create a new task (skip matching open tasks)"),
+    onConfirm: async ({ forceNew } = {})=>{
       if(p.needsDueDate){
         showToast(st("sales.crm.needDue","Choose a follow-up date first"));
         return;
       }
       try{
-        const r = await createFollowUpTask(lead, dueDate);
-        if(r.jnid) applyJnidToLead(lead, r.jnid);
+        const r = await createFollowUpTask(lead, dueDate, { forceNew: Boolean(forceNew) });
+        if(r.jnid) await applyJnidToLead(lead, r.jnid, { jnUrl: r.jnUrl, status: "Follow-up" });
         if(r.success){
-          if(lead) lead.status = "Follow-up";
           if(r.jnUrl) lead.jnUrl = r.jnUrl;
-          crmSuccessToast(r, st("sales.toast.task","Follow-up task created"));
+          crmResultToast(r, st("sales.toast.task","Follow-up task saved"));
           render();
         } else {
           showToast(r.error || st("sales.toast.crmFail","CRM push failed"));
@@ -908,19 +1348,33 @@ async function confirmCreateTask(){
 // ---------------------------------------------------------------------------
 // APP STATE
 // ---------------------------------------------------------------------------
+const SALES_OFFICE = { lat: 41.9569, lng: -88.0803, label: "Premier · Illinois" };
+const STATUS_LEGEND = [
+  { key:"New", color:"#1D6FBF" },
+  { key:"Contacted", color:"#6D4FC7" },
+  { key:"Follow-up", color:"#C97A1F" },
+  { key:"Proposal", color:"#1D6FBF" },
+  { key:"Closed", color:"#2A8F6E" },
+  { key:"Not Interested", color:"#64748B" },
+];
 const state = {
-  view: "dashboard", // dashboard | results | detail
+  view: "dashboard", // dashboard | results | detail | map
   results: [],
   loading: false,
   lastGeo: null,
   searchParams:{
-    zip:"60108", radius:10,
+    zip: (window.IL_COVERED_ZIPS && window.IL_COVERED_ZIPS.loadSavedZip("60108")) || "60108",
+    radius:10,
     propertyTypes:["Commercial","Multifamily","Retail","Industrial","Office","HOA/Condo","Mixed-use"],
     stormOnly:false, minRoofSqFt:0, priorityFilter:"All"
   },
   resultsView:"owners", // owners | table | cards
   sortBy:"leadScore", // leadScore | roofSqFt | propertyValue | hailWindRisk
   activeLeadId:null,
+  mapFocusLeadId:null, // Lead Map selection sync (list ↔ marker)
+  mapLayers:{ office:true, radius:true, cluster:true, heat:false },
+  detailReturnView:"results", // Map | Results | Dashboard — Back from Detail
+  fetchedSearchKey:null, // zip|radius|types of last successful /api/leads fetch
   hasSearched:false,
   showResultsMap:false, // dashboard owns the big map; the results-page map is opt-in
   sourceStatus:null,    // /api/status cache for the dashboard panel
@@ -929,6 +1383,11 @@ const state = {
 const RISK_ORDER = {Severe:4, High:3, Moderate:2, Low:1};
 const ALL_TYPES = ["Commercial","Multifamily","Retail","Industrial","Office","HOA/Condo","Mixed-use"];
 
+function escHtml(s){
+  return String(s ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
 function fmtMoney(n){ return n == null ? "—" : "$" + Math.round(n).toLocaleString("en-US"); }
 function fmtSqFt(n){ return n == null ? "—" : Math.round(n).toLocaleString("en-US") + " sf"; }
 function priorityLabel(p){
@@ -991,7 +1450,8 @@ function getFilteredSortedLeads(){
   let leads = [...state.results];
   const sp = state.searchParams;
   leads = leads.filter(l => sp.propertyTypes.includes(l.propertyType));
-  if(sp.stormOnly) leads = leads.filter(l => l.stormHistory.length > 0);
+  // Storm filter is client-side only; while storm data is stubbed, never apply it.
+  if(sp.stormOnly && !isStormDataStubbed()) leads = leads.filter(l => l.stormHistory && l.stormHistory.length > 0);
   if(sp.minRoofSqFt > 0) leads = leads.filter(l => l.roofSqFt >= sp.minRoofSqFt);
   if(sp.priorityFilter !== "All") leads = leads.filter(l => l.priority === sp.priorityFilter);
 
@@ -1061,9 +1521,11 @@ function exportCSV(){
 // RENDER: SIDEBAR
 // ---------------------------------------------------------------------------
 function renderSidebar(){
+  const count = state.hasSearched ? getFilteredSortedLeads().length : null;
   const items = [
     {id:"dashboard", label: st("sales.nav.dashboard","Dashboard"), icon:iconGrid()},
-    {id:"results", label: st("sales.nav.results","Lead Results"), icon:iconList(), count: state.hasSearched ? getFilteredSortedLeads().length : null},
+    {id:"results", label: st("sales.nav.results","Lead Results"), icon:iconList(), count},
+    {id:"map", label: st("sales.nav.map","Lead Map"), icon:iconMapPin(), count},
   ];
   const email = state.sessionEmail || "";
   const initials = email ? email.slice(0, 2).toUpperCase() : "PG";
@@ -1114,6 +1576,7 @@ function renderSidebar(){
 function iconGrid(){ return `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>`; }
 function iconSearch(){ return `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`; }
 function iconList(){ return `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`; }
+function iconMapPin(){ return `<svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-4.5 7-11a7 7 0 1 0-14 0c0 6.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>`; }
 function iconBolt(){ return `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h6l-2 8 10-12h-6l2-8z"/></svg>`; }
 
 // ---------------------------------------------------------------------------
@@ -1123,15 +1586,27 @@ function renderTopbar(){
   const titles = {
     dashboard:[st("sales.top.dash","Dashboard"), st("sales.top.dashSub","Search, visualize, and prioritize commercial leads by location")],
     results:[st("sales.top.results","Lead Results"), st("sales.top.resultsSub","Ranked by roofing sales opportunity")],
-    detail:[st("sales.top.detail","Lead Profile"), st("sales.top.detailSub","Full property intelligence and sales tools")]
+    detail:[st("sales.top.detail","Lead Profile"), st("sales.top.detailSub","Full property intelligence and sales tools")],
+    map:[st("sales.top.map","Lead Map"), st("sales.top.mapSub","Map leads by priority, score, status, and distance from the Premier office")]
   };
-  const [title, sub] = titles[state.view];
+  const [title, sub] = titles[state.view] || titles.dashboard;
   let actions = "";
   if(state.view === "results"){
     actions = `<button class="btn btn-sm" data-action="export-csv">${iconDownload()}${st("sales.btn.exportCsv","Export CSV")}</button>`;
   }
   if(state.view === "detail"){
-    actions = `<button class="btn btn-sm btn-ghost" data-action="back-to-results">${iconBack()}${st("sales.btn.backResults","Back to results")}</button>`;
+    const backView = state.detailReturnView || "results";
+    const backLabel = backView === "map"
+      ? st("sales.btn.backMap","Back to map")
+      : backView === "dashboard"
+        ? st("sales.btn.backDash","Back to dashboard")
+        : st("sales.btn.backResults","Back to results");
+    actions = `<button class="btn btn-sm btn-ghost" data-action="back-from-detail">${iconBack()}${backLabel}</button>`;
+  }
+  if(state.view === "map"){
+    actions = `
+      <button class="btn btn-sm" data-action="export-csv">${iconDownload()}${st("sales.btn.exportCsv","Export CSV")}</button>
+      <button class="btn btn-sm" data-nav="results">${st("sales.btn.openResults","Open results list")}</button>`;
   }
   return `
   <div class="topbar">
@@ -1162,8 +1637,8 @@ function renderDashboard(){
   <div class="panel panel-pad section-gap">
     <div class="dash-search">
       <div>
-        <label class="field-label">${st("sales.search.zip","ZIP code")}</label>
-        <input class="input" id="zip-input" type="text" maxlength="5" value="${sp.zip}" placeholder="${st("sales.search.zipPh","e.g. 60108")}">
+        <label class="field-label">${st("sales.search.zip","ZIP / area")}</label>
+        ${zipSelectHtml(sp.zip)}
       </div>
       <div>
         <label class="field-label">${st("sales.search.radius","Radius")}</label>
@@ -1184,7 +1659,7 @@ function renderDashboard(){
   </div>
 
   <div class="stat-grid">
-    <div class="stat-card"><div class="stat-label">${st("sales.stat.found","Leads found")}</div><div class="stat-value mono">${leads.length}</div><div class="stat-foot">ZIP ${sp.zip} · ${sp.radius} mi radius</div></div>
+    <div class="stat-card"><div class="stat-label">${st("sales.stat.found","Leads found")}</div><div class="stat-value mono">${leads.length}</div><div class="stat-foot">${zipDisplayLabel(sp.zip)} · ${sp.radius} mi</div></div>
     <div class="stat-card"><div class="stat-label">${st("sales.stat.priority","Priority")}</div><div class="stat-value mono"><span style="color:var(--hot)">${hot}</span><span style="color:var(--gray-300); font-size:18px;"> / </span><span style="color:var(--warm)">${warm}</span><span style="color:var(--gray-300); font-size:18px;"> / </span><span style="color:var(--cold)">${cold}</span></div><div class="stat-foot">${st("sales.stat.priorityFoot","Hot / Warm / Cold — hot requires storm data (pending)")}</div></div>
     <div class="stat-card"><div class="stat-label">${st("sales.stat.avgRoof","Average roof size")}</div><div class="stat-value mono">${fmtSqFt(avgRoof)}</div><div class="stat-foot">${st("sales.stat.stormFoot","{n} properties with storm on record", {n: stormAffected})}</div></div>
     <div class="stat-card"><div class="stat-label">${st("sales.stat.opportunity","Estimated opportunity")}</div><div class="stat-value accent mono">${fmtMoney(totalOpportunity)}</div><div class="stat-foot">${st("sales.stat.oppFoot","Modeled at ${rate}/sf, weighted by priority", {rate: OPPORTUNITY_RATE_PER_SF})}</div></div>
@@ -1241,8 +1716,16 @@ async function loadSourceStatus(){
   try{
     const res = await fetch("/api/status", {credentials:"include"});
     state.sourceStatus = await res.json();
+    // Clear dishonest storm filter once we know storms are stubbed.
+    if(isStormDataStubbed() && state.searchParams.stormOnly){
+      state.searchParams.stormOnly = false;
+      render();
+      return;
+    }
     const el = document.getElementById("source-status");
     if(el) el.innerHTML = renderSourceStatus();
+    // Refresh Results/Map so the stub badge appears on the storm checkbox.
+    if(isStormDataStubbed() && (state.view === "results" || state.view === "map")) render();
   } catch(e){ /* panel keeps its loading text */ }
 }
 function iconInfo(){ return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`; }
@@ -1278,7 +1761,7 @@ function renderResults(){
       </div>
     </div>
     <div class="results-filters">
-      <label class="checkbox-row"><input type="checkbox" id="storm-only" ${sp.stormOnly?"checked":""}/> ${st("sales.filter.stormOnly","Only storm-affected properties")}</label>
+      ${stormOnlyControlHtml(sp)}
       <span class="sort-select">${st("sales.filter.minRoof","Min roof size (sf)")} <input class="input" id="min-roof" type="number" min="0" step="1000" value="${sp.minRoofSqFt}" style="width:110px; padding:6px 10px;"></span>
       <span class="sort-select">${st("sales.filter.priority","Priority")} <select class="input" id="priority-filter" style="width:auto; padding:6px 10px;">${["All","Hot","Warm","Cold"].map(p=>`<option value="${p}" ${sp.priorityFilter===p?"selected":""}>${p==="All"?st("sales.filter.all","All"):priorityLabel(p)}</option>`).join("")}</select></span>
     </div>`;
@@ -1313,6 +1796,7 @@ function renderResults(){
           <div style="display:flex; align-items:center; gap:12px; flex-shrink:0;">
             ${g.phone ? `<a href="tel:${g.phone.replace(/[^0-9+]/g,"")}" class="og-phone" onclick="event.stopPropagation()" title="${g.phoneIsOwnerMatch ? st("sales.owners.ownerOccupant","owner-occupant line") : st("sales.owners.onSite","on-site business (likely tenant)")}">${g.phoneIsOwnerMatch ? "☎ " : "☎? "}${g.phone}</a>` : ""}
             ${g.parcels>1 ? `<span class="og-badge">${st("sales.owners.portfolio","PORTFOLIO ×{n}", {n: g.parcels})}</span>` : ""}
+            ${inCrmBadge(g.bestLead)}
             <span class="score-pill ${scoreClass(g.priority)}">${g.bestScore}<span class="max">/100</span></span>
           </div>
         </div>
@@ -1322,6 +1806,7 @@ function renderResults(){
             <span class="mono">${fmtSqFt(l.roofSqFt)}</span>
             <span class="score-pill ${scoreClass(l.priority)}" style="font-size:11.5px; padding:2px 7px;">${l.leadScore}</span>
             <span class="status-chip ${statusClass(l.status)}">${l.status}</span>
+            ${inCrmBadge(l)}
           </div>`).join("")}</div>` : ""}
       </div>`).join("");
   }
@@ -1392,9 +1877,10 @@ function renderDetail(){
   return `
   <div class="detail-header">
     <div>
-      <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px; flex-wrap:wrap;">
         <h2 style="margin:0; font-size:21px; letter-spacing:-0.01em;">${lead.name}</h2>
         ${priorityBadge(lead.priority)}
+        ${inCrmBadge(lead)}
       </div>
       <div style="color:var(--gray-500); font-size:13px;">${lead.address} · <a href="${mapsLink(lead.address)}" target="_blank" style="color:var(--blue-accent-dark); font-weight:600;">${st("sales.detail.maps","Open in Google Maps ↗")}</a></div>
     </div>
@@ -1506,12 +1992,12 @@ Premier Group Roofing & Construction</div>
       <div class="panel panel-pad">
         <div class="panel-title">${st("sales.detail.actions","Export / CRM actions")}</div>
         <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
-          <button class="btn btn-accent" data-action="send-crm" data-lead="${lead.id}">${iconSend()}${st("sales.detail.sendCrm","Send to CRM")}</button>
+          <button class="btn btn-accent" data-action="send-crm" data-lead="${lead.id}">${iconSend()}${lead.jnid ? st("sales.detail.updateCrm","Update / sync CRM") : st("sales.detail.sendCrm","Send to CRM")}</button>
           <button class="btn" data-action="create-task" data-lead="${lead.id}">${iconClock()}${st("sales.detail.createTask","Create follow-up task")}</button>
           <button class="btn" data-action="mark-contacted" data-lead="${lead.id}">${iconCheck()}${st("sales.detail.markContacted","Mark as contacted")}</button>
           <button class="btn btn-ghost" data-action="export-csv">${iconDownload()}${st("sales.detail.exportLead","Export this lead as CSV")}</button>
         </div>
-        <div class="api-note">${iconInfo()}<div><b>JobNimbus —</b> Confirm before create. Contacts and tasks sync to your CRM; duplicates are matched by company + address.</div></div>
+        <div class="api-note">${iconInfo()}<div><b>JobNimbus —</b> Same contact is updated; a different one is created. After sync the lead is marked <b>In CRM</b> and linked by JNID.</div></div>
       </div>
     </div>
   </div>
@@ -1522,6 +2008,106 @@ function iconClock(){ return `<svg width="13" height="13" viewBox="0 0 24 24" fi
 function iconCheck(){ return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:2px"><polyline points="20 6 9 17 4 12"/></svg>`; }
 
 // ---------------------------------------------------------------------------
+// RENDER: LEAD MAP (Sky-inspired rails + Sales priority/score/status layers)
+// ---------------------------------------------------------------------------
+function renderLeadMap(){
+  const leads = getFilteredSortedLeads();
+  const sp = state.searchParams;
+  const layers = state.mapLayers;
+  const focusId = state.mapFocusLeadId;
+
+  const listHtml = !state.hasSearched && !leads.length
+    ? `<div class="lm-empty"><h3>${st("sales.mapView.emptyTitle","No leads on the map yet")}</h3>${st("sales.mapView.emptyBody","Search a ZIP above to load sales leads. Markers use priority and score — not weather layers.")}</div>`
+    : !leads.length
+      ? `<div class="lm-empty"><h3>${st("sales.empty.noMatch","No leads match these filters")}</h3>${st("sales.empty.widen","Try widening the radius, adding property types, or clearing filters in the Dashboard.")}</div>`
+      : leads.map(l => `
+        <div class="lm-lead ${focusId===l.id?"active":""}" data-focus-lead="${l.id}">
+          <div style="min-width:0;">
+            <div class="lm-lead-name">${escHtml(l.name)}</div>
+            <div class="lm-lead-addr">${escHtml(l.address)}</div>
+            ${l.ownerEntity ? `<div class="lm-lead-owner">${escHtml(l.ownerEntity)}</div>` : ""}
+          </div>
+          <span class="score-pill ${scoreClass(l.priority)}" style="font-size:12px; padding:3px 7px; align-self:start;">${l.leadScore}<span class="max">/100</span></span>
+          <div class="lm-lead-meta">
+            ${priorityBadge(l.priority)}
+            <span class="status-chip ${statusClass(l.status)}">${escHtml(l.status)}</span>
+            ${inCrmBadge(l)}
+            <div class="lm-lead-actions">
+              <button type="button" class="btn btn-sm btn-ghost" data-action="send-crm" data-lead="${l.id}">${l.jnid ? st("sales.mapView.syncCrm","Sync") : st("sales.mapView.sendCrm","CRM")}</button>
+              <button type="button" class="btn btn-sm btn-ghost" data-action="create-task" data-lead="${l.id}">${st("sales.mapView.createTask","Task")}</button>
+              <button type="button" class="btn btn-sm btn-ghost" data-open-lead="${l.id}">${st("sales.mapView.openProfile","Profile")}</button>
+            </div>
+          </div>
+        </div>`).join("");
+
+  return `
+  <div class="lead-map-page">
+    <div class="lead-map-toolbar">
+      <div class="lm-field lm-field-zip">
+        <label class="field-label">${st("sales.search.zip","ZIP / area")}</label>
+        ${zipSelectHtml(sp.zip)}
+      </div>
+      <div class="lm-field lm-field-radius">
+        <label class="field-label">${st("sales.search.radius","Radius")}</label>
+        <div class="radius-group">
+          ${[5,10,15].map(r => `<button class="radius-opt ${sp.radius===r?"selected":""}" data-radius="${r}">${r} mi</button>`).join("")}
+        </div>
+      </div>
+      <div class="lm-field lm-field-filters">
+        ${stormOnlyControlHtml(sp)}
+        <span class="sort-select">${st("sales.filter.minRoof","Min roof size (sf)")} <input class="input" id="min-roof" type="number" min="0" step="1000" value="${sp.minRoofSqFt}" style="width:100px; padding:6px 10px;"></span>
+        <span class="sort-select">${st("sales.filter.priority","Priority")} <select class="input" id="priority-filter" style="width:auto; padding:6px 10px;">${["All","Hot","Warm","Cold"].map(p=>`<option value="${p}" ${sp.priorityFilter===p?"selected":""}>${p==="All"?st("sales.filter.all","All"):priorityLabel(p)}</option>`).join("")}</select></span>
+      </div>
+      <div class="lm-field lm-field-actions">
+        <span class="lead-map-count">${st("sales.mapView.count","{n} leads", {n: leads.length})}</span>
+        <button class="btn btn-accent" data-action="run-search">${iconSearch2()}${st("sales.search.run","Search leads")}</button>
+      </div>
+    </div>
+
+    <div class="lead-map-layout">
+      <aside class="lead-map-rail lead-map-rail-left">
+        <h2>${st("sales.mapView.legendTitle","Map legend")}</h2>
+        <p class="rail-hint">${st("sales.mapView.legendHint","Sales layers only — priority, score, status, office, and search radius")}</p>
+        <div class="lead-map-legend">
+          <h4>${st("sales.mapView.priorityTitle","Priority")}</h4>
+          <div class="lm-row"><span class="lm-sw round" style="background:var(--hot)"></span>${st("sales.map.hot","Hot")}</div>
+          <div class="lm-row"><span class="lm-sw round" style="background:var(--warm)"></span>${st("sales.map.warm","Warm")}</div>
+          <div class="lm-row"><span class="lm-sw round" style="background:var(--cold)"></span>${st("sales.map.cold","Cold")}</div>
+
+          <h4>${st("sales.mapView.scoreTitle","Score bands")}</h4>
+          <div class="lm-row"><span class="lm-sw" style="background:var(--hot)"></span>${st("sales.mapView.scoreHot","75–100 · typically Hot")}</div>
+          <div class="lm-row"><span class="lm-sw" style="background:var(--warm)"></span>${st("sales.mapView.scoreWarm","45–74 · typically Warm")}</div>
+          <div class="lm-row"><span class="lm-sw" style="background:var(--cold)"></span>${st("sales.mapView.scoreCold","0–44 · typically Cold")}</div>
+
+          <h4>${st("sales.mapView.statusTitle","Status")}</h4>
+          ${STATUS_LEGEND.map(s => `<div class="lm-row"><span class="lm-sw" style="background:${s.color}"></span>${escHtml(s.key)}</div>`).join("")}
+
+          <h4>${st("sales.mapView.geoTitle","Location")}</h4>
+          <div class="lm-row"><span class="lm-sw office"></span>${st("sales.mapView.office","Premier office (Bloomingdale)")}</div>
+          <div class="lm-row"><span class="lm-sw ring"></span>${st("sales.mapView.radius","Search ZIP radius ({n} mi)", {n: sp.radius})}</div>
+        </div>
+        <div class="lm-layer-toggles">
+          <label><input type="checkbox" id="lm-layer-office" ${layers.office?"checked":""}/> ${st("sales.mapView.toggleOffice","Show Premier office")}</label>
+          <label><input type="checkbox" id="lm-layer-radius" ${layers.radius?"checked":""}/> ${st("sales.mapView.toggleRadius","Show ZIP radius")}</label>
+          <label><input type="checkbox" id="lm-layer-cluster" ${layers.cluster?"checked":""}/> ${st("sales.mapView.toggleCluster","Cluster markers")}</label>
+          <label><input type="checkbox" id="lm-layer-heat" ${layers.heat?"checked":""}/> ${st("sales.mapView.toggleHeat","Heat by lead score")}</label>
+        </div>
+      </aside>
+
+      <div class="lead-map-center">
+        <div id="lead-map"></div>
+      </div>
+
+      <aside class="lead-map-rail lead-map-rail-right">
+        <h2>${st("sales.mapView.listTitle","Leads on map")}</h2>
+        <p class="rail-hint">${st("sales.mapView.listHint","Click a row to focus the marker · Profile opens the full lead")}</p>
+        <div class="lead-map-list">${listHtml}</div>
+      </aside>
+    </div>
+  </div>`;
+}
+
+// ---------------------------------------------------------------------------
 // MAIN RENDER
 // ---------------------------------------------------------------------------
 function render(){
@@ -1530,10 +2116,11 @@ function render(){
   if(view==="dashboard") body = renderDashboard();
   else if(view==="results") body = renderResults();
   else if(view==="detail") body = renderDetail();
+  else if(view==="map") body = renderLeadMap();
 
   document.getElementById("app").innerHTML = `
     ${renderSidebar()}
-    <div class="main">
+    <div class="main view-${view}">
       ${renderTopbar()}
       <div class="content">${body}</div>
     </div>
@@ -1546,20 +2133,37 @@ function render(){
 // ---------------------------------------------------------------------------
 function attachEvents(){
   document.querySelectorAll("[data-nav]").forEach(el=>{
-    el.addEventListener("click", ()=>{ state.view = el.dataset.nav; render(); });
+    el.addEventListener("click", ()=>{
+      const next = el.dataset.nav;
+      // View switches never re-fetch — reuse state.results / searchParams.
+      state.view = next;
+      render();
+    });
   });
   document.querySelectorAll("[data-open-lead]").forEach(el=>{
-    el.addEventListener("click", ()=>{ state.activeLeadId = el.dataset.openLead; state.view="detail"; render(); window.scrollTo(0,0); });
+    el.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      openLeadProfile(el.dataset.openLead, state.view);
+    });
   });
-  const backBtn = document.querySelector('[data-action="back-to-results"]');
-  if(backBtn) backBtn.addEventListener("click", ()=>{ state.view="results"; render(); });
+  document.querySelectorAll("[data-focus-lead]").forEach(el=>{
+    el.addEventListener("click", (e)=>{
+      if(e.target.closest("[data-open-lead],[data-action]")) return;
+      // Soft focus — do not remount Leaflet / re-fetch.
+      window._focusLeadOnMap(el.dataset.focusLead);
+    });
+  });
+  const backBtn = document.querySelector('[data-action="back-from-detail"]');
+  if(backBtn) backBtn.addEventListener("click", ()=>{
+    state.view = state.detailReturnView || "results";
+    render();
+  });
 
   const exportBtn = document.querySelector('[data-action="export-csv"]');
   if(exportBtn) exportBtn.addEventListener("click", exportCSV);
 
   // Search panel
-  const zipInput = document.getElementById("zip-input");
-  if(zipInput) zipInput.addEventListener("input", e=>{ state.searchParams.zip = e.target.value; });
+  attachZipCombo();
   document.querySelectorAll("[data-radius]").forEach(el=>{
     el.addEventListener("click", ()=>{ state.searchParams.radius = parseInt(el.dataset.radius); render(); });
   });
@@ -1572,29 +2176,51 @@ function attachEvents(){
     });
   });
   const stormOnly = document.getElementById("storm-only");
-  if(stormOnly) stormOnly.addEventListener("change", e=>{ state.searchParams.stormOnly = e.target.checked; render(); });
+  if(stormOnly && !stormOnly.disabled) stormOnly.addEventListener("change", e=>{ state.searchParams.stormOnly = e.target.checked; render(); });
   const minRoof = document.getElementById("min-roof");
   if(minRoof) minRoof.addEventListener("change", e=>{ state.searchParams.minRoofSqFt = parseInt(e.target.value)||0; render(); });
   const priorityFilter = document.getElementById("priority-filter");
   if(priorityFilter) priorityFilter.addEventListener("change", e=>{ state.searchParams.priorityFilter = e.target.value; render(); });
   const mapToggle = document.querySelector('[data-action="toggle-results-map"]');
   if(mapToggle) mapToggle.addEventListener("click", ()=>{ state.showResultsMap = !state.showResultsMap; render(); });
+  const lmOffice = document.getElementById("lm-layer-office");
+  if(lmOffice) lmOffice.addEventListener("change", e=>{ state.mapLayers.office = e.target.checked; render(); });
+  const lmRadius = document.getElementById("lm-layer-radius");
+  if(lmRadius) lmRadius.addEventListener("change", e=>{ state.mapLayers.radius = e.target.checked; render(); });
+  const lmCluster = document.getElementById("lm-layer-cluster");
+  if(lmCluster) lmCluster.addEventListener("change", e=>{ state.mapLayers.cluster = e.target.checked; render(); });
+  const lmHeat = document.getElementById("lm-layer-heat");
+  if(lmHeat) lmHeat.addEventListener("change", e=>{ state.mapLayers.heat = e.target.checked; render(); });
 
   const runSearch = document.querySelector('[data-action="run-search"]');
   if(runSearch) runSearch.addEventListener("click", async ()=>{
+    commitZipFromSearchBox();
+    if(window.IL_COVERED_ZIPS) window.IL_COVERED_ZIPS.saveZip(state.searchParams.zip);
+    const key = searchFetchKey();
+    // Skip redundant /api/leads when ZIP + radius + types are unchanged.
+    if(state.fetchedSearchKey === key && state.results.length && !state.loading){
+      state.hasSearched = true;
+      render();
+      showToast(st("sales.toast.cached","Using cached leads · {n} near {zip}", {
+        n: getFilteredSortedLeads().length,
+        zip: zipDisplayLabel(state.searchParams.zip)
+      }));
+      return;
+    }
     runSearch.disabled = true;
     runSearch.textContent = st("sales.search.searching","Searching...");
     state.loading = true;
-    state.results = [];
+    // Keep previous results visible while loading (no blank flash / no forced empty).
     render();
     try{
       state.results = await fetchLeadsForSearch(state.searchParams); // API HOOK
+      state.fetchedSearchKey = key;
       state.hasSearched = true;
     } finally {
       state.loading = false;
       render();
     }
-    showToast(st("sales.toast.found","{n} leads near {zip}", { n: getFilteredSortedLeads().length, zip: state.searchParams.zip }));
+    showToast(st("sales.toast.found","{n} leads near {zip}", { n: getFilteredSortedLeads().length, zip: zipDisplayLabel(state.searchParams.zip) }));
   });
 
   // Results toolbar
@@ -1604,11 +2230,19 @@ function attachEvents(){
   const sortSelect = document.getElementById("sort-select");
   if(sortSelect) sortSelect.addEventListener("change", e=>{ state.sortBy = e.target.value; render(); });
 
-  // Detail page actions
-  const sendCrm = document.querySelector('[data-action="send-crm"]');
-  if(sendCrm) sendCrm.addEventListener("click", ()=>{ confirmSendToCrm(); });
-  const createTask = document.querySelector('[data-action="create-task"]');
-  if(createTask) createTask.addEventListener("click", ()=>{ confirmCreateTask(); });
+  // Detail / map CRM actions (support multiple map-row buttons)
+  document.querySelectorAll('[data-action="send-crm"]').forEach(el=>{
+    el.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      confirmSendToCrm(el.dataset.lead || state.activeLeadId);
+    });
+  });
+  document.querySelectorAll('[data-action="create-task"]').forEach(el=>{
+    el.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      confirmCreateTask(el.dataset.lead || state.activeLeadId);
+    });
+  });
   const markContacted = document.querySelector('[data-action="mark-contacted"]');
   if(markContacted) markContacted.addEventListener("click", async ()=>{
     const lead = state.results.find(l=>l.id===state.activeLeadId) || SAMPLE_LEADS.find(l=>l.id===state.activeLeadId);
@@ -1670,12 +2304,207 @@ function baseLayers(){
     ),
   };
 }
-window._openLeadFromMap = (id)=>{ state.activeLeadId = id; state.view = "detail"; render(); window.scrollTo(0,0); };
+window._openLeadFromMap = (id)=>{ openLeadProfile(id, state.view === "detail" ? (state.detailReturnView || "map") : state.view); };
+window._crmFromMap = (id, action)=>{
+  if(action === "task") confirmCreateTask(id);
+  else confirmSendToCrm(id);
+};
+window._focusLeadOnMap = (id)=>{
+  state.mapFocusLeadId = id;
+  // Soft-update list selection without full remount
+  document.querySelectorAll(".lm-lead").forEach(el=>{
+    el.classList.toggle("active", el.dataset.focusLead === id);
+  });
+  const row = document.querySelector(`.lm-lead[data-focus-lead="${CSS.escape(id)}"]`);
+  if(row) row.scrollIntoView({ block:"nearest", behavior:"smooth" });
+  const marker = window._leadMapMarkers && window._leadMapMarkers[id];
+  const map = window._leadMap;
+  if(map && marker){
+    try{
+      if(marker.__parent && typeof marker.__parent.zoomToShowLayer === "function"){
+        marker.__parent.zoomToShowLayer(marker, ()=>{
+          map.setView(marker.getLatLng(), Math.max(map.getZoom(), 14));
+          marker.openPopup();
+        });
+      } else {
+        map.setView(marker.getLatLng(), Math.max(map.getZoom(), 14));
+        marker.openPopup();
+      }
+    }catch(e){}
+  }
+};
+
+function milesToMeters(mi){ return mi * 1609.344; }
+
+function markerRadiusForScore(score){
+  const s = Number(score) || 0;
+  if(s >= 75) return 9;
+  if(s >= 45) return 7;
+  return 6;
+}
+
+function addSalesGeoLayers(map){
+  const center = state.lastGeo || { lat: SALES_OFFICE.lat, lng: SALES_OFFICE.lng };
+  if(state.mapLayers.radius){
+    L.circle([center.lat, center.lng], {
+      radius: milesToMeters(state.searchParams.radius),
+      color: "#2E8BE6",
+      weight: 1.5,
+      dashArray: "6 5",
+      fillColor: "#2E8BE6",
+      fillOpacity: 0.06,
+      interactive: false,
+    }).addTo(map);
+  }
+  if(state.mapLayers.office){
+    L.circleMarker([SALES_OFFICE.lat, SALES_OFFICE.lng], {
+      radius: 7,
+      color: "#FFFFFF",
+      weight: 2,
+      fillColor: "#0B2036",
+      fillOpacity: 1,
+    }).addTo(map).bindPopup(`<b>${escHtml(SALES_OFFICE.label)}</b><br><span style="color:#64748B;font-size:11.5px;">140 W Lake Street, Bloomingdale, IL 60108</span>`);
+  }
+}
+
+function setupLeadMap(){
+  const el = document.getElementById("lead-map");
+  if(!el || typeof L === "undefined") return;
+
+  const useCluster = state.mapLayers.cluster && typeof L.markerClusterGroup === "function";
+  const mapOpts = {
+    scrollWheelZoom: true,
+    // MarkerCluster works more reliably with SVG DOM markers than canvas.
+    preferCanvas: !useCluster,
+    fadeAnimation: false,
+    markerZoomAnimation: false,
+  };
+  const mappable = getFilteredSortedLeads().filter(l => l.lat != null && l.lng != null);
+  const center = state.lastGeo || { lat: SALES_OFFICE.lat, lng: SALES_OFFICE.lng };
+
+  if(!mappable.length){
+    if(state.loading){
+      const layers = baseLayers();
+      const mapLabel = st("sales.map.base","Map");
+      const map = L.map(el, { ...mapOpts, layers:[layers[mapLabel]] });
+      window._maps.push(map);
+      addSalesGeoLayers(map);
+      map.setView([center.lat, center.lng], 11);
+      const overlay = document.createElement("div");
+      overlay.className = "map-loading-overlay";
+      overlay.innerHTML = `<div class="map-loading-card">${st("sales.map.searching","Searching live leads near {zip}...", {zip: zipDisplayLabel(state.searchParams.zip)})}</div>`;
+      el.style.position = "relative";
+      el.appendChild(overlay);
+      requestAnimationFrame(() => { try { map.invalidateSize({ animate: false }); } catch(e){} });
+      return;
+    }
+    const layers = baseLayers();
+    const mapLabel = st("sales.map.base","Map");
+    const map = L.map(el, { ...mapOpts, layers:[layers[mapLabel]] });
+    window._maps.push(map);
+    L.control.layers(layers).addTo(map);
+    addSalesGeoLayers(map);
+    map.setView([center.lat, center.lng], 11);
+    const empty = document.createElement("div");
+    empty.className = "map-loading-overlay";
+    empty.style.pointerEvents = "none";
+    empty.innerHTML = `<div class="map-loading-card" style="background:var(--navy-800);font-weight:500;max-width:320px;text-align:center;line-height:1.45;">${
+      state.results.length
+        ? st("sales.map.noCoords","Leads found, but none have map coordinates yet.")
+        : st("sales.map.empty","No coordinates to map. Run a search to see live leads on the map.")
+    }</div>`;
+    el.style.position = "relative";
+    el.appendChild(empty);
+    requestAnimationFrame(() => { try { map.invalidateSize({ animate: false }); } catch(e){} });
+    return;
+  }
+
+  const layers = baseLayers();
+  const mapLabel = st("sales.map.base","Map");
+  const map = L.map(el, { ...mapOpts, layers:[layers[mapLabel]] });
+  window._maps.push(map);
+  window._leadMap = map;
+  window._leadMapMarkers = {};
+  L.control.layers(layers).addTo(map);
+  addSalesGeoLayers(map);
+
+  if(state.mapLayers.heat && typeof L.heatLayer === "function"){
+    const heatPts = mappable.map(l => {
+      const w = Math.max(0.12, Math.min(1, (Number(l.leadScore) || 0) / 100));
+      return [l.lat, l.lng, w];
+    });
+    L.heatLayer(heatPts, { radius: 28, blur: 22, maxZoom: 16, minOpacity: 0.25 }).addTo(map);
+  }
+
+  const bounds = [];
+  const markerById = {};
+  const markerLayer = useCluster
+    ? L.markerClusterGroup({
+        maxClusterRadius: 48,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        disableClusteringAtZoom: 16,
+      })
+    : L.layerGroup();
+  markerLayer.addTo(map);
+
+  mappable.forEach(l => {
+    const selected = state.mapFocusLeadId === l.id;
+    const marker = L.circleMarker([l.lat, l.lng], {
+      radius: markerRadiusForScore(l.leadScore) + (selected ? 2 : 0),
+      color: selected ? "#0B2036" : "#FFFFFF",
+      weight: selected ? 2.5 : 1.5,
+      fillColor: PRIORITY_COLORS[l.priority] || "#5C7086",
+      fillOpacity: 0.92,
+      renderer: map.options.renderer
+    });
+    marker.bindPopup(`<div style="min-width:210px;">
+      <b style="font-size:13px;">${escHtml(l.name)}</b><br>
+      <span style="color:#64748B; font-size:11.5px;">${escHtml(l.address)}</span><br>
+      ${l.ownerEntity ? `<span style="color:#64748B; font-size:11px;">${escHtml(l.ownerEntity)}</span><br>` : ""}
+      <span class="mono" style="font-size:12px;">Score ${l.leadScore}/100 · ${priorityLabel(l.priority)}${l.roofSqFt ? " · " + fmtSqFt(l.roofSqFt) + " roof" : ""}</span><br>
+      <span class="status-chip ${statusClass(l.status)}" style="margin-top:6px; display:inline-block;">${escHtml(l.status)}</span><br>
+      <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
+        <a href="#" style="color:#1D6FBF; font-weight:600; font-size:12px;" onclick="window._crmFromMap('${l.id}','crm'); return false;">${st("sales.mapView.sendCrm","CRM")}</a>
+        <a href="#" style="color:#1D6FBF; font-weight:600; font-size:12px;" onclick="window._crmFromMap('${l.id}','task'); return false;">${st("sales.mapView.createTask","Task")}</a>
+        <a href="#" style="color:#1D6FBF; font-weight:600; font-size:12px;" onclick="window._openLeadFromMap('${l.id}'); return false;">${st("sales.map.viewProfile","View full profile →")}</a>
+      </div>
+    </div>`);
+    marker.on("click", ()=>{ window._focusLeadOnMap(l.id); });
+    markerLayer.addLayer(marker);
+    markerById[l.id] = marker;
+    bounds.push([l.lat, l.lng]);
+  });
+  window._leadMapMarkers = markerById;
+
+  if(state.mapLayers.office) bounds.push([SALES_OFFICE.lat, SALES_OFFICE.lng]);
+  if(state.mapFocusLeadId && markerById[state.mapFocusLeadId]){
+    const m = markerById[state.mapFocusLeadId];
+    const openFocused = ()=>{
+      try {
+        map.setView(m.getLatLng(), Math.max(map.getZoom(), 14));
+        m.openPopup();
+      } catch(e){}
+    };
+    if(useCluster && m.__parent && typeof m.__parent.zoomToShowLayer === "function"){
+      setTimeout(()=>{ try { m.__parent.zoomToShowLayer(m, openFocused); } catch(e){ openFocused(); } }, 80);
+    } else {
+      setTimeout(openFocused, 80);
+    }
+  } else {
+    map.fitBounds(bounds, { padding:[36,36], maxZoom:14 });
+  }
+  requestAnimationFrame(() => {
+    try { map.invalidateSize({ animate: false }); } catch(e){}
+  });
+}
 
 function setupMaps(){
   if(typeof L === "undefined") return; // Leaflet CDN unavailable (offline)
   (window._maps || []).forEach(m => { try { m.remove(); } catch(e){} });
   window._maps = [];
+  window._leadMap = null;
+  window._leadMapMarkers = {};
 
   const mapOpts = {
     scrollWheelZoom: false,
@@ -1683,6 +2512,8 @@ function setupMaps(){
     fadeAnimation: false,
     markerZoomAnimation: false,
   };
+
+  setupLeadMap();
 
   const rm = document.getElementById("results-map");
   if(rm){
@@ -1698,7 +2529,7 @@ function setupMaps(){
         map.setView([center.lat, center.lng], 11);
         const overlay = document.createElement("div");
         overlay.className = "map-loading-overlay";
-        overlay.innerHTML = `<div class="map-loading-card">${st("sales.map.searching","Searching live leads near {zip}...", {zip: state.searchParams.zip})}</div>`;
+        overlay.innerHTML = `<div class="map-loading-card">${st("sales.map.searching","Searching live leads near {zip}...", {zip: zipDisplayLabel(state.searchParams.zip)})}</div>`;
         rm.style.position = "relative";
         rm.appendChild(overlay);
         requestAnimationFrame(() => { try { map.invalidateSize({ animate: false }); } catch(e){} });
@@ -1814,6 +2645,7 @@ async function initialSearch(){
   try{
     const leads = await fetchLeadsForSearch(state.searchParams);
     state.results = leads;
+    state.fetchedSearchKey = searchFetchKey();
     state.hasSearched = true;
   } finally {
     state.loading = false;

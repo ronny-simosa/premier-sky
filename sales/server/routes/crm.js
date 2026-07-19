@@ -17,14 +17,18 @@ import { saveOverride } from "../lib/db.js";
 
 const router = Router();
 
-function persistJnid(lead, jnid) {
+function persistJnid(lead, jnid, { status } = {}) {
   const sourceId = lead?._provenance?.sourceId;
   if (!sourceId || !jnid) return;
   try {
+    // Once linked to JobNimbus, keep jnid and mark as Contacted unless already further along.
+    const nextStatus =
+      status ||
+      (lead.status && lead.status !== "New" ? lead.status : "Contacted");
     saveOverride(sourceId, {
       source: lead._provenance?.source,
       jnid,
-      status: lead.status,
+      status: nextStatus,
       salesNotes: lead.salesNotes,
       followUpDate: lead.followUpDate,
     });
@@ -76,7 +80,11 @@ router.post("/leads", async (req, res) => {
     const lead = req.body?.lead || req.body;
     const forceNew = Boolean(req.body?.forceNew);
     const result = await pushLeadToCRM(lead, { forceNew });
-    if (result.success && result.jnid) persistJnid(lead, result.jnid);
+    if (result.success && result.jnid) {
+      persistJnid(lead, result.jnid, {
+        status: result.created || result.updated ? "Contacted" : (lead.status !== "New" ? lead.status : "Contacted"),
+      });
+    }
     res.status(result.success ? 200 : 502).json(result);
   } catch (e) {
     res.status(502).json({ success: false, error: e.message });
@@ -87,8 +95,11 @@ router.post("/tasks", async (req, res) => {
   try {
     const lead = req.body?.lead;
     const dueDate = req.body?.dueDate;
-    const result = await createFollowUpTask(lead, dueDate);
-    if (result.success && result.jnid) persistJnid(lead, result.jnid);
+    const forceNew = Boolean(req.body?.forceNew);
+    const result = await createFollowUpTask(lead, dueDate, { forceNew });
+    if (result.success && result.jnid) {
+      persistJnid(lead, result.jnid, { status: "Follow-up" });
+    }
     res.status(result.success ? 200 : result.needsDueDate ? 400 : 502).json(result);
   } catch (e) {
     res.status(502).json({ success: false, error: e.message });

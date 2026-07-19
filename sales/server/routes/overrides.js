@@ -12,7 +12,7 @@ router.get("/:sourceId", (req, res) => {
 });
 
 router.patch("/:sourceId", (req, res) => {
-  const { source, status, salesNotes, followUpDate, corrections } = req.body || {};
+  const { source, status, salesNotes, followUpDate, corrections, jnid } = req.body || {};
   const VALID_STATUS = ["New", "Contacted", "Follow-up", "Proposal", "Closed", "Not Interested"];
   if (status && !VALID_STATUS.includes(status)) {
     return res.status(400).json({ error: `status must be one of: ${VALID_STATUS.join(", ")}` });
@@ -24,6 +24,7 @@ router.patch("/:sourceId", (req, res) => {
       salesNotes,
       followUpDate,
       corrections,
+      jnid,
     });
     res.json({ success: true, saved });
   } catch (e) {

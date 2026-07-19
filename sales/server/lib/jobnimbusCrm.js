@@ -266,6 +266,15 @@ export async function previewTaskPayload(lead, dueDate) {
   };
 }
 
+async function getContactByJnid(jnid) {
+  if (!jnid) return null;
+  try {
+    return await jnRequest("GET", `contacts/${encodeURIComponent(jnid)}`);
+  } catch {
+    return null;
+  }
+}
+
 async function findExistingContact(lead) {
   const company = String(lead.ownerEntity || lead.name || "").trim();
   const addr = parseAddress(lead);
@@ -322,42 +331,7 @@ async function findExistingContact(lead) {
   }
 }
 
-function contactAppUrl(jnid) {
-  if (!jnid) return null;
-  return `https://app.jobnimbus.com/contact/${encodeURIComponent(jnid)}`;
-}
-
-export async function pushLeadToCRM(lead, { forceNew = false } = {}) {
-  if (!configured()) {
-    return {
-      success: false,
-      stub: true,
-      error: "JobNimbus API key not configured on the server.",
-    };
-  }
-  if (!lead || typeof lead !== "object") {
-    return { success: false, error: "Missing lead payload." };
-  }
-
-  const preview = await previewContactPayload(lead);
-  if (!forceNew) {
-    const existing = await findExistingContact(lead);
-    if (existing?.jnid) {
-      const jnid = existing.jnid;
-      const jnUrl = contactAppUrl(jnid);
-      return {
-        success: true,
-        created: false,
-        existing: true,
-        jnid,
-        jnUrl,
-        contact: existing,
-        preview,
-        note: `Contact already in JobNimbus (${existing.display_name || existing.company || jnid}). Linked — not duplicated.`,
-      };
-    }
-  }
-
+function contactBodyFromPreview(preview) {
   const body = {
     record_type_name: preview.record_type_name,
     status_name: preview.status_name,
@@ -372,6 +346,155 @@ export async function pushLeadToCRM(lead, { forceNew = false } = {}) {
   if (preview.email) body.email = preview.email;
   if (preview.mobile_phone) body.mobile_phone = preview.mobile_phone;
   if (preview.geo) body.geo = preview.geo;
+  return body;
+}
+
+/** True when Sales has newer non-empty field values than the JN contact. */
+function contactNeedsUpdate(existing, preview) {
+  if (!existing) return true;
+  const pairs = [
+    ["company", preview.company],
+    ["display_name", preview.display_name],
+    ["address_line1", preview.address_line1],
+    ["city", preview.city],
+    ["state_text", preview.state_text],
+    ["zip", preview.zip],
+    ["email", preview.email],
+    ["mobile_phone", preview.mobile_phone],
+    ["description", preview.description],
+  ];
+  for (const [key, nextRaw] of pairs) {
+    const next = String(nextRaw || "").trim();
+    if (!next) continue; // never wipe JN with empty Sales fields
+    const cur = String(existing[key] || "").trim();
+    if (cur.toLowerCase() !== next.toLowerCase()) return true;
+  }
+  return false;
+}
+
+function sameCalendarDay(tsSec, dueDate) {
+  if (!tsSec || !dueDate) return false;
+  const d = new Date(Number(tsSec) * 1000);
+  if (Number.isNaN(d.getTime())) return false;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}` === dueDate;
+}
+
+async function findExistingFollowUpTask(contactJnid, title, dueDate) {
+  if (!contactJnid) return null;
+  try {
+    // Prefer tasks related to this contact; fall back to recent open tasks filtered client-side.
+    const filter = {
+      must: [{ term: { "related.id": contactJnid } }],
+    };
+    let results = [];
+    try {
+      const data = await jnRequest(
+        "GET",
+        `tasks?size=25&from=0&sort_field=date_updated&sort_direction=desc&filter=${encodeURIComponent(JSON.stringify(filter))}`
+      );
+      results = data?.results || [];
+    } catch {
+      const data = await jnRequest(
+        "GET",
+        `tasks?size=40&from=0&sort_field=date_updated&sort_direction=desc`
+      );
+      results = (data?.results || []).filter((t) =>
+        (t.related || []).some((r) => r && (r.id === contactJnid || r.jnid === contactJnid))
+      );
+    }
+
+    const open = results.filter(
+      (t) => t && t.is_active !== false && !t.is_archived && t.is_completed !== true
+    );
+    if (!open.length) return null;
+
+    const titleLower = String(title || "").toLowerCase();
+    // Same due day OR same/very similar follow-up title → treat as the same task to edit.
+    const byDue = open.find((t) => sameCalendarDay(t.date_start, dueDate));
+    if (byDue) return byDue;
+    const byTitle = open.find((t) => {
+      const tt = String(t.title || "").toLowerCase();
+      return tt && titleLower && (tt === titleLower || tt.includes(titleLower.slice(0, 24)) || titleLower.includes(tt.slice(0, 24)));
+    });
+    return byTitle || null;
+  } catch {
+    return null;
+  }
+}
+
+function contactAppUrl(jnid) {
+  if (!jnid) return null;
+  return `https://app.jobnimbus.com/contact/${encodeURIComponent(jnid)}`;
+}
+
+/**
+ * Create / link / update JobNimbus contact for a Sales lead.
+ * - forceNew → always POST create
+ * - lead.jnid or fuzzy match → same contact: PUT if fields differ, else link only
+ * - no match → POST create
+ */
+export async function pushLeadToCRM(lead, { forceNew = false } = {}) {
+  if (!configured()) {
+    return {
+      success: false,
+      stub: true,
+      error: "JobNimbus API key not configured on the server.",
+    };
+  }
+  if (!lead || typeof lead !== "object") {
+    return { success: false, error: "Missing lead payload." };
+  }
+
+  const preview = await previewContactPayload(lead);
+  const body = contactBodyFromPreview(preview);
+
+  // Resolve "same" contact: known jnid first, else fuzzy search (unless forceNew).
+  let existing = null;
+  if (!forceNew) {
+    const knownId = lead.jnid || lead._jnid || null;
+    if (knownId) {
+      existing = (await getContactByJnid(knownId)) || { jnid: knownId };
+    }
+    if (!existing?.jnid) {
+      existing = await findExistingContact(lead);
+    }
+  }
+
+  if (existing?.jnid) {
+    const jnid = existing.jnid;
+    const jnUrl = contactAppUrl(jnid);
+    const needsUpdate = contactNeedsUpdate(existing, preview);
+    if (needsUpdate) {
+      const updated = await jnRequest("PUT", `contacts/${encodeURIComponent(jnid)}`, body);
+      return {
+        success: true,
+        created: false,
+        updated: true,
+        existing: true,
+        inCrm: true,
+        jnid,
+        jnUrl,
+        contact: updated || existing,
+        preview,
+        note: `Contact updated in JobNimbus (${preview.company || jnid}). Already in CRM — saved changes.`,
+      };
+    }
+    return {
+      success: true,
+      created: false,
+      updated: false,
+      existing: true,
+      inCrm: true,
+      jnid,
+      jnUrl,
+      contact: existing,
+      preview,
+      note: `Contact already in JobNimbus (${existing.display_name || existing.company || jnid}). Linked — no changes needed.`,
+    };
+  }
 
   const created = await jnRequest("POST", "contacts", body);
   const jnid = created?.jnid || created?.id;
@@ -382,16 +505,22 @@ export async function pushLeadToCRM(lead, { forceNew = false } = {}) {
   return {
     success: true,
     created: true,
+    updated: false,
     existing: false,
+    inCrm: true,
     jnid,
     jnUrl,
     contact: created,
     preview,
-    note: `Contact created in JobNimbus (${preview.company}) as ${preview.record_type_name} · ${preview.status_name}.`,
+    note: `Contact created in JobNimbus (${preview.company}) as ${preview.record_type_name} · ${preview.status_name}. Marked in CRM.`,
   };
 }
 
-export async function createFollowUpTask(lead, dueDate) {
+/**
+ * Create or update a follow-up task for the lead's JN contact.
+ * Same open task (same due day or similar title) → PUT; otherwise POST.
+ */
+export async function createFollowUpTask(lead, dueDate, { forceNew = false } = {}) {
   if (!configured()) {
     return {
       success: false,
@@ -414,11 +543,15 @@ export async function createFollowUpTask(lead, dueDate) {
 
   let jnid = lead.jnid || lead._jnid || null;
   let contactNote = null;
+  let contactCreated = false;
+  let contactUpdated = false;
   if (!jnid) {
     const pushed = await pushLeadToCRM(lead, { forceNew: false });
     if (!pushed.success) return pushed;
     jnid = pushed.jnid;
     contactNote = pushed.note;
+    contactCreated = Boolean(pushed.created);
+    contactUpdated = Boolean(pushed.updated);
   }
 
   const body = {
@@ -428,14 +561,43 @@ export async function createFollowUpTask(lead, dueDate) {
     related: [{ id: jnid }],
   };
 
+  if (!forceNew) {
+    const existingTask = await findExistingFollowUpTask(jnid, taskPrev.title, dueDate);
+    const taskId = existingTask?.jnid || existingTask?.id || null;
+    if (taskId) {
+      const updated = await jnRequest("PUT", `tasks/${encodeURIComponent(taskId)}`, body);
+      return {
+        success: true,
+        created: false,
+        updated: true,
+        existing: true,
+        inCrm: true,
+        jnid,
+        jnUrl: contactAppUrl(jnid),
+        taskId,
+        task: updated || existingTask,
+        contactNote,
+        contactCreated,
+        contactUpdated,
+        note: `Follow-up task updated in JobNimbus for ${dueDate}.`,
+      };
+    }
+  }
+
   const created = await jnRequest("POST", "tasks", body);
   return {
     success: true,
+    created: true,
+    updated: false,
+    existing: false,
+    inCrm: true,
     jnid,
     jnUrl: contactAppUrl(jnid),
     taskId: created?.jnid || created?.id || null,
     task: created,
     contactNote,
+    contactCreated,
+    contactUpdated,
     note: `Follow-up task created in JobNimbus for ${dueDate}.`,
   };
 }
