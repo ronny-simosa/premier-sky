@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 import crypto from "crypto";
 import PDFDocument from "pdfkit";
 import { collectLeadsNearStorm } from "./storm-export.js";
-import { actionLabel } from "./storm-score.js";
+import { actionLabel, localizeBreakdownVariable } from "./storm-score.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, "data");
@@ -163,7 +163,7 @@ function summarizeEvent(e) {
 
 function fmtDate(iso) {
   try {
-    return new Date(iso).toLocaleString("es-US", {
+    return new Date(iso).toLocaleString("en-US", {
       dateStyle: "medium",
       timeStyle: "short"
     });
@@ -172,7 +172,7 @@ function fmtDate(iso) {
   }
 }
 
-/** Genera PDF del informe de tormenta + leads. */
+/** Generate storm report PDF + affected leads (English). */
 export function generateStormPdf(event) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 48, size: "LETTER" });
@@ -184,42 +184,42 @@ export function generateStormPdf(event) {
     const tier = event.score?.tier || "none";
     const tierLabel = actionLabel(tier);
 
-    doc.fontSize(18).fillColor("#1a1a2e").text("Premier Sky · Informe de tormenta", { align: "left" });
+    doc.fontSize(18).fillColor("#1a1a2e").text("Premier Sky · Storm Report", { align: "left" });
     doc.moveDown(0.4);
-    doc.fontSize(10).fillColor("#666").text(`Generado: ${fmtDate(new Date().toISOString())}`);
+    doc.fontSize(10).fillColor("#666").text(`Generated: ${fmtDate(new Date().toISOString())}`);
     doc.moveDown(1);
 
     doc.fontSize(12).fillColor("#000");
     doc.text(`ID: ${event.id}`);
-    doc.text(`Fecha del evento: ${fmtDate(event.recordedAt)}`);
-    doc.text(`Zona: ${event.zone}`);
-    doc.text(`Ubicación: ${event.lat?.toFixed(4)}, ${event.lon?.toFixed(4)}`);
-    if (event.label) doc.text(`Evento: ${event.label}`);
+    doc.text(`Event date: ${fmtDate(event.recordedAt)}`);
+    doc.text(`Zone: ${event.zone}`);
+    doc.text(`Location: ${event.lat?.toFixed(4)}, ${event.lon?.toFixed(4)}`);
+    if (event.label) doc.text(`Event: ${event.label}`);
     doc.moveDown(0.5);
-    doc.fontSize(14).fillColor("#c1121f").text(`Puntuación: ${event.score?.total ?? "—"} · ${tierLabel}`);
+    doc.fontSize(14).fillColor("#c1121f").text(`Score: ${event.score?.total ?? "—"} · ${tierLabel}`);
     doc.fillColor("#000").fontSize(11);
     doc.moveDown(0.5);
 
-    if (event.score?.hailIn) doc.text(`Granizo reportado: ${event.score.hailIn}"`);
-    if (event.score?.windMph) doc.text(`Viento: ${event.score.windMph} mph`);
-    doc.text(`Radio de impacto: ${event.radiusMi || HAIL_RADIUS_MI} millas`);
-    doc.text(`Leads afectados: ${event.leadCount ?? event.leads?.length ?? 0}`);
+    if (event.score?.hailIn) doc.text(`Reported hail: ${event.score.hailIn}"`);
+    if (event.score?.windMph) doc.text(`Wind: ${event.score.windMph} mph`);
+    doc.text(`Impact radius: ${event.radiusMi || HAIL_RADIUS_MI} miles`);
+    doc.text(`Affected leads: ${event.leadCount ?? event.leads?.length ?? 0}`);
     doc.moveDown(0.8);
 
-    doc.fontSize(13).text("Desglose de puntos", { underline: true });
+    doc.fontSize(13).text("Score breakdown", { underline: true });
     doc.moveDown(0.3);
     doc.fontSize(10);
     for (const b of event.score?.breakdown || []) {
-      doc.text(`  • ${b.variable}: +${b.points}`);
+      doc.text(`  • ${localizeBreakdownVariable(b.variable)}: +${b.points}`);
     }
     doc.moveDown(1);
 
     const leads = event.leads || [];
-    doc.fontSize(13).text(`Leads afectados (${leads.length})`, { underline: true });
+    doc.fontSize(13).text(`Affected leads (${leads.length})`, { underline: true });
     doc.moveDown(0.4);
 
     if (!leads.length) {
-      doc.fontSize(10).fillColor("#666").text("No hay leads con coordenadas dentro del radio en el momento del registro.");
+      doc.fontSize(10).fillColor("#666").text("No leads with coordinates were inside the radius at the time of recording.");
     } else {
       const maxRows = 80;
       const shown = leads.slice(0, maxRows);
@@ -227,27 +227,27 @@ export function generateStormPdf(event) {
 
       for (const L of shown) {
         if (doc.y > doc.page.height - 72) doc.addPage();
-        doc.font("Helvetica-Bold").text(`#${L.priority} · ${L.name || L.customer || "Sin nombre"}`, { continued: false });
+        doc.font("Helvetica-Bold").text(`#${L.priority} · ${L.name || L.customer || "Unnamed"}`, { continued: false });
         doc.font("Helvetica");
         const line1 = [
-          L.phase && `Fase: ${L.phase}`,
+          L.phase && `Phase: ${L.phase}`,
           L.distMi != null && `${L.distMi} mi`,
           L.score && `Score ${L.score}`
         ].filter(Boolean).join(" · ");
         if (line1) doc.text(line1);
         if (L.address) doc.text(L.address);
-        const contact = [L.phone && `Tel: ${L.phone}`, L.email && `Email: ${L.email}`].filter(Boolean).join(" · ");
+        const contact = [L.phone && `Phone: ${L.phone}`, L.email && `Email: ${L.email}`].filter(Boolean).join(" · ");
         if (contact) doc.text(contact);
         doc.moveDown(0.35);
       }
       if (leads.length > maxRows) {
-        doc.moveDown(0.3).fillColor("#666").text(`… y ${leads.length - maxRows} lead(s) más (ver CSV o app).`);
+        doc.moveDown(0.3).fillColor("#666").text(`… and ${leads.length - maxRows} more lead(s) (see CSV or app).`);
       }
     }
 
     doc.moveDown(1);
     doc.fontSize(8).fillColor("#999").text(
-      "Documento generado por Premier Sky. Los datos de leads son un snapshot al momento del evento.",
+      "Document generated by Premier Sky. Lead data is a snapshot at the time of the event.",
       { align: "center" }
     );
 

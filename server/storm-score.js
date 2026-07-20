@@ -92,9 +92,43 @@ export function actionFromScore(score) {
 }
 
 export function actionLabel(tier) {
-  if (tier === "campaign") return "Activar campañas Meta (pendiente — por ahora solo alerta email)";
-  if (tier === "review") return "Revisar manualmente";
-  return "Sin acción";
+  if (tier === "campaign") return "Activate Meta campaigns (pending — email alert only for now)";
+  if (tier === "review") return "Review manually";
+  return "No action";
+}
+
+/** Map legacy Spanish breakdown labels (stored in storm history) to English for reports. */
+export function localizeBreakdownVariable(variable) {
+  const v = String(variable || "");
+  const exact = {
+    'Granizo ≥ 2.0"': 'Hail >= 2.0"',
+    'Granizo ≥ 1.5"': 'Hail >= 1.5"',
+    'Hail ≥ 2.0"': 'Hail >= 2.0"',
+    'Hail ≥ 1.5"': 'Hail >= 1.5"',
+    "Viento ≥ 70 mph": "Wind >= 70 mph",
+    "Viento ≥ 60 mph": "Wind >= 60 mph",
+    "Wind ≥ 70 mph": "Wind >= 70 mph",
+    "Wind ≥ 60 mph": "Wind >= 60 mph",
+    "Lluvia intensa posterior": "Heavy rain afterward",
+    "Tornado reportado": "Tornado reported",
+    "Dentro del radio de oficina Premier": "Within Premier office radius",
+    "Granizo histórico en zona (30 días)": "Historical hail in area (30 days)",
+    "Horario comercial (8am–8pm)": "Business hours (8am–8pm)",
+    "Horario comercial (8am-8pm)": "Business hours (8am-8pm)",
+  };
+  if (exact[v]) return exact[v];
+  let m = v.match(/^Alta densidad de viviendas afectadas \((\d+) jobs ≤ (\d+) mi\)$/);
+  if (m) return `High density of affected homes (${m[1]} jobs <= ${m[2]} mi)`;
+  m = v.match(/^High density of affected homes \((\d+) jobs ≤ (\d+) mi\)$/);
+  if (m) return `High density of affected homes (${m[1]} jobs <= ${m[2]} mi)`;
+  m = v.match(/^Leads\/estimaciones cerca \((\d+) leads, (\d+) est\.\)$/);
+  if (m) return `Nearby leads/estimates (${m[1]} leads, ${m[2]} est.)`;
+  m = v.match(/^Riesgo SPC (.+)$/);
+  if (m) return `SPC risk ${m[1]}`;
+  m = v.match(/^Granizo pronosticado (.+)$/);
+  if (m) return `Forecast hail ${m[1]}`;
+  // PDFKit Helvetica lacks ≥ — normalize for readable reports
+  return v.replace(/≥/g, ">=").replace(/≤/g, "<=");
 }
 
 function firstNum(val) {
@@ -349,7 +383,7 @@ function buildHotspots(hailReports, windReports, tornadoReports, alerts) {
     if (r.sizeIn < 1.5) continue;
     hotspots.push({
       lat: r.lat, lon: r.lon, hailIn: r.sizeIn, windMph: 0,
-      time: r.time, label: r.location || "Reporte granizo SPC"
+      time: r.time, label: r.location || "SPC hail report"
     });
   }
 
@@ -357,14 +391,14 @@ function buildHotspots(hailReports, windReports, tornadoReports, alerts) {
     if (r.mph < 60) continue;
     hotspots.push({
       lat: r.lat, lon: r.lon, hailIn: 0, windMph: r.mph,
-      time: r.time, label: r.location || "Reporte viento SPC"
+      time: r.time, label: r.location || "SPC wind report"
     });
   }
 
   for (const r of tornadoReports) {
     hotspots.push({
       lat: r.lat, lon: r.lon, hailIn: 0, windMph: 0, tornado: true,
-      time: r.time, label: r.location || "Tornado reportado SPC"
+      time: r.time, label: r.location || "SPC tornado report"
     });
   }
 
@@ -378,7 +412,7 @@ function buildHotspots(hailReports, windReports, tornadoReports, alerts) {
     hotspots.push({
       lat: c.lat, lon: c.lon, hailIn, windMph,
       time: p.sent || p.onset,
-      label: p.event || "Alerta NWS",
+      label: p.event || "NWS alert",
       alertId: p.id
     });
   }
@@ -415,12 +449,12 @@ export async function scoreHotspot(hotspot, ctx, { forEmail = false } = {}) {
   if (hp) {
     total += hp;
     breakdown.push({
-      variable: hailIn >= 2.0 ? 'Granizo ≥ 2.0"' : 'Granizo ≥ 1.5"',
+      variable: hailIn >= 2.0 ? 'Hail >= 2.0"' : 'Hail >= 1.5"',
       points: hp
     });
   }
 
-  // Correo: solo viento reportado (normativa). Mapa: incluye ráfagas pronosticadas.
+  // Email: reported wind only (policy). Map: also includes forecast gusts.
   if (!forEmail && windMph < 60) {
     const gust = await forecastGustMph(hotspot.lat, hotspot.lon);
     if (gust >= 60) windMph = gust;
@@ -430,7 +464,7 @@ export async function scoreHotspot(hotspot, ctx, { forEmail = false } = {}) {
   if (wp) {
     total += wp;
     breakdown.push({
-      variable: windMph >= 70 ? "Viento ≥ 70 mph" : "Viento ≥ 60 mph",
+      variable: windMph >= 70 ? "Wind >= 70 mph" : "Wind >= 60 mph",
       points: wp
     });
   }
@@ -442,61 +476,61 @@ export async function scoreHotspot(hotspot, ctx, { forEmail = false } = {}) {
   }
   if (stormPresent && heavyRain) {
     total += 10;
-    breakdown.push({ variable: "Lluvia intensa posterior", points: 10 });
+    breakdown.push({ variable: "Heavy rain afterward", points: 10 });
   }
 
   const homeCount = countNearbyHomes(hotspot.lat, hotspot.lon, jobs);
   if (homeCount >= HOME_DENSITY_MIN) {
     total += 20;
     breakdown.push({
-      variable: `Alta densidad de viviendas afectadas (${homeCount} jobs ≤ ${HAIL_RADIUS_MI} mi)`,
+      variable: `High density of affected homes (${homeCount} jobs <= ${HAIL_RADIUS_MI} mi)`,
       points: 20
     });
   }
 
-  // Variables extra solo en mapa (no disparan correo según normativa)
+  // Extra variables on map only (do not trigger email per policy)
   if (!forEmail) {
     if (hasNearbyTornado(hotspot.lat, hotspot.lon, tornadoReports) || hotspot.tornado) {
       total += 40;
-      breakdown.push({ variable: "Tornado reportado", points: 40 });
+      breakdown.push({ variable: "Tornado reported", points: 40 });
     }
 
     const catLabel = spcLabelAtPoint(hotspot.lat, hotspot.lon, spcCat);
     const cp = spcCatPoints(catLabel);
     if (cp) {
       total += cp;
-      breakdown.push({ variable: `Riesgo SPC ${catLabel}`, points: cp });
+      breakdown.push({ variable: `SPC risk ${catLabel}`, points: cp });
     }
 
     const hailFcLabel = spcLabelAtPoint(hotspot.lat, hotspot.lon, spcHail);
     const hfp = hailOutlookPoints(hailFcLabel);
     if (hfp && !hp) {
       total += hfp;
-      breakdown.push({ variable: `Granizo pronosticado ${hailFcLabel}`, points: hfp });
+      breakdown.push({ variable: `Forecast hail ${hailFcLabel}`, points: hfp });
     }
 
     const { leads, estimates } = countNearbyPhases(hotspot.lat, hotspot.lon, jobs);
     if (leads >= 2 || estimates >= 1) {
       total += 10;
       breakdown.push({
-        variable: `Leads/estimaciones cerca (${leads} leads, ${estimates} est.)`,
+        variable: `Nearby leads/estimates (${leads} leads, ${estimates} est.)`,
         points: 10
       });
     }
 
     if (nearPremierOffice(hotspot.lat, hotspot.lon, zone)) {
       total += 10;
-      breakdown.push({ variable: "Dentro del radio de oficina Premier", points: 10 });
+      breakdown.push({ variable: "Within Premier office radius", points: 10 });
     }
 
     if (hasHistoricalHail(hotspot.lat, hotspot.lon, hailHistory)) {
       total += 10;
-      breakdown.push({ variable: "Granizo histórico en zona (30 días)", points: 10 });
+      breakdown.push({ variable: "Historical hail in area (30 days)", points: 10 });
     }
 
     if (isBusinessHours(hotspot.time, zone)) {
       total += 5;
-      breakdown.push({ variable: "Horario comercial (8am–8pm)", points: 5 });
+      breakdown.push({ variable: "Business hours (8am–8pm)", points: 5 });
     }
   }
 
@@ -674,40 +708,42 @@ export async function evaluateZone(zone) {
 export function formatScoreEmail(event) {
   const { zone, score, lat, lon } = event;
   const tier = score.tier;
-  const priority = tier === "campaign" ? "ALTA PRIORIDAD · " : "";
+  const priority = tier === "campaign" ? "HIGH PRIORITY · " : "";
   const subject = `[Premier Sky] ${priority}${zone} · Score ${score.total} · ${actionLabel(tier)}`;
 
-  const lines = score.breakdown.map((b) => `  • ${b.variable}: +${b.points}`);
+  const lines = score.breakdown.map((b) =>
+    `  • ${localizeBreakdownVariable(b.variable)}: +${b.points}`
+  );
   const text =
-    `Alerta Premier Sky — Puntuación de tormenta\n\n` +
-    `Zona: ${zone}\n` +
-    `Ubicación: ${lat.toFixed(3)}, ${lon.toFixed(3)}\n` +
-    `Evento: ${score.label}\n` +
-    `Puntuación total: ${score.total}\n` +
-    `Acción: ${actionLabel(tier)}\n\n` +
-    `Desglose:\n${lines.join("\n")}\n\n` +
-    (score.homeCount ? `Jobs afectados (≤ ${HAIL_RADIUS_MI} mi): ${score.homeCount}\n` : "") +
-    (score.leads != null ? `Leads: ${score.leads} · Estimaciones: ${score.estimates}\n` : "") +
+    `Premier Sky Alert — Storm Score\n\n` +
+    `Zone: ${zone}\n` +
+    `Location: ${lat.toFixed(3)}, ${lon.toFixed(3)}\n` +
+    `Event: ${score.label}\n` +
+    `Total score: ${score.total}\n` +
+    `Action: ${actionLabel(tier)}\n\n` +
+    `Score breakdown:\n${lines.join("\n")}\n\n` +
+    (score.homeCount ? `Affected jobs (<= ${HAIL_RADIUS_MI} mi): ${score.homeCount}\n` : "") +
+    (score.leads != null ? `Leads: ${score.leads} · Estimates: ${score.estimates}\n` : "") +
     (tier === "campaign"
-      ? "\nNota: En producción esto activaría campañas de Meta automáticamente. Por ahora solo alerta por correo.\n"
+      ? "\nNote: In production this would trigger Meta campaigns automatically. For now this is an email alert only.\n"
       : "");
 
   const breakdownHtml = score.breakdown
-    .map((b) => `<li><b>${b.variable}</b>: +${b.points}</li>`)
+    .map((b) => `<li><b>${localizeBreakdownVariable(b.variable)}</b>: +${b.points}</li>`)
     .join("");
 
   const tierColor = tier === "campaign" ? "#c1121f" : "#e85d04";
   const html =
-    `<h2 style="margin:0 0 8px">⛈️ Alerta de tormenta · ${zone}</h2>` +
+    `<h2 style="margin:0 0 8px">⛈️ Storm alert · ${zone}</h2>` +
     `<p style="font-size:22px;margin:0 0 8px"><b>Score: ${score.total}</b></p>` +
     `<p style="background:${tierColor};color:#fff;display:inline-block;padding:4px 12px;border-radius:8px;font-size:14px">` +
     `${actionLabel(tier)}</p>` +
-    `<p style="margin-top:12px"><b>Evento:</b> ${score.label}<br/>` +
-    `<b>Ubicación:</b> ${lat.toFixed(3)}, ${lon.toFixed(3)}</p>` +
-    `<h3 style="margin:16px 0 6px">Desglose de puntos</h3><ul>${breakdownHtml}</ul>` +
-    (score.homeCount ? `<p><b>Jobs afectados:</b> ${score.homeCount} (radio ${HAIL_RADIUS_MI} mi)</p>` : "") +
+    `<p style="margin-top:12px"><b>Event:</b> ${score.label}<br/>` +
+    `<b>Location:</b> ${lat.toFixed(3)}, ${lon.toFixed(3)}</p>` +
+    `<h3 style="margin:16px 0 6px">Score breakdown</h3><ul>${breakdownHtml}</ul>` +
+    (score.homeCount ? `<p><b>Affected jobs:</b> ${score.homeCount} (${HAIL_RADIUS_MI} mi radius)</p>` : "") +
     (tier === "campaign"
-      ? `<p style="color:#666;font-size:13px;margin-top:16px">En producción esto activaría campañas de Meta. Por ahora solo alerta por correo.</p>`
+      ? `<p style="color:#666;font-size:13px;margin-top:16px">In production this would trigger Meta campaigns. For now this is an email alert only.</p>`
       : "");
 
   return { subject, text, html };
