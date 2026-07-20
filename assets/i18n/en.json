@@ -541,7 +541,7 @@
   "sales.mapView.syncCrm": "Sync",
   "sales.map.noCoords": "Leads found, but none have map coordinates yet.",
   "sales.mapView.emptyTitle": "No leads on the map yet",
-  "sales.mapView.emptyBody": "Search a ZIP above to load sales leads. Weather layers (SPC, alerts, hail, storm score) overlay like Premier Sky; pins are commercial leads.",
+  "sales.mapView.emptyBody": "Search a ZIP above to load sales leads. Weather layers match Premier Sky; pins are sales leads.",
   "sales.mapView.count": "{n} leads",
   "sales.mapView.legendTitle": "Map legend",
   "sales.mapView.legendHint": "Sky weather layers + sales lead pins — toggle layers below",

@@ -3562,7 +3562,7 @@ async function ensureHailReports(){
     return wxCacheSet("hailRep", il);
   }catch(e){
     console.warn("Hail reports:", e.message);
-    return wxCacheSet("hailRep", []);
+    return []; // don't cache failure — allow retry on next toggle
   }
 }
 
@@ -3586,7 +3586,7 @@ async function ensureStormScores(){
     return wxCacheSet("scores", data);
   }catch(e){
     console.warn("Storm score:", e.message);
-    return wxCacheSet("scores", { hotspots: [] });
+    return { hotspots: [] }; // don't cache failure — allow retry on next toggle
   }
 }
 
@@ -3937,6 +3937,8 @@ function setupMaps(){
   window._leadMapMarkerLayer = null;
   window._leadMapDistLine = null;
   window._leadMapDistLabel = null;
+  window._leadMapSpcLayer = null;
+  window._lmWeather = {};
 
   const mapOpts = {
     scrollWheelZoom: false,
