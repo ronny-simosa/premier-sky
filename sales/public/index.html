@@ -484,7 +484,7 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
 }
 .map-legend{display:flex; gap:14px; align-items:center; font-size:11.5px; color:var(--gray-500); padding:10px 16px; border-top:1px solid var(--gray-100); flex-wrap:wrap; row-gap:8px;}
 .legend-dot{width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:5px; vertical-align:middle;}
-.leaflet-container{font-family:'Inter',system-ui,sans-serif; z-index:1;}
+.leaflet-container{font-family:'Inter',system-ui,sans-serif; z-index:1; background:var(--gray-100);}
 .leaflet-popup-content-wrapper{border-radius:10px;}
 
 /* ---------- Lead Map (Sky-inspired layout, Sales layers only) ---------- */
@@ -560,13 +560,16 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
   background-color:rgba(15,42,67,0.88); color:#fff; font-family:'IBM Plex Mono',monospace; font-weight:600;
 }
 .lead-map-center{
-  min-width:0; min-height:0; display:flex; flex-direction:column;
+  min-width:0; min-height:240px; height:100%;
   background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius-lg);
   box-shadow:var(--shadow-card); overflow:hidden; position:relative;
 }
-/* min-height guards Leaflet init — flex can report 0×0 before layout settles;
-   canvas path overlays then stay blank even after invalidateSize (tiles still show). */
-#lead-map{flex:1; min-height:240px; width:100%; height:100%; position:relative;}
+/* Absolute fill inside the grid cell — flex height:100% often leaves Leaflet at 0×0
+   (controls still paint; tiles + SVG markers stay blank). */
+#lead-map{
+  position:absolute; inset:0; width:100%; height:100%; min-height:240px;
+  z-index:1; background:var(--gray-100);
+}
 .lm-focus-chip{
   position:absolute; left:12px; bottom:12px; z-index:500;
   max-width:min(340px, calc(100% - 24px));
@@ -649,7 +652,7 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
   .main.view-map .content{overflow:visible; flex:none;}
   .lead-map-page{flex:none; overflow:visible;}
   .lead-map-layout{grid-template-columns:1fr; min-height:0; overflow:visible; flex:none;}
-  .lead-map-center{order:1;}
+  .lead-map-center{order:1; min-height:48vh;}
   .lead-map-rail-left{order:2;}
   .lead-map-rail-right{order:3;}
   #lead-map{min-height:48vh;}
@@ -1857,7 +1860,14 @@ function getFilteredSortedLeads(){
   leads = leads.filter(l => sp.propertyTypes.includes(l.propertyType));
   // Storm filter is client-side only; while storm data is stubbed, never apply it.
   if(sp.stormOnly && !isStormDataStubbed()) leads = leads.filter(l => l.stormHistory && l.stormHistory.length > 0);
-  if(sp.minRoofSqFt > 0) leads = leads.filter(l => l.roofSqFt >= sp.minRoofSqFt);
+  if(sp.minRoofSqFt > 0){
+    const minRoof = Number(sp.minRoofSqFt) || 0;
+    leads = leads.filter(l => {
+      const roof = Number(l.roofSqFt);
+      // Missing/invalid roof area fails a positive min-roof filter.
+      return Number.isFinite(roof) && roof >= minRoof;
+    });
+  }
   if(sp.priorityFilter !== "All") leads = leads.filter(l => l.priority === sp.priorityFilter);
 
   leads.sort((a,b)=>{
@@ -2432,21 +2442,18 @@ function iconCheck(){ return `<svg width="13" height="13" viewBox="0 0 24 24" fi
 // ---------------------------------------------------------------------------
 // RENDER: LEAD MAP (Sky-inspired rails + Sales priority/score/status layers)
 // ---------------------------------------------------------------------------
-function renderLeadMap(){
-  const leads = getFilteredSortedLeads();
-  const sp = state.searchParams;
-  const layers = state.mapLayers;
+function leadMapListHtml(leads){
   const focusId = state.mapFocusLeadId;
-  const coordStats = leadsCoordStats(leads);
-
-  const listHtml = !state.hasSearched && !leads.length
-    ? `<div class="lm-empty"><h3>${st("sales.mapView.emptyTitle","No leads on the map yet")}</h3>${st("sales.mapView.emptyBody","Search a ZIP above to load sales leads. Markers use property type (or priority) and score size — not weather layers.")}</div>`
-    : !leads.length
-      ? `<div class="lm-empty"><h3>${st("sales.empty.noMatch","No leads match these filters")}</h3>${st("sales.empty.widen","Try widening the radius, adding property types, or clearing filters in the Dashboard.")}</div>`
-      : leads.map(l => {
-          const dist = leadDistanceMiles(l);
-          const fill = markerFillColor(l);
-          return `
+  if(!state.hasSearched && !leads.length){
+    return `<div class="lm-empty"><h3>${st("sales.mapView.emptyTitle","No leads on the map yet")}</h3>${st("sales.mapView.emptyBody","Search a ZIP above to load sales leads. Markers use property type (or priority) and score size — not weather layers.")}</div>`;
+  }
+  if(!leads.length){
+    return `<div class="lm-empty"><h3>${st("sales.empty.noMatch","No leads match these filters")}</h3>${st("sales.empty.widen","Try widening the radius, adding property types, or clearing filters in the Dashboard.")}</div>`;
+  }
+  return leads.map(l => {
+    const dist = leadDistanceMiles(l);
+    const fill = markerFillColor(l);
+    return `
         <div class="lm-lead ${focusId===l.id?"active":""}" data-focus-lead="${l.id}">
           <span class="lm-lead-swatch" style="background:${fill}" title="${escHtml(state.mapColorBy === "priority" ? priorityLabel(l.priority) : (l.propertyType || ""))}" aria-hidden="true"></span>
           <div style="min-width:0;">
@@ -2469,7 +2476,81 @@ function renderLeadMap(){
             </div>
           </div>
         </div>`;
-        }).join("");
+  }).join("");
+}
+
+function updateFilteredLeadCounts(){
+  const leads = getFilteredSortedLeads();
+  const coordStats = leadsCoordStats(leads);
+  const countText = `${st("sales.mapView.count","{n} leads", {n: leads.length})} · ${st("sales.stat.onMap","{n} on map", {n: coordStats.withCoords})}`;
+  document.querySelectorAll(".lead-map-count").forEach((el) => { el.textContent = countText; });
+  document.querySelectorAll(".nav-item[data-nav='results'] .nav-count, .nav-item[data-nav='map'] .nav-count").forEach((el) => {
+    el.textContent = String(leads.length);
+  });
+  return leads;
+}
+
+/** Soft client-filter refresh on Lead Map — list + counts + markers, no Leaflet remount. */
+function softRefreshMapClientFilters(){
+  const leads = updateFilteredLeadCounts();
+  const list = document.querySelector(".lead-map-list");
+  if(list){
+    list.innerHTML = leadMapListHtml(leads);
+    list.querySelectorAll("[data-focus-lead]").forEach(el=>{
+      el.addEventListener("click", (e)=>{
+        if(e.target.closest("[data-open-lead],[data-action]")) return;
+        window._focusLeadOnMap(el.dataset.focusLead);
+      });
+    });
+    list.querySelectorAll("[data-open-lead]").forEach(el=>{
+      el.addEventListener("click", (e)=>{
+        e.stopPropagation();
+        openLeadProfile(el.dataset.openLead, state.view);
+      });
+    });
+    list.querySelectorAll('[data-action="send-crm"]').forEach(el=>{
+      el.addEventListener("click", (e)=>{
+        e.stopPropagation();
+        confirmSendToCrm(el.dataset.lead);
+      });
+    });
+    list.querySelectorAll('[data-action="create-task"]').forEach(el=>{
+      el.addEventListener("click", (e)=>{
+        e.stopPropagation();
+        confirmCreateTask(el.dataset.lead);
+      });
+    });
+  }
+  softSyncLeadMapMarkers(leads);
+  if(!state.loading) setMapSearchOverlay(false);
+  invalidateLeadMapSize();
+}
+
+let _minRoofFilterTimer = null;
+function applyMinRoofFilter(raw, { immediate = false } = {}){
+  const parsed = parseInt(String(raw ?? "").trim(), 10);
+  const next = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  if(state.searchParams.minRoofSqFt === next){
+    // Still refresh when immediate so blur after debounce stays consistent.
+    if(immediate && state.view === "map" && window._leadMap) softRefreshMapClientFilters();
+    return;
+  }
+  state.searchParams.minRoofSqFt = next;
+  const run = ()=>{
+    if(state.view === "map" && window._leadMap) softRefreshMapClientFilters();
+    else render();
+  };
+  clearTimeout(_minRoofFilterTimer);
+  if(immediate) run();
+  else _minRoofFilterTimer = setTimeout(run, 220);
+}
+
+function renderLeadMap(){
+  const leads = getFilteredSortedLeads();
+  const sp = state.searchParams;
+  const layers = state.mapLayers;
+  const coordStats = leadsCoordStats(leads);
+  const listHtml = leadMapListHtml(leads);
 
   return `
   <div class="lead-map-page">
@@ -2643,9 +2724,16 @@ function attachEvents(){
   const stormOnly = document.getElementById("storm-only");
   if(stormOnly && !stormOnly.disabled) stormOnly.addEventListener("change", e=>{ state.searchParams.stormOnly = e.target.checked; render(); });
   const minRoof = document.getElementById("min-roof");
-  if(minRoof) minRoof.addEventListener("change", e=>{ state.searchParams.minRoofSqFt = parseInt(e.target.value)||0; render(); });
+  if(minRoof){
+    minRoof.addEventListener("input", e=>{ applyMinRoofFilter(e.target.value); });
+    minRoof.addEventListener("change", e=>{ applyMinRoofFilter(e.target.value, { immediate:true }); });
+  }
   const priorityFilter = document.getElementById("priority-filter");
-  if(priorityFilter) priorityFilter.addEventListener("change", e=>{ state.searchParams.priorityFilter = e.target.value; render(); });
+  if(priorityFilter) priorityFilter.addEventListener("change", e=>{
+    state.searchParams.priorityFilter = e.target.value;
+    if(state.view === "map" && window._leadMap) softRefreshMapClientFilters();
+    else render();
+  });
   const mapToggle = document.querySelector('[data-action="toggle-results-map"]');
   if(mapToggle) mapToggle.addEventListener("click", ()=>{ state.showResultsMap = !state.showResultsMap; render(); });
   const lmOffice = document.getElementById("lm-layer-office");
@@ -2739,10 +2827,9 @@ function markerFillColor(lead){
 }
 const TILE_OPTS = {
   maxZoom: 19,
-  updateWhenIdle: true,
-  updateWhenZooming: false,
+  updateWhenIdle: false,
+  updateWhenZooming: true,
   keepBuffer: 2,
-  crossOrigin: true,
 };
 function baseLayers(){
   const mapLabel = st("sales.map.base","Map");
@@ -2757,6 +2844,140 @@ function baseLayers(){
       { ...TILE_OPTS, attribution: "Esri World Imagery" }
     ),
   };
+}
+
+/** Stable street/sat layers — avoid i18n key mismatch leaving L.map with no basemap. */
+function createBaseTileLayers(){
+  const street = L.tileLayer(
+    "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+    { ...TILE_OPTS, maxZoom: 20, subdomains: "abcd", attribution: "&copy; OpenStreetMap &copy; CARTO" }
+  );
+  const sat = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    { ...TILE_OPTS, attribution: "Esri World Imagery" }
+  );
+  const controlLayers = {
+    [st("sales.map.base","Map")]: street,
+    [st("sales.map.sat","Satellite")]: sat,
+  };
+  return { street, sat, controlLayers };
+}
+
+function clearMapLoadingOverlays(el){
+  if(!el) return;
+  el.querySelectorAll(":scope > .map-loading-overlay").forEach((n) => n.remove());
+}
+
+function invalidateMapInstance(map){
+  if(!map) return;
+  try {
+    map.invalidateSize({ animate: false });
+    if(map._renderer && typeof map._renderer._update === "function") map._renderer._update();
+    // Force tile reload after flex/absolute layout settles (0×0 init leaves gray pane).
+    map.eachLayer((layer) => {
+      if(layer && typeof layer.redraw === "function"){
+        try { layer.redraw(); } catch(e){}
+      }
+    });
+  } catch(e){}
+}
+
+function invalidateLeadMapSize(){
+  invalidateMapInstance(window._leadMap);
+}
+
+function bindMapResizeObserver(map, el){
+  if(!map || !el || typeof ResizeObserver === "undefined") return;
+  if(el._psResizeObs){
+    try { el._psResizeObs.disconnect(); } catch(e){}
+  }
+  const obs = new ResizeObserver(() => {
+    invalidateMapInstance(map);
+  });
+  obs.observe(el);
+  if(el.parentElement) obs.observe(el.parentElement);
+  el._psResizeObs = obs;
+  map.once("unload", () => {
+    try { obs.disconnect(); } catch(e){}
+    el._psResizeObs = null;
+  });
+}
+
+function scheduleMapSizeFix(map, el){
+  bindMapResizeObserver(map, el);
+  const fix = () => invalidateMapInstance(map);
+  requestAnimationFrame(() => {
+    fix();
+    setTimeout(fix, 50);
+    setTimeout(fix, 200);
+    setTimeout(fix, 500);
+  });
+}
+
+/** Rebuild visible markers for current filtered leads without remounting Leaflet. */
+function softSyncLeadMapMarkers(leads){
+  const map = window._leadMap;
+  if(!map || typeof L === "undefined") return;
+  const want = new Set();
+  const mappable = [];
+  (leads || []).forEach((l) => {
+    const ll = leadLatLng(l);
+    if(!ll) return;
+    want.add(l.id);
+    mappable.push({ lead: l, ...ll });
+  });
+
+  if(!window._leadMapMarkers) window._leadMapMarkers = {};
+  let layer = window._leadMapMarkerLayer;
+  if(!layer){
+    layer = L.layerGroup().addTo(map);
+    window._leadMapMarkerLayer = layer;
+  }
+
+  Object.keys(window._leadMapMarkers).forEach((id) => {
+    if(want.has(id)) return;
+    const m = window._leadMapMarkers[id];
+    try {
+      if(layer && typeof layer.removeLayer === "function") layer.removeLayer(m);
+      else map.removeLayer(m);
+    } catch(e){}
+    delete window._leadMapMarkers[id];
+  });
+
+  mappable.forEach((row) => {
+    const l = row.lead;
+    const selected = state.mapFocusLeadId === l.id;
+    let marker = window._leadMapMarkers[l.id];
+    if(marker){
+      try {
+        marker.setLatLng([row.lat, row.lng]);
+        marker.setStyle(leadMarkerStyle(l, selected));
+        marker.setPopupContent(leadMarkerPopupHtml(l));
+      } catch(e){}
+      return;
+    }
+    marker = L.circleMarker([row.lat, row.lng], leadMarkerStyle(l, selected));
+    marker.bindPopup(leadMarkerPopupHtml(l), { maxWidth: 320, className: "lm-popup-wrap" });
+    marker.bindTooltip(leadMarkerTooltipHtml(l), {
+      direction: "top",
+      offset: [0, -8],
+      opacity: 0.95,
+      className: "lm-marker-tip",
+    });
+    marker.on("click", ()=>{ window._focusLeadOnMap(l.id); });
+    if(typeof layer.addLayer === "function") layer.addLayer(marker);
+    else marker.addTo(map);
+    window._leadMapMarkers[l.id] = marker;
+  });
+
+  syncLeadMarkerSelection(state.mapFocusLeadId);
+  if(mappable.length){
+    const bounds = mappable.map((r) => [r.lat, r.lng]);
+    if(state.mapLayers.office) bounds.push([SALES_OFFICE.lat, SALES_OFFICE.lng]);
+    if(!(state.mapFocusLeadId && window._leadMapMarkers[state.mapFocusLeadId])){
+      try { map.fitBounds(bounds, { padding:[36,36], maxZoom:14 }); } catch(e){}
+    }
+  }
 }
 window._openLeadFromMap = (id)=>{ openLeadProfile(id, state.view === "detail" ? (state.detailReturnView || "map") : state.view); };
 window._crmFromMap = (id, action)=>{
@@ -3101,6 +3322,7 @@ function addSalesGeoLayers(map){
 function setupLeadMap(){
   const el = document.getElementById("lead-map");
   if(!el || typeof L === "undefined") return;
+  clearMapLoadingOverlays(el);
 
   const useCluster = state.mapLayers.cluster && typeof L.markerClusterGroup === "function";
   const mapOpts = {
@@ -3117,28 +3339,28 @@ function setupLeadMap(){
     return { lead: l, ...ll };
   }).filter(Boolean);
   const center = state.lastGeo || { lat: SALES_OFFICE.lat, lng: SALES_OFFICE.lng };
+  const { street, controlLayers } = createBaseTileLayers();
 
   if(!mappable.length){
     if(state.loading){
-      const layers = baseLayers();
-      const mapLabel = st("sales.map.base","Map");
-      const map = L.map(el, { ...mapOpts, layers:[layers[mapLabel]] });
+      const map = L.map(el, mapOpts);
+      street.addTo(map);
       window._maps.push(map);
+      window._leadMap = map;
       addSalesGeoLayers(map);
       map.setView([center.lat, center.lng], 11);
       const overlay = document.createElement("div");
       overlay.className = "map-loading-overlay is-fetching";
       overlay.innerHTML = `<div class="map-loading-card">${st("sales.map.searching","Searching live leads near {zip}...", {zip: zipDisplayLabel(state.searchParams.zip)})}</div>`;
-      el.style.position = "relative";
       el.appendChild(overlay);
-      requestAnimationFrame(() => { try { map.invalidateSize({ animate: false }); } catch(e){} });
+      scheduleMapSizeFix(map, el);
       return;
     }
-    const layers = baseLayers();
-    const mapLabel = st("sales.map.base","Map");
-    const map = L.map(el, { ...mapOpts, layers:[layers[mapLabel]] });
+    const map = L.map(el, mapOpts);
+    street.addTo(map);
+    L.control.layers(controlLayers).addTo(map);
     window._maps.push(map);
-    L.control.layers(layers).addTo(map);
+    window._leadMap = map;
     addSalesGeoLayers(map);
     map.setView([center.lat, center.lng], 11);
     const empty = document.createElement("div");
@@ -3149,19 +3371,17 @@ function setupLeadMap(){
         ? st("sales.map.noCoords","Leads found, but none have map coordinates yet.")
         : st("sales.map.empty","No coordinates to map. Run a search to see live leads on the map.")
     }</div>`;
-    el.style.position = "relative";
     el.appendChild(empty);
-    requestAnimationFrame(() => { try { map.invalidateSize({ animate: false }); } catch(e){} });
+    scheduleMapSizeFix(map, el);
     return;
   }
 
-  const layers = baseLayers();
-  const mapLabel = st("sales.map.base","Map");
-  const map = L.map(el, { ...mapOpts, layers:[layers[mapLabel]] });
+  const map = L.map(el, mapOpts);
+  street.addTo(map);
   window._maps.push(map);
   window._leadMap = map;
   window._leadMapMarkers = {};
-  L.control.layers(layers).addTo(map);
+  L.control.layers(controlLayers).addTo(map);
   addSalesGeoLayers(map);
 
   if(state.mapLayers.heat && typeof L.heatLayer === "function"){
@@ -3234,19 +3454,15 @@ function setupLeadMap(){
     soft.setAttribute("aria-live","polite");
     soft.innerHTML = `<div class="map-loading-card">${st("sales.map.searching","Searching live leads near {zip}...", {zip: zipDisplayLabel(state.searchParams.zip)})}</div>`;
     el.appendChild(soft);
+  } else {
+    clearMapLoadingOverlays(el);
   }
-  // Flex height settles after layout; invalidate so SVG overlays match the column size.
-  const fixSize = ()=>{
-    try {
-      map.invalidateSize({ animate: false });
-      if(map._renderer && typeof map._renderer._update === "function") map._renderer._update();
-    } catch(e){}
-  };
-  requestAnimationFrame(() => {
-    fixSize();
-    setTimeout(fixSize, 80);
-    setTimeout(fixSize, 250);
-  });
+  scheduleMapSizeFix(map, el);
+  // Restore focus chip after remount (chip HTML is rebuilt empty).
+  if(state.mapFocusLeadId){
+    const focused = getLeadById(state.mapFocusLeadId);
+    if(focused) updateLeadFocusChip(focused);
+  }
 }
 
 function setupMaps(){
@@ -3278,9 +3494,9 @@ function setupMaps(){
     if(!mappable.length){
       if(state.loading){
         // Keep a real basemap visible while /api/leads runs (don't leave a blank panel).
-        const layers = baseLayers();
-        const mapLabel = st("sales.map.base","Map");
-        const map = L.map(rm, { ...mapOpts, layers:[layers[mapLabel]] });
+        const { street } = createBaseTileLayers();
+        const map = L.map(rm, mapOpts);
+        street.addTo(map);
         window._maps.push(map);
         const center = state.lastGeo || { lat: 41.957, lng: -88.081 }; // Bloomingdale-ish default
         map.setView([center.lat, center.lng], 11);
@@ -3297,11 +3513,11 @@ function setupMaps(){
         rm.innerHTML = `<div class="map-empty">${st("sales.map.empty","No coordinates to map. Run a search to see live leads on the map.")}</div>`;
       }
     } else {
-      const layers = baseLayers();
-      const mapLabel = st("sales.map.base","Map");
-      const map = L.map(rm, { ...mapOpts, layers:[layers[mapLabel]] });
+      const { street, controlLayers } = createBaseTileLayers();
+      const map = L.map(rm, mapOpts);
+      street.addTo(map);
       window._maps.push(map);
-      L.control.layers(layers).addTo(map);
+      L.control.layers(controlLayers).addTo(map);
       const bounds = [];
       // SVG circle markers (same as Lead Map — canvas can stay blank after remount)
       const markerLayer = L.layerGroup().addTo(map);
@@ -3333,10 +3549,13 @@ function setupMaps(){
         soft.setAttribute("aria-live","polite");
         soft.innerHTML = `<div class="map-loading-card">${st("sales.map.searching","Searching live leads near {zip}...", {zip: zipDisplayLabel(state.searchParams.zip)})}</div>`;
         rm.appendChild(soft);
+      } else {
+        clearMapLoadingOverlays(rm);
       }
-      // Layout can settle after SPA re-render; invalidate once so tiles aren't stuck blank.
+      // Layout can settle after SPA re-render; invalidate so tiles aren't stuck blank.
       requestAnimationFrame(() => {
         try { map.invalidateSize({ animate: false }); } catch(e){}
+        setTimeout(() => { try { map.invalidateSize({ animate: false }); } catch(e){} }, 200);
       });
     }
   }
