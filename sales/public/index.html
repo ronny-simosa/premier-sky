@@ -351,10 +351,13 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
 .checkbox-row{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--gray-700);}
 
 /* ---------- Dashboard redesign ---------- */
-.dash-search{display:grid; grid-template-columns:minmax(240px,1.35fr) 180px 1fr minmax(140px,180px); gap:16px; align-items:start;}
+.dash-search{display:grid; grid-template-columns:minmax(240px,1.35fr) 180px 1fr; gap:16px; align-items:start;}
+.dash-search.has-status{grid-template-columns:minmax(240px,1.35fr) 180px 1fr minmax(140px,180px);}
+.search-status-field[hidden]{display:none !important;}
 .search-status{
   font-size:12px; color:var(--gray-500); line-height:1.35; padding:28px 0 0;
 }
+.search-status[hidden]{display:none !important;}
 .search-status.is-loading{
   color:var(--blue-accent-dark); font-weight:600;
   display:flex; align-items:center; gap:7px;
@@ -382,11 +385,21 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
 }
 .zip-combo-list[hidden]{display:none !important;}
 .zip-opt{
-  display:block; width:100%; text-align:left; border:0; background:transparent; cursor:pointer;
+  display:flex; align-items:center; gap:8px; width:100%; text-align:left; border:1px solid transparent; background:transparent; cursor:pointer;
   padding:8px 10px; border-radius:8px; font-size:12.5px; color:var(--ink); line-height:1.35;
 }
 .zip-opt:hover, .zip-opt.active{background:var(--blue-soft);}
+.zip-opt.selected{
+  background:var(--blue-soft); border-color:var(--blue-accent); color:var(--blue-accent-dark); font-weight:700;
+}
+.zip-opt.selected:hover, .zip-opt.selected.active{
+  background:#CFE4FA; border-color:var(--blue-accent);
+}
 .zip-opt.special{font-weight:600; color:var(--blue-accent-dark);}
+.zip-opt.special.selected{font-weight:700;}
+.zip-opt-check{flex:0 0 auto; width:12px; font-size:12px; line-height:1; color:var(--blue-accent); font-weight:800;}
+.zip-opt:not(.selected) .zip-opt-check{visibility:hidden;}
+.zip-opt-label{flex:1; min-width:0;}
 .zip-opt-group{font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--gray-500); padding:8px 10px 4px;}
 .zip-combo-empty{padding:10px; font-size:12px; color:var(--gray-500);}
 .zip-hint{font-size:11px; color:var(--gray-500); margin-top:6px; line-height:1.35;}
@@ -1020,6 +1033,14 @@ function buildZipComboOptions(query){
   return all.filter(o => o.hay.includes(q) || o.label.toLowerCase().includes(q));
 }
 
+function zipOptButtonHtml(o, selectedZip){
+  const isSelected = String(o.value) === String(selectedZip || "");
+  const classes = ["zip-opt"];
+  if(o.special) classes.push("special");
+  if(isSelected) classes.push("selected");
+  return `<button type="button" class="${classes.join(" ")}" role="option" aria-selected="${isSelected?"true":"false"}" data-zip-value="${escHtml(o.value)}"><span class="zip-opt-check" aria-hidden="true">✓</span><span class="zip-opt-label">${escHtml(o.label)}</span></button>`;
+}
+
 function renderZipComboList(query){
   const list = document.getElementById("zip-combo-list");
   if(!list) return;
@@ -1028,12 +1049,13 @@ function renderZipComboList(query){
     list.innerHTML = `<div class="zip-combo-empty">${st("sales.search.zipNoMatch","No matching ZIP or area")}</div>`;
     return;
   }
+  const selectedZip = state.searchParams.zip;
   let html = "";
   let lastZone = null;
   let specialDone = false;
   for(const o of opts){
     if(o.special){
-      html += `<button type="button" class="zip-opt special" role="option" data-zip-value="${escHtml(o.value)}">${escHtml(o.label)}</button>`;
+      html += zipOptButtonHtml(o, selectedZip);
       specialDone = true;
       continue;
     }
@@ -1044,7 +1066,7 @@ function renderZipComboList(query){
       lastZone = o.zone;
       html += `<div class="zip-opt-group">${escHtml(o.zone)}</div>`;
     }
-    html += `<button type="button" class="zip-opt" role="option" data-zip-value="${escHtml(o.value)}">${escHtml(o.label)}</button>`;
+    html += zipOptButtonHtml(o, selectedZip);
   }
   list.innerHTML = html;
 }
@@ -1107,10 +1129,15 @@ function setMapSearchOverlay(on){
 }
 
 function setSearchStatusLoading(on){
-  const msg = on
-    ? searchUpdatingMessage()
-    : st("sales.search.liveHint","Updates when you change ZIP or radius");
+  const msg = on ? searchUpdatingMessage() : "";
+  document.querySelectorAll(".dash-search").forEach(el=>{
+    el.classList.toggle("has-status", on);
+  });
+  document.querySelectorAll(".search-status-field").forEach(el=>{
+    el.hidden = !on;
+  });
   document.querySelectorAll(".search-status").forEach(el=>{
+    el.hidden = !on;
     el.classList.toggle("is-loading", on);
     el.textContent = msg;
     el.setAttribute("aria-busy", on ? "true" : "false");
@@ -1285,10 +1312,11 @@ function getLeadById(id){
   return state.results.find(l=>l.id===id) || SAMPLE_LEADS.find(l=>l.id===id) || null;
 }
 function searchStatusHtml(){
+  // Idle: keep a hidden node so soft ZIP/radius updates can unhide without a full remount.
   if(state.loading){
     return `<div class="search-status is-loading" aria-live="polite" aria-busy="true">${searchUpdatingMessage()}</div>`;
   }
-  return `<div class="search-status" aria-busy="false">${st("sales.search.liveHint","Updates when you change ZIP or radius")}</div>`;
+  return `<div class="search-status" aria-busy="false" hidden></div>`;
 }
 function isStormDataStubbed(){
   const s = state.sourceStatus;
@@ -1861,7 +1889,7 @@ function renderDashboard(){
   return `
   ${dataModeBannerHtml()}
   <div class="panel panel-pad section-gap">
-    <div class="dash-search">
+    <div class="dash-search${state.loading ? " has-status" : ""}">
       <div>
         <label class="field-label">${st("sales.search.zip","ZIP / area")}</label>
         ${zipSelectHtml(sp.zip)}
@@ -1878,7 +1906,7 @@ function renderDashboard(){
           ${ALL_TYPES.map(t => `<button class="type-chip ${sp.propertyTypes.includes(t)?"selected":""}" data-type-toggle="${t}">${sp.propertyTypes.includes(t)?"✓ ":""}${t}</button>`).join("")}
         </div>
       </div>
-      <div>
+      <div class="search-status-field" ${state.loading ? "" : "hidden"}>
         <label class="field-label">${st("sales.search.status","Status")}</label>
         ${searchStatusHtml()}
       </div>

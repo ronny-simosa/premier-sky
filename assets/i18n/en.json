@@ -180,7 +180,6 @@
   "sales.search.searching": "Searching...",
   "sales.search.updating": "Updating…",
   "sales.search.updatingZip": "Updating leads for {zip}…",
-  "sales.search.liveHint": "Updates when you change ZIP or radius",
   "sales.search.status": "Status",
   "sales.stat.found": "Leads found",
   "sales.stat.onMap": "{n} on map",
