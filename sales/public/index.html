@@ -263,11 +263,27 @@ a{color:inherit;}
 .radius-opt.selected{background:var(--navy-800); border-color:var(--navy-800); color:var(--white);}
 .chip-select{display:flex; flex-wrap:wrap; gap:8px;}
 .type-chip{
-  padding:8px 13px; border:1px solid var(--gray-300); border-radius:20px; font-size:12.5px; font-weight:600; background:var(--white); color:var(--gray-700);
-  display:flex; align-items:center; gap:6px; transition:all .12s;
+  padding:7px 12px 7px 10px; border:1px solid var(--gray-300); border-radius:20px; font-size:12.5px; font-weight:600; background:var(--white); color:var(--gray-700);
+  display:flex; align-items:center; gap:7px; transition:all .12s;
+  border-left:3px solid var(--type-color, var(--gray-300));
 }
-.type-chip.selected{background:var(--blue-soft); border-color:var(--blue-accent); color:var(--blue-accent-dark);}
+.type-chip .type-swatch{
+  width:8px; height:8px; border-radius:50%; flex-shrink:0;
+  background:var(--type-color, var(--gray-300));
+  box-shadow:0 0 0 1px rgba(11,32,54,0.08);
+}
+.type-chip.selected{
+  background:var(--blue-soft); border-color:var(--type-color, var(--blue-accent));
+  border-left-color:var(--type-color, var(--blue-accent)); color:var(--navy-800);
+}
 .filter-row{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; padding-top:16px; margin-top:16px; border-top:1px solid var(--gray-100);}
+.map-color-toggle{display:inline-flex; border:1px solid var(--gray-300); border-radius:8px; overflow:hidden; vertical-align:middle;}
+.map-color-toggle button{
+  padding:5px 10px; font-size:11.5px; font-weight:600; border:none; background:var(--white); color:var(--gray-500);
+}
+.map-color-toggle button.active{background:var(--navy-800); color:var(--white);}
+.map-legend .legend-types{display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center;}
+.map-legend-tools{display:flex; align-items:center; gap:10px; margin-left:auto; flex-wrap:wrap;}
 
 /* ---------- Results toolbar ---------- */
 .results-toolbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;}
@@ -297,7 +313,14 @@ a{color:inherit;}
 .lc-head{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;}
 .lc-name{font-size:15px; font-weight:700; margin:0 0 3px; letter-spacing:-0.005em;}
 .lc-addr{font-size:12px; color:var(--gray-500);}
-.lc-type-tag{display:inline-block; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--blue-accent-dark); background:var(--blue-soft); padding:2px 8px; border-radius:5px; margin-top:8px;}
+.lc-type-tag{
+  display:inline-flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;
+  color:var(--ink); background:var(--gray-50); padding:2px 8px 2px 7px; border-radius:5px; margin-top:8px;
+  border:1px solid var(--gray-200); border-left:3px solid var(--type-color, var(--blue-accent));
+}
+.lc-type-tag::before{
+  content:""; width:7px; height:7px; border-radius:50%; background:var(--type-color, var(--blue-accent)); flex-shrink:0;
+}
 .lc-grid{display:grid; grid-template-columns:1fr 1fr; gap:9px 14px; margin:14px 0; padding:12px 0; border-top:1px solid var(--gray-100); border-bottom:1px solid var(--gray-100);}
 .lc-metric-label{font-size:10.5px; color:var(--gray-500); text-transform:uppercase; letter-spacing:.03em;}
 .lc-metric-value{font-size:13px; font-weight:600; font-family:'IBM Plex Mono',monospace; margin-top:2px;}
@@ -459,7 +482,7 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
   content:""; width:10px; height:10px; border-radius:50%; flex-shrink:0;
   background:var(--blue-accent); animation:search-pulse 1s ease-in-out infinite;
 }
-.map-legend{display:flex; gap:14px; align-items:center; font-size:11.5px; color:var(--gray-500); padding:10px 16px; border-top:1px solid var(--gray-100);}
+.map-legend{display:flex; gap:14px; align-items:center; font-size:11.5px; color:var(--gray-500); padding:10px 16px; border-top:1px solid var(--gray-100); flex-wrap:wrap; row-gap:8px;}
 .legend-dot{width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:5px; vertical-align:middle;}
 .leaflet-container{font-family:'Inter',system-ui,sans-serif; z-index:1;}
 .leaflet-popup-content-wrapper{border-radius:10px;}
@@ -514,8 +537,13 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
 .lm-sw.round{border-radius:50%;}
 .lm-sw.ring{background:transparent; border:2px solid var(--blue-accent); border-radius:50%; width:12px; height:12px; box-sizing:border-box;}
 .lm-sw.office{background:var(--navy-800); border-radius:50%; box-shadow:0 0 0 3px rgba(46,139,230,0.28);}
+.lm-sw.office-pin{background:transparent; border:none; box-shadow:none; width:auto; height:auto; font-size:14px; line-height:1;}
 .lm-layer-toggles{margin-top:12px; padding-top:12px; border-top:1px solid var(--gray-100); display:flex; flex-direction:column; gap:8px; flex-shrink:0;}
 .lm-layer-toggles label{font-size:12.5px; color:var(--gray-700); display:flex; align-items:center; gap:8px; cursor:pointer;}
+.lm-color-by{display:flex; flex-direction:column; gap:6px; margin-bottom:4px;}
+.lm-color-by-label{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--gray-500);}
+.lm-color-by .map-color-toggle{width:100%;}
+.lm-color-by .map-color-toggle button{flex:1;}
 .checkbox-row.storm-stubbed{opacity:0.72; cursor:not-allowed;}
 .checkbox-row.storm-stubbed input{cursor:not-allowed;}
 .stub-pill{
@@ -534,27 +562,82 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
 .lead-map-center{
   min-width:0; min-height:0; display:flex; flex-direction:column;
   background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius-lg);
-  box-shadow:var(--shadow-card); overflow:hidden;
+  box-shadow:var(--shadow-card); overflow:hidden; position:relative;
 }
 /* min-height guards Leaflet init — flex can report 0×0 before layout settles;
    canvas path overlays then stay blank even after invalidateSize (tiles still show). */
 #lead-map{flex:1; min-height:240px; width:100%; height:100%; position:relative;}
+.lm-focus-chip{
+  position:absolute; left:12px; bottom:12px; z-index:500;
+  max-width:min(340px, calc(100% - 24px));
+  background:rgba(255,255,255,0.96); border:1px solid var(--gray-200);
+  border-radius:10px; box-shadow:var(--shadow-card); padding:10px 12px;
+  pointer-events:none;
+}
+.lm-focus-chip[hidden]{display:none !important;}
+.lm-focus-chip-label{font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--gray-500); margin-bottom:2px;}
+.lm-focus-chip-name{font-size:13px; font-weight:700; color:var(--navy-900); line-height:1.25;}
+.lm-focus-chip-meta{font-size:11.5px; color:var(--gray-600); margin-top:4px; line-height:1.4;}
+.lm-focus-chip-dist{font-family:'IBM Plex Mono',monospace; font-weight:600; color:var(--navy-800);}
 .lead-map-list{flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; margin:0 -4px; padding:0 4px;}
 .lm-lead{
-  display:grid; grid-template-columns:1fr auto; gap:6px 10px; padding:10px 10px;
+  display:grid; grid-template-columns:auto 1fr auto; gap:6px 10px; padding:10px 10px;
   border-radius:10px; border:1px solid transparent; cursor:pointer; transition:background .1s, border-color .1s;
   margin-bottom:4px;
 }
 .lm-lead:hover{background:var(--blue-soft);}
-.lm-lead.active{background:var(--blue-soft); border-color:#CFE4FA;}
+.lm-lead.active{background:var(--blue-soft); border-color:#CFE4FA; box-shadow:inset 3px 0 0 var(--blue-accent);}
+.lm-lead-swatch{
+  width:10px; height:10px; border-radius:50%; margin-top:4px;
+  border:1.5px solid #fff; box-shadow:0 0 0 1px rgba(11,32,54,0.18); flex-shrink:0;
+}
 .lm-lead-name{font-size:12.8px; font-weight:650; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .lm-lead-addr{font-size:11px; color:var(--gray-500); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px;}
 .lm-lead-meta{display:flex; flex-wrap:wrap; align-items:center; gap:6px; grid-column:1 / -1;}
 .lm-lead-owner{font-size:11px; color:var(--gray-500); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.lm-lead-dist{
+  font-size:11px; font-family:'IBM Plex Mono',monospace; font-weight:600;
+  color:var(--navy-800); white-space:nowrap; align-self:start; margin-top:2px;
+}
 .lm-empty{
   text-align:center; padding:40px 16px; color:var(--gray-500); font-size:12.5px; line-height:1.5;
 }
 .lm-empty h3{margin:0 0 6px; font-size:14px; color:var(--ink);}
+/* Sky-style lead popup (jn-popup parity, Sales fields) */
+.lm-popup{min-width:220px; max-width:300px;}
+.lm-popup-name{font-weight:700; font-size:14px; color:var(--navy-900); line-height:1.25;}
+.lm-popup-sub{font-size:12px; color:var(--gray-600); margin-top:2px;}
+.lm-popup-badges{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; align-items:center;}
+.lm-popup-type{
+  font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px; color:#fff;
+}
+.lm-popup-addr{font-size:12px; color:var(--gray-600); margin-top:8px; line-height:1.4;}
+.lm-popup-grid{
+  display:grid; grid-template-columns:1fr 1fr; gap:6px 10px; margin-top:10px;
+  padding-top:8px; border-top:1px solid var(--gray-100);
+}
+.lm-popup-kv{min-width:0;}
+.lm-popup-k{font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--gray-500);}
+.lm-popup-v{font-size:12.5px; font-weight:650; color:var(--navy-900); margin-top:1px; font-family:'IBM Plex Mono',monospace;}
+.lm-popup-v.plain{font-family:inherit; font-weight:600;}
+.lm-popup-note{font-size:11px; color:var(--warm); margin-top:6px;}
+.lm-popup-actions{display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;}
+.lm-popup-actions a{color:#1D6FBF; font-weight:600; font-size:12px; text-decoration:none;}
+.lm-popup-actions a:hover{text-decoration:underline;}
+.office-pin{background:transparent; border:none;}
+.office-pin-inner{font-size:22px; line-height:22px; filter:drop-shadow(0 1px 2px rgba(0,0,0,.45));}
+.lm-dist-label-wrap{background:transparent !important; border:none !important;}
+.lm-dist-label{
+  background:rgba(11,32,54,0.92); color:#fff; border:none; border-radius:6px;
+  padding:3px 8px; font-size:11px; font-weight:600; font-family:'IBM Plex Mono',monospace;
+  white-space:nowrap; box-shadow:0 1px 4px rgba(0,0,0,.25);
+  transform:translate(-50%, -50%); pointer-events:none;
+}
+.leaflet-tooltip.lm-marker-tip{
+  background:rgba(11,32,54,0.92); color:#fff; border:none; border-radius:6px;
+  padding:4px 8px; font-size:11.5px; font-weight:600; box-shadow:0 1px 4px rgba(0,0,0,.2);
+}
+.leaflet-tooltip.lm-marker-tip::before{border-top-color:rgba(11,32,54,0.92);}
 
 @media (max-width: 1100px){
   .search-grid{grid-template-columns:1fr; }
@@ -851,6 +934,47 @@ const SAMPLE_LEADS = [
 // hardcoded DEMO_ZIP_COUNTY_MAP / DEMO_ZIP_COORDS tables are gone.
 // ---------------------------------------------------------------------------
 const ALL_TYPES = ["Commercial","Multifamily","Retail","Industrial","Office","HOA/Condo","Mixed-use"];
+/** Fixed palette for property-type chips + map markers (light basemap friendly). */
+const PROPERTY_TYPE_COLORS = {
+  "Commercial":  "#1F4A6E", // navy
+  "Multifamily": "#2A8F6E", // teal-green
+  "Retail":      "#C97A1F", // amber
+  "Industrial":  "#5C7086", // slate
+  "Office":      "#2E8BE6", // blue accent
+  "HOA/Condo":   "#B45309", // copper
+  "Mixed-use":   "#0F766E", // deep teal
+};
+const PROPERTY_TYPE_COLOR_FALLBACK = "#5C7086";
+
+function propertyTypeColor(type){
+  return PROPERTY_TYPE_COLORS[type] || PROPERTY_TYPE_COLOR_FALLBACK;
+}
+
+function typeChipHtml(t, selected){
+  const color = propertyTypeColor(t);
+  return `<button type="button" class="type-chip ${selected?"selected":""}" data-type-toggle="${t}" style="--type-color:${color}"><span class="type-swatch" aria-hidden="true"></span>${selected?"✓ ":""}${t}</button>`;
+}
+
+function mapColorModeToggleHtml(extraClass){
+  const mode = state.mapColorBy === "priority" ? "priority" : "type";
+  return `<div class="map-color-toggle${extraClass ? " "+extraClass : ""}" role="group" aria-label="${st("sales.map.colorBy","Color markers by")}">
+    <button type="button" class="${mode==="type"?"active":""}" data-map-color-by="type">${st("sales.map.colorByType","Type")}</button>
+    <button type="button" class="${mode==="priority"?"active":""}" data-map-color-by="priority">${st("sales.map.colorByPriority","Priority")}</button>
+  </div>`;
+}
+
+function mapMarkerLegendHtml(compact){
+  if(state.mapColorBy === "priority"){
+    return `
+      <span><span class="legend-dot" style="background:var(--hot)"></span>${st("sales.map.hot","Hot")}</span>
+      <span><span class="legend-dot" style="background:var(--warm)"></span>${st("sales.map.warm","Warm")}</span>
+      <span><span class="legend-dot" style="background:var(--cold)"></span>${st("sales.map.cold","Cold")}</span>`;
+  }
+  const items = ALL_TYPES.map(t =>
+    `<span><span class="legend-dot" style="background:${propertyTypeColor(t)}"></span>${t}</span>`
+  ).join("");
+  return compact ? `<span class="legend-types">${items}</span>` : items;
+}
 
 async function fetchBuildingFootprint(zip, radiusMiles){
   try{
@@ -957,6 +1081,28 @@ function leadLatLng(l){
   if(!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   if(Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
   return { lat, lng };
+}
+function haversineMi(lat1, lon1, lat2, lon2){
+  const R = 3958.7613;
+  const toRad = (d) => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+/** Miles from Premier office — prefer server/sample distanceMiles, else Haversine. */
+function leadDistanceMiles(lead){
+  if(lead && lead.distanceMiles != null && Number.isFinite(Number(lead.distanceMiles))){
+    return Math.round(Number(lead.distanceMiles) * 10) / 10;
+  }
+  const ll = leadLatLng(lead);
+  if(!ll) return null;
+  return Math.round(haversineMi(SALES_OFFICE.lat, SALES_OFFICE.lng, ll.lat, ll.lng) * 10) / 10;
+}
+function fmtMiles(mi){
+  if(mi == null || !Number.isFinite(Number(mi))) return "—";
+  return `${Number(mi).toFixed(1)} mi`;
 }
 function leadsCoordStats(leads = getFilteredSortedLeads()){
   const total = leads.length;
@@ -1598,7 +1744,14 @@ async function confirmCreateTask(leadId){
 // ---------------------------------------------------------------------------
 // APP STATE
 // ---------------------------------------------------------------------------
-const SALES_OFFICE = { lat: 41.9569, lng: -88.0803, label: "Premier · Illinois" };
+// Match Premier Sky PREMIER_OFFICES.IL (Bloomingdale) for distance parity.
+const SALES_OFFICE = {
+  lat: 41.9578017,
+  lng: -88.0836828,
+  label: "Premier · Illinois",
+  address: "140 W Lake Street, Bloomingdale, IL 60108",
+  coverageMi: 40,
+};
 const STATUS_LEGEND = [
   { key:"New", color:"#1D6FBF" },
   { key:"Contacted", color:"#6D4FC7" },
@@ -1623,6 +1776,7 @@ const state = {
   sortDir:"desc", // asc | desc
   activeLeadId:null,
   mapFocusLeadId:null, // Lead Map selection sync (list ↔ marker)
+  mapColorBy:"type", // type | priority — marker fill color mode
   mapLayers:{ office:true, radius:true, cluster:false, heat:false },
   detailReturnView:"results", // Map | Results | Dashboard — Back from Detail
   fetchedSearchKey:null, // zip|radius|types of last successful /api/leads fetch
@@ -1903,7 +2057,7 @@ function renderDashboard(){
       <div>
         <label class="field-label">${st("sales.search.types","Property types")}</label>
         <div class="chip-select">
-          ${ALL_TYPES.map(t => `<button class="type-chip ${sp.propertyTypes.includes(t)?"selected":""}" data-type-toggle="${t}">${sp.propertyTypes.includes(t)?"✓ ":""}${t}</button>`).join("")}
+          ${ALL_TYPES.map(t => typeChipHtml(t, sp.propertyTypes.includes(t))).join("")}
         </div>
       </div>
       <div class="search-status-field" ${state.loading ? "" : "hidden"}>
@@ -1924,10 +2078,11 @@ function renderDashboard(){
     <div class="panel" style="overflow:hidden;">
       <div id="results-map" class="map-wrap" style="height:430px;"></div>
       <div class="map-legend">
-        <span><span class="legend-dot" style="background:var(--hot)"></span>${st("sales.map.hot","Hot")}</span>
-        <span><span class="legend-dot" style="background:var(--warm)"></span>${st("sales.map.warm","Warm")}</span>
-        <span><span class="legend-dot" style="background:var(--cold)"></span>${st("sales.map.cold","Cold")}</span>
-        <span style="margin-left:auto;">${st("sales.map.legendHint","Click a marker → profile · satellite view in the top-right control")}</span>
+        ${mapMarkerLegendHtml(true)}
+        <span class="map-legend-tools">
+          ${mapColorModeToggleHtml()}
+          <span>${st("sales.map.legendHint","Click a marker → profile · satellite view in the top-right control")}</span>
+        </span>
       </div>
     </div>
     <div class="panel panel-pad" style="display:flex; flex-direction:column;">
@@ -2036,10 +2191,11 @@ function renderResults(){
     <div class="panel section-gap" style="overflow:hidden;">
       <div id="results-map" class="map-wrap"></div>
       <div class="map-legend">
-        <span><span class="legend-dot" style="background:var(--hot)"></span>${st("sales.map.hot","Hot")}</span>
-        <span><span class="legend-dot" style="background:var(--warm)"></span>${st("sales.map.warm","Warm")}</span>
-        <span><span class="legend-dot" style="background:var(--cold)"></span>${st("sales.map.cold","Cold")}</span>
-        <span style="margin-left:auto;">${st("sales.map.legendHint","Click a marker → profile · satellite view in the top-right control")}</span>
+        ${mapMarkerLegendHtml(true)}
+        <span class="map-legend-tools">
+          ${mapColorModeToggleHtml()}
+          <span>${st("sales.map.legendHint","Click a marker → profile · satellite view in the top-right control")}</span>
+        </span>
       </div>
     </div>`;
 
@@ -2113,7 +2269,7 @@ function renderResults(){
           <div>
             <h3 class="lc-name">${l.name}</h3>
             <div class="lc-addr">${l.address}</div>
-            <span class="lc-type-tag">${l.propertyType}</span>
+            <span class="lc-type-tag" style="--type-color:${propertyTypeColor(l.propertyType)}">${l.propertyType}</span>
           </div>
           <span class="score-pill ${scoreClass(l.priority)}">${l.leadScore}<span class="max">/100</span></span>
         </div>
@@ -2160,7 +2316,7 @@ function renderDetail(){
     <div>
       <div class="panel panel-pad section-gap">
         <div class="panel-title">${st("sales.detail.profile","Property profile")}</div>
-        <div class="info-row"><span class="info-label">${st("sales.detail.propType","Property type")}</span><span class="info-value">${lead.propertyType}</span></div>
+        <div class="info-row"><span class="info-label">${st("sales.detail.propType","Property type")}</span><span class="info-value" style="display:inline-flex;align-items:center;gap:7px;"><span class="legend-dot" style="background:${propertyTypeColor(lead.propertyType)};margin:0;"></span>${lead.propertyType}</span></div>
         <div class="info-row"><span class="info-label">Property manager</span><span class="info-value">${lead.manager ?? "—"}</span></div>
         <div class="info-row"><span class="info-label">Owner entity</span><span class="info-value">${lead.ownerEntity ?? "—"}</span></div>
         <div class="info-row"><span class="info-label">Building sq ft</span><span class="info-value">${fmtSqFt(lead.buildingSqFt)}</span></div>
@@ -2172,7 +2328,7 @@ function renderDetail(){
         <div class="info-row"><span class="info-label">Estimated roof age</span><span class="info-value">${lead.roofAge != null ? lead.roofAge + st("sales.card.yrs"," yrs") : "—"}</span></div>
         <div class="info-row"><span class="info-label">Current property value</span><span class="info-value">${fmtMoney(lead.propertyValue)}</span></div>
         <div class="info-row"><span class="info-label">Last sale date</span><span class="info-value">${lead.lastSaleDate ?? "—"}</span></div>
-        ${lead.lat != null ? `<div id="detail-map" data-lat="${lead.lat}" data-lng="${lead.lng}" data-priority="${lead.priority}"></div>` : ""}
+        ${lead.lat != null ? `<div id="detail-map" data-lat="${lead.lat}" data-lng="${lead.lng}" data-priority="${lead.priority}" data-property-type="${escHtml(lead.propertyType || "")}"></div>` : ""}
       </div>
 
       <div class="panel panel-pad section-gap">
@@ -2284,17 +2440,24 @@ function renderLeadMap(){
   const coordStats = leadsCoordStats(leads);
 
   const listHtml = !state.hasSearched && !leads.length
-    ? `<div class="lm-empty"><h3>${st("sales.mapView.emptyTitle","No leads on the map yet")}</h3>${st("sales.mapView.emptyBody","Search a ZIP above to load sales leads. Markers use priority and score — not weather layers.")}</div>`
+    ? `<div class="lm-empty"><h3>${st("sales.mapView.emptyTitle","No leads on the map yet")}</h3>${st("sales.mapView.emptyBody","Search a ZIP above to load sales leads. Markers use property type (or priority) and score size — not weather layers.")}</div>`
     : !leads.length
       ? `<div class="lm-empty"><h3>${st("sales.empty.noMatch","No leads match these filters")}</h3>${st("sales.empty.widen","Try widening the radius, adding property types, or clearing filters in the Dashboard.")}</div>`
-      : leads.map(l => `
+      : leads.map(l => {
+          const dist = leadDistanceMiles(l);
+          const fill = markerFillColor(l);
+          return `
         <div class="lm-lead ${focusId===l.id?"active":""}" data-focus-lead="${l.id}">
+          <span class="lm-lead-swatch" style="background:${fill}" title="${escHtml(state.mapColorBy === "priority" ? priorityLabel(l.priority) : (l.propertyType || ""))}" aria-hidden="true"></span>
           <div style="min-width:0;">
             <div class="lm-lead-name">${escHtml(l.name)}</div>
-            <div class="lm-lead-addr">${escHtml(l.address)}${l.lat == null ? ` · <span style="color:var(--warm)">${st("sales.mapView.noPin","no pin")}</span>` : ""}</div>
+            <div class="lm-lead-addr">${escHtml(l.address)}${!leadLatLng(l) ? ` · <span style="color:var(--warm)">${st("sales.mapView.noPin","no pin")}</span>` : ""}</div>
             ${l.ownerEntity ? `<div class="lm-lead-owner">${escHtml(l.ownerEntity)}</div>` : ""}
           </div>
-          <span class="score-pill ${scoreClass(l.priority)}" style="font-size:12px; padding:3px 7px; align-self:start;">${l.leadScore}<span class="max">/100</span></span>
+          <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+            <span class="score-pill ${scoreClass(l.priority)}" style="font-size:12px; padding:3px 7px;">${l.leadScore}<span class="max">/100</span></span>
+            ${dist != null ? `<span class="lm-lead-dist" title="${st("sales.mapView.fromOffice","from Premier office")}">${fmtMiles(dist)}</span>` : ""}
+          </div>
           <div class="lm-lead-meta">
             ${priorityBadge(l.priority)}
             <span class="status-chip ${statusClass(l.status)}">${escHtml(l.status)}</span>
@@ -2305,7 +2468,8 @@ function renderLeadMap(){
               <button type="button" class="btn btn-sm btn-ghost" data-open-lead="${l.id}">${st("sales.mapView.openProfile","Profile")}</button>
             </div>
           </div>
-        </div>`).join("");
+        </div>`;
+        }).join("");
 
   return `
   <div class="lead-map-page">
@@ -2335,26 +2499,36 @@ function renderLeadMap(){
     <div class="lead-map-layout">
       <aside class="lead-map-rail lead-map-rail-left">
         <h2>${st("sales.mapView.legendTitle","Map legend")}</h2>
-        <p class="rail-hint">${st("sales.mapView.legendHint","Sales layers only — priority, score, status, office, and search radius")}</p>
+        <p class="rail-hint">${st("sales.mapView.legendHint","Sales layers only — property type or priority fill, score size, status, office, search radius, and distance on focus")}</p>
         <div class="lead-map-legend">
+          ${state.mapColorBy === "priority" ? `
           <h4>${st("sales.mapView.priorityTitle","Priority")}</h4>
           <div class="lm-row"><span class="lm-sw round" style="background:var(--hot)"></span>${st("sales.map.hot","Hot")}</div>
           <div class="lm-row"><span class="lm-sw round" style="background:var(--warm)"></span>${st("sales.map.warm","Warm")}</div>
           <div class="lm-row"><span class="lm-sw round" style="background:var(--cold)"></span>${st("sales.map.cold","Cold")}</div>
+          ` : `
+          <h4>${st("sales.mapView.typeTitle","Property type")}</h4>
+          ${ALL_TYPES.map(t => `<div class="lm-row"><span class="lm-sw round" style="background:${propertyTypeColor(t)}"></span>${t}</div>`).join("")}
+          `}
 
           <h4>${st("sales.mapView.scoreTitle","Score bands")}</h4>
-          <div class="lm-row"><span class="lm-sw" style="background:var(--hot)"></span>${st("sales.mapView.scoreHot","75–100 · typically Hot")}</div>
-          <div class="lm-row"><span class="lm-sw" style="background:var(--warm)"></span>${st("sales.mapView.scoreWarm","45–74 · typically Warm")}</div>
-          <div class="lm-row"><span class="lm-sw" style="background:var(--cold)"></span>${st("sales.mapView.scoreCold","0–44 · typically Cold")}</div>
+          <div class="lm-row"><span class="lm-sw round" style="background:var(--gray-500); width:14px; height:14px;"></span>${st("sales.mapView.scoreHotSize","75–100 · larger marker")}</div>
+          <div class="lm-row"><span class="lm-sw round" style="background:var(--gray-500); width:11px; height:11px;"></span>${st("sales.mapView.scoreWarmSize","45–74 · medium marker")}</div>
+          <div class="lm-row"><span class="lm-sw round" style="background:var(--gray-500); width:8px; height:8px;"></span>${st("sales.mapView.scoreColdSize","0–44 · smaller marker")}</div>
 
           <h4>${st("sales.mapView.statusTitle","Status")}</h4>
           ${STATUS_LEGEND.map(s => `<div class="lm-row"><span class="lm-sw" style="background:${s.color}"></span>${escHtml(s.key)}</div>`).join("")}
 
           <h4>${st("sales.mapView.geoTitle","Location")}</h4>
-          <div class="lm-row"><span class="lm-sw office"></span>${st("sales.mapView.office","Premier office (Bloomingdale)")}</div>
+          <div class="lm-row"><span class="lm-sw office-pin" aria-hidden="true">🏠</span>${st("sales.mapView.office","Premier office (Bloomingdale)")}</div>
           <div class="lm-row"><span class="lm-sw ring"></span>${st("sales.mapView.radius","Search ZIP radius ({n} mi)", {n: sp.radius})}</div>
+          <div class="lm-row"><span class="lm-sw" style="background:transparent;border:none;width:auto;font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--navy-800);">— mi</span>${st("sales.mapView.distLegend","Distance from office (on focus)")}</div>
         </div>
         <div class="lm-layer-toggles">
+          <div class="lm-color-by">
+            <span class="lm-color-by-label">${st("sales.map.colorBy","Color markers by")}</span>
+            ${mapColorModeToggleHtml()}
+          </div>
           <label><input type="checkbox" id="lm-layer-office" ${layers.office?"checked":""}/> ${st("sales.mapView.toggleOffice","Show Premier office")}</label>
           <label><input type="checkbox" id="lm-layer-radius" ${layers.radius?"checked":""}/> ${st("sales.mapView.toggleRadius","Show ZIP radius")}</label>
           <label><input type="checkbox" id="lm-layer-cluster" ${layers.cluster?"checked":""}/> ${st("sales.mapView.toggleCluster","Cluster markers")}</label>
@@ -2364,6 +2538,7 @@ function renderLeadMap(){
 
       <div class="lead-map-center">
         <div id="lead-map"></div>
+        <div class="lm-focus-chip" id="lm-focus-chip" hidden></div>
       </div>
 
       <aside class="lead-map-rail lead-map-rail-right">
@@ -2481,6 +2656,15 @@ function attachEvents(){
   if(lmCluster) lmCluster.addEventListener("change", e=>{ state.mapLayers.cluster = e.target.checked; render(); });
   const lmHeat = document.getElementById("lm-layer-heat");
   if(lmHeat) lmHeat.addEventListener("change", e=>{ state.mapLayers.heat = e.target.checked; render(); });
+  document.querySelectorAll("[data-map-color-by]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const mode = el.dataset.mapColorBy;
+      if(mode !== "type" && mode !== "priority") return;
+      if(state.mapColorBy === mode) return;
+      state.mapColorBy = mode;
+      render();
+    });
+  });
 
   // Results toolbar
   document.querySelectorAll("[data-results-view]").forEach(el=>{
@@ -2547,6 +2731,12 @@ function attachEvents(){
 // Avoid tile.openstreetmap.org as the default — it rate-limits and is often slow.
 // ---------------------------------------------------------------------------
 const PRIORITY_COLORS = {Hot:"#D64545", Warm:"#C97A1F", Cold:"#5C7086"};
+function markerFillColor(lead){
+  if(state.mapColorBy === "priority"){
+    return PRIORITY_COLORS[lead && lead.priority] || PROPERTY_TYPE_COLOR_FALLBACK;
+  }
+  return propertyTypeColor(lead && lead.propertyType);
+}
 const TILE_OPTS = {
   maxZoom: 19,
   updateWhenIdle: true,
@@ -2574,19 +2764,42 @@ window._crmFromMap = (id, action)=>{
   else confirmSendToCrm(id);
 };
 
+function leadMarkerTooltipHtml(l){
+  const dist = leadDistanceMiles(l);
+  const bits = [l.name || l.address || "Lead"];
+  if(dist != null) bits.push(fmtMiles(dist));
+  if(l.priority) bits.push(priorityLabel(l.priority));
+  return escHtml(bits.join(" · "));
+}
+
 function leadMarkerPopupHtml(l){
-  return `<div style="min-width:210px;">
-    <b style="font-size:13px;">${escHtml(l.name)}</b><br>
-    <span style="color:#64748B; font-size:11.5px;">${escHtml(l.address)}</span><br>
-    ${l.ownerEntity ? `<span style="color:#64748B; font-size:11px;">${escHtml(l.ownerEntity)}</span><br>` : ""}
-    <span class="mono" style="font-size:12px;">Score ${l.leadScore}/100 · ${priorityLabel(l.priority)}${l.roofSqFt ? " · " + fmtSqFt(l.roofSqFt) + " roof" : ""}</span>
-    ${l._approxGeo ? `<br><span style="color:#C97A1F;font-size:11px;">${st("sales.mapView.approxPin","Approximate pin")}</span>` : ""}
-    <br>
-    <span class="status-chip ${statusClass(l.status)}" style="margin-top:6px; display:inline-block;">${escHtml(l.status)}</span><br>
-    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
-      <a href="#" style="color:#1D6FBF; font-weight:600; font-size:12px;" onclick="window._crmFromMap('${l.id}','crm'); return false;">${st("sales.mapView.sendCrm","CRM")}</a>
-      <a href="#" style="color:#1D6FBF; font-weight:600; font-size:12px;" onclick="window._crmFromMap('${l.id}','task'); return false;">${st("sales.mapView.createTask","Task")}</a>
-      <a href="#" style="color:#1D6FBF; font-weight:600; font-size:12px;" onclick="window._openLeadFromMap('${l.id}'); return false;">${st("sales.map.viewProfile","View full profile →")}</a>
+  const dist = leadDistanceMiles(l);
+  const typeColor = propertyTypeColor(l.propertyType);
+  const sub = l.ownerEntity || l.manager || "";
+  const kv = (k, v, plain) => v == null || v === "" || v === "—"
+    ? ""
+    : `<div class="lm-popup-kv"><div class="lm-popup-k">${k}</div><div class="lm-popup-v${plain ? " plain" : ""}">${v}</div></div>`;
+  return `<div class="lm-popup">
+    <div class="lm-popup-name">${escHtml(l.name)}</div>
+    ${sub ? `<div class="lm-popup-sub">${escHtml(sub)}</div>` : ""}
+    <div class="lm-popup-badges">
+      ${l.propertyType ? `<span class="lm-popup-type" style="background:${typeColor}">${escHtml(l.propertyType)}</span>` : ""}
+      ${priorityBadge(l.priority)}
+      <span class="status-chip ${statusClass(l.status)}">${escHtml(l.status)}</span>
+      ${inCrmBadge(l)}
+    </div>
+    <div class="lm-popup-addr">${escHtml(l.address || "")}</div>
+    <div class="lm-popup-grid">
+      ${kv(st("sales.mapView.popupScore","Score"), `${l.leadScore ?? "—"}/100`)}
+      ${kv(st("sales.mapView.popupDist","From office"), dist != null ? fmtMiles(dist) : "—")}
+      ${kv(st("sales.mapView.popupRoof","Roof"), l.roofSqFt != null ? fmtSqFt(l.roofSqFt) : null)}
+      ${kv(st("sales.mapView.popupValue","Value"), l.propertyValue != null ? fmtMoney(l.propertyValue) : null)}
+    </div>
+    ${l._approxGeo ? `<div class="lm-popup-note">${st("sales.mapView.approxPin","Approximate pin")}</div>` : ""}
+    <div class="lm-popup-actions">
+      <a href="#" onclick="window._crmFromMap('${l.id}','crm'); return false;">${st("sales.mapView.sendCrm","CRM")}</a>
+      <a href="#" onclick="window._crmFromMap('${l.id}','task'); return false;">${st("sales.mapView.createTask","Task")}</a>
+      <a href="#" onclick="window._openLeadFromMap('${l.id}'); return false;">${st("sales.map.viewProfile","View full profile →")}</a>
     </div>
   </div>`;
 }
@@ -2596,9 +2809,89 @@ function leadMarkerStyle(lead, selected){
     radius: markerRadiusForScore(lead.leadScore) + (selected ? 3 : 0),
     color: selected ? "#0B2036" : "#FFFFFF",
     weight: selected ? 3 : 1.5,
-    fillColor: PRIORITY_COLORS[lead.priority] || "#5C7086",
+    fillColor: markerFillColor(lead),
     fillOpacity: selected ? 1 : 0.92,
   };
+}
+
+function clearLeadDistanceMeasure(){
+  const map = window._leadMap;
+  if(window._leadMapDistLine && map){
+    try { map.removeLayer(window._leadMapDistLine); } catch(e){}
+  }
+  if(window._leadMapDistLabel && map){
+    try { map.removeLayer(window._leadMapDistLabel); } catch(e){}
+  }
+  window._leadMapDistLine = null;
+  window._leadMapDistLabel = null;
+}
+
+function updateLeadFocusChip(lead){
+  const chip = document.getElementById("lm-focus-chip");
+  if(!chip) return;
+  if(!lead){
+    chip.hidden = true;
+    chip.innerHTML = "";
+    return;
+  }
+  const dist = leadDistanceMiles(lead);
+  const type = lead.propertyType ? escHtml(lead.propertyType) : "";
+  chip.hidden = false;
+  chip.innerHTML = `
+    <div class="lm-focus-chip-label">${st("sales.mapView.focusedLabel","Focused lead")}</div>
+    <div class="lm-focus-chip-name">${escHtml(lead.name || lead.address || "")}</div>
+    <div class="lm-focus-chip-meta">
+      ${type ? `${type} · ` : ""}${priorityLabel(lead.priority)} · ${escHtml(lead.status || "")}
+      ${dist != null ? `<br><span class="lm-focus-chip-dist">${st("sales.mapView.distFromOffice","{mi} from Premier office", { mi: fmtMiles(dist) })}</span>` : ""}
+    </div>`;
+}
+
+/** Sky-style distance read-out: dashed office→lead line + mid-point miles label. */
+function syncLeadDistanceMeasure(focusId){
+  clearLeadDistanceMeasure();
+  const map = window._leadMap;
+  if(!map || !focusId || typeof L === "undefined"){
+    updateLeadFocusChip(null);
+    return;
+  }
+  const lead = getLeadById(focusId);
+  const ll = leadLatLng(lead);
+  if(!lead || !ll){
+    updateLeadFocusChip(null);
+    return;
+  }
+  updateLeadFocusChip(lead);
+  const dist = leadDistanceMiles(lead);
+  const line = L.polyline(
+    [[SALES_OFFICE.lat, SALES_OFFICE.lng], [ll.lat, ll.lng]],
+    {
+      color: "#0B2036",
+      weight: 2,
+      dashArray: "6 5",
+      opacity: 0.75,
+      interactive: false,
+    }
+  ).addTo(map);
+  window._leadMapDistLine = line;
+  if(dist != null){
+    const mid = L.latLng(
+      (SALES_OFFICE.lat + ll.lat) / 2,
+      (SALES_OFFICE.lng + ll.lng) / 2
+    );
+    const text = st("sales.mapView.distFromOffice","{mi} from Premier office", { mi: fmtMiles(dist) });
+    const label = L.marker(mid, {
+      interactive: false,
+      keyboard: false,
+      zIndexOffset: 800,
+      icon: L.divIcon({
+        className: "lm-dist-label-wrap",
+        html: `<div class="lm-dist-label">${escHtml(text)}</div>`,
+        iconSize: [0, 0],
+        iconAnchor: [0, 0],
+      }),
+    }).addTo(map);
+    window._leadMapDistLabel = label;
+  }
 }
 
 function syncLeadMarkerSelection(focusId){
@@ -2612,6 +2905,7 @@ function syncLeadMarkerSelection(focusId){
       try { m.bringToFront(); } catch(e){}
     }
   });
+  syncLeadDistanceMeasure(focusId);
 }
 
 /** Soft-add a lead marker onto the live Lead Map without remounting Leaflet. */
@@ -2629,7 +2923,13 @@ function softAddLeadMarker(lead){
   // Avoid pinning renderer to map.options.renderer — preferCanvas + flex-0 init
   // leaves a blank canvas; default SVG paths redraw after invalidateSize.
   const marker = L.circleMarker([ll.lat, ll.lng], leadMarkerStyle(lead, selected));
-  marker.bindPopup(leadMarkerPopupHtml(lead));
+  marker.bindPopup(leadMarkerPopupHtml(lead), { maxWidth: 320, className: "lm-popup-wrap" });
+  marker.bindTooltip(leadMarkerTooltipHtml(lead), {
+    direction: "top",
+    offset: [0, -8],
+    opacity: 0.95,
+    className: "lm-marker-tip",
+  });
   marker.on("click", ()=>{ window._focusLeadOnMap(lead.id); });
   const layer = window._leadMapMarkerLayer;
   if(layer && typeof layer.addLayer === "function") layer.addLayer(marker);
@@ -2641,6 +2941,21 @@ function softAddLeadMarker(lead){
   if(row){
     const addr = row.querySelector(".lm-lead-addr");
     if(addr) addr.textContent = lead.address || "";
+    const distEl = row.querySelector(".lm-lead-dist");
+    const dist = leadDistanceMiles(lead);
+    if(dist != null){
+      if(distEl) distEl.textContent = fmtMiles(dist);
+      else {
+        const col = row.children[2];
+        if(col){
+          const span = document.createElement("span");
+          span.className = "lm-lead-dist";
+          span.title = st("sales.mapView.fromOffice","from Premier office");
+          span.textContent = fmtMiles(dist);
+          col.appendChild(span);
+        }
+      }
+    }
   }
   const stats = leadsCoordStats();
   document.querySelectorAll(".lead-map-count").forEach((el) => {
@@ -2743,6 +3058,25 @@ function markerRadiusForScore(score){
   return 6;
 }
 
+function officeMarkerIcon(){
+  return L.divIcon({
+    className: "office-pin",
+    html: '<div class="office-pin-inner" aria-hidden="true">🏠</div>',
+    iconSize: [24, 24],
+    iconAnchor: [12, 22],
+    popupAnchor: [0, -20],
+  });
+}
+
+function officePopupHtml(){
+  const miles = SALES_OFFICE.coverageMi || 40;
+  return `<div class="lm-popup" style="min-width:200px">
+    <div class="lm-popup-name" style="color:#E2231A">🏠 ${escHtml(SALES_OFFICE.label)}</div>
+    <div class="lm-popup-addr">${escHtml(SALES_OFFICE.address || "")}</div>
+    <div class="lm-popup-sub" style="margin-top:6px">${st("sales.mapView.officeRadius","Approx. {n} mi coverage radius", {n: miles})}</div>
+  </div>`;
+}
+
 function addSalesGeoLayers(map){
   const center = state.lastGeo || { lat: SALES_OFFICE.lat, lng: SALES_OFFICE.lng };
   if(state.mapLayers.radius){
@@ -2757,13 +3091,10 @@ function addSalesGeoLayers(map){
     }).addTo(map);
   }
   if(state.mapLayers.office){
-    L.circleMarker([SALES_OFFICE.lat, SALES_OFFICE.lng], {
-      radius: 7,
-      color: "#FFFFFF",
-      weight: 2,
-      fillColor: "#0B2036",
-      fillOpacity: 1,
-    }).addTo(map).bindPopup(`<b>${escHtml(SALES_OFFICE.label)}</b><br><span style="color:#64748B;font-size:11.5px;">140 W Lake Street, Bloomingdale, IL 60108</span>`);
+    L.marker([SALES_OFFICE.lat, SALES_OFFICE.lng], {
+      icon: officeMarkerIcon(),
+      zIndexOffset: 1000,
+    }).addTo(map).bindPopup(officePopupHtml(), { maxWidth: 280 });
   }
 }
 
@@ -2863,7 +3194,13 @@ function setupLeadMap(){
     const l = row.lead;
     const selected = state.mapFocusLeadId === l.id;
     const marker = L.circleMarker([row.lat, row.lng], leadMarkerStyle(l, selected));
-    marker.bindPopup(leadMarkerPopupHtml(l));
+    marker.bindPopup(leadMarkerPopupHtml(l), { maxWidth: 320, className: "lm-popup-wrap" });
+    marker.bindTooltip(leadMarkerTooltipHtml(l), {
+      direction: "top",
+      offset: [0, -8],
+      opacity: 0.95,
+      className: "lm-marker-tip",
+    });
     marker.on("click", ()=>{ window._focusLeadOnMap(l.id); });
     markerLayer.addLayer(marker);
     markerById[l.id] = marker;
@@ -2888,6 +3225,7 @@ function setupLeadMap(){
     }
   } else {
     map.fitBounds(bounds, { padding:[36,36], maxZoom:14 });
+    syncLeadDistanceMeasure(null);
   }
   // Soft busy overlay when ZIP/radius search is in flight but prior markers remain.
   if(state.loading){
@@ -2913,11 +3251,14 @@ function setupLeadMap(){
 
 function setupMaps(){
   if(typeof L === "undefined") return; // Leaflet CDN unavailable (offline)
+  clearLeadDistanceMeasure();
   (window._maps || []).forEach(m => { try { m.remove(); } catch(e){} });
   window._maps = [];
   window._leadMap = null;
   window._leadMapMarkers = {};
   window._leadMapMarkerLayer = null;
+  window._leadMapDistLine = null;
+  window._leadMapDistLabel = null;
 
   const mapOpts = {
     scrollWheelZoom: false,
@@ -2968,14 +3309,21 @@ function setupMaps(){
         const l = row.lead;
         const marker = L.circleMarker([row.lat, row.lng], {
           radius:8, color:"#FFFFFF", weight:1.5,
-          fillColor:PRIORITY_COLORS[l.priority] || "#5C7086", fillOpacity:0.92,
+          fillColor:markerFillColor(l), fillOpacity:0.92,
         }).addTo(markerLayer);
-        marker.bindPopup(`<div style="min-width:190px;">
-          <b style="font-size:13px;">${escHtml(l.name)}</b><br>
-          <span style="color:#64748B; font-size:11.5px;">${escHtml(l.address)}</span><br>
-          <span class="mono" style="font-size:12px;">Score ${l.leadScore}/100 · ${priorityLabel(l.priority)}${l.roofSqFt ? " · " + fmtSqFt(l.roofSqFt) + " roof" : ""}</span><br>
-          <a href="#" style="color:#1D6FBF; font-weight:600; font-size:12px;" onclick="window._openLeadFromMap('${l.id}'); return false;">${st("sales.map.viewProfile","View full profile →")}</a>
-        </div>`);
+        marker.bindPopup(`<div class="lm-popup" style="min-width:190px">
+          <div class="lm-popup-name">${escHtml(l.name)}</div>
+          <div class="lm-popup-addr">${escHtml(l.address)}</div>
+          <div class="lm-popup-grid">
+            <div class="lm-popup-kv"><div class="lm-popup-k">${st("sales.mapView.popupScore","Score")}</div><div class="lm-popup-v">${l.leadScore}/100</div></div>
+            <div class="lm-popup-kv"><div class="lm-popup-k">${st("sales.mapView.popupDist","From office")}</div><div class="lm-popup-v">${leadDistanceMiles(l) != null ? fmtMiles(leadDistanceMiles(l)) : "—"}</div></div>
+            ${l.roofSqFt != null ? `<div class="lm-popup-kv"><div class="lm-popup-k">${st("sales.mapView.popupRoof","Roof")}</div><div class="lm-popup-v">${fmtSqFt(l.roofSqFt)}</div></div>` : ""}
+            ${l.propertyType ? `<div class="lm-popup-kv"><div class="lm-popup-k">${st("sales.mapView.typeTitle","Property type")}</div><div class="lm-popup-v plain" style="color:${propertyTypeColor(l.propertyType)}">${escHtml(l.propertyType)}</div></div>` : ""}
+          </div>
+          <div class="lm-popup-actions">
+            <a href="#" onclick="window._openLeadFromMap('${l.id}'); return false;">${st("sales.map.viewProfile","View full profile →")}</a>
+          </div>
+        </div>`, { maxWidth: 300 });
         bounds.push([row.lat, row.lng]);
       });
       map.fitBounds(bounds, {padding:[30,30], maxZoom:15});
@@ -3004,7 +3352,7 @@ function setupMaps(){
     L.control.layers(layers).addTo(map);
     L.circleMarker([lat, lng], {
       radius:9, color:"#FFFFFF", weight:2,
-      fillColor:PRIORITY_COLORS[dm.dataset.priority] || "#5C7086", fillOpacity:0.95
+      fillColor:markerFillColor({ priority: dm.dataset.priority, propertyType: dm.dataset.propertyType }), fillOpacity:0.95
     }).addTo(map);
     map.setView([lat, lng], 18);
     requestAnimationFrame(() => {
