@@ -246,6 +246,46 @@ a{color:inherit;}
 .risk-High{background:#FDF0E4; color:#C55A11;}
 .risk-Moderate{background:var(--warm-bg); color:var(--warm);}
 .risk-Low{background:var(--good-bg); color:var(--good);}
+.spc-chip{font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:5px; border:1px solid transparent; white-space:nowrap;}
+.spc-HIGH{background:#fce7ff; color:#a21caf; border-color:#f0abfc;}
+.spc-MDT{background:#fee2e2; color:#b91c1c; border-color:#fecaca;}
+.spc-ENH{background:#ffedd5; color:#c2410c; border-color:#fdba74;}
+.spc-SLGT{background:#fef9c3; color:#a16207; border-color:#fde047;}
+.spc-MRGL{background:#dcfce7; color:#15803d; border-color:#86efac;}
+.spc-TSTM{background:#ecfdf5; color:#047857; border-color:#a7f3d0;}
+.ss-chip{font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:5px; background:#eef2ff; color:#3730a3; border:1px solid #c7d2fe;}
+.ss-chip.campaign{background:#fef2f2; color:#b91c1c; border-color:#fecaca;}
+.ss-chip.review{background:#fff7ed; color:#c2410c; border-color:#fed7aa;}
+.lm-sw.spc-poly{background:rgba(255,160,102,0.35); border:1.5px dashed #ffa366; border-radius:2px;}
+.lm-sw.nws-ext{background:#7c0a02;}
+.lm-sw.nws-sev{background:#e63900;}
+.lm-sw.nws-mod{background:#ff9100;}
+.lm-sw.nws-min{background:#ffd000;}
+.lm-sw.nws-unk{background:#3aa0ff;}
+.lm-sw.spc-tstm{background:#c1e9c1;}
+.lm-sw.spc-mrgl{background:#66a366;}
+.lm-sw.spc-slgt{background:#ffe066;}
+.lm-sw.spc-enh{background:#ffa366;}
+.lm-sw.spc-mdt{background:#ff6666;}
+.lm-sw.spc-high{background:#ff66ff;}
+.lm-sw.hail-lt{background:#3aa0ff; border-radius:2px;}
+.lm-sw.hail-1{background:#ffd000; border-radius:2px;}
+.lm-sw.hail-175{background:#ff9100; border-radius:2px;}
+.lm-sw.hail-25{background:#e63900; border-radius:2px;}
+.lm-sw.hailfc-5{background:#8b4726;}
+.lm-sw.hailfc-15{background:#ffc800;}
+.lm-sw.hailfc-30{background:#ff0000;}
+.lm-sw.hailfc-45{background:#ff00ff;}
+.lm-sw.hailfc-60{background:#912cee;}
+.lm-sw.ss-high{background:#c1121f; border-radius:50%;}
+.lm-sw.ss-review{background:#e85d04; border-radius:50%;}
+.lm-sw.ss-info{background:#ffd000; border-radius:50%;}
+.lm-layer-toggles .lm-toggle-group{margin-top:4px; padding-top:8px; border-top:1px solid var(--gray-100); display:flex; flex-direction:column; gap:8px;}
+.lm-layer-toggles .lm-toggle-group:first-of-type{border-top:none; padding-top:0; margin-top:0;}
+.lm-layer-toggles .lm-toggle-label{
+  font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+  color:var(--gray-500); margin:2px 0 0;
+}
 
 /* ---------- Search Panel ---------- */
 .search-grid{display:grid; grid-template-columns:200px 200px 1fr; gap:18px; margin-bottom:18px;}
@@ -473,8 +513,9 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
   transition:opacity .15s ease;
 }
 .map-loading-card{
-  background:var(--navy-900); color:var(--white); font-size:13px; font-weight:600;
+  background:#fff; color:#0B2036; font-size:13px; font-weight:600;
   padding:10px 16px; border-radius:10px; box-shadow:var(--shadow-pop);
+  border:1px solid var(--gray-200);
   display:inline-flex; align-items:center; gap:8px;
 }
 .map-loading-overlay.is-soft .map-loading-card::before,
@@ -629,18 +670,24 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
 .lm-popup-actions a:hover{text-decoration:underline;}
 .office-pin{background:transparent; border:none;}
 .office-pin-inner{font-size:22px; line-height:22px; filter:drop-shadow(0 1px 2px rgba(0,0,0,.45));}
-.lm-dist-label-wrap{background:transparent !important; border:none !important;}
+/* iconSize [0,0] clips the pill unless overflow is visible — was white text
+   spilling past a tiny navy chip onto the light basemap (unreadable). */
+.lm-dist-label-wrap{
+  background:transparent !important; border:none !important;
+  overflow:visible !important; width:0 !important; height:0 !important;
+}
 .lm-dist-label{
-  background:rgba(11,32,54,0.92); color:#fff; border:none; border-radius:6px;
-  padding:3px 8px; font-size:11px; font-weight:600; font-family:'IBM Plex Mono',monospace;
-  white-space:nowrap; box-shadow:0 1px 4px rgba(0,0,0,.25);
+  background:#fff; color:#0B2036; border:1px solid var(--gray-200); border-radius:6px;
+  padding:4px 9px; font-size:11px; font-weight:700; font-family:'IBM Plex Mono',monospace;
+  white-space:nowrap; box-shadow:0 1px 4px rgba(0,0,0,.18);
   transform:translate(-50%, -50%); pointer-events:none;
+  display:inline-block; line-height:1.25;
 }
 .leaflet-tooltip.lm-marker-tip{
-  background:rgba(11,32,54,0.92); color:#fff; border:none; border-radius:6px;
-  padding:4px 8px; font-size:11.5px; font-weight:600; box-shadow:0 1px 4px rgba(0,0,0,.2);
+  background:#fff; color:#0B2036; border:1px solid var(--gray-200); border-radius:6px;
+  padding:4px 8px; font-size:11.5px; font-weight:600; box-shadow:0 1px 4px rgba(0,0,0,.15);
 }
-.leaflet-tooltip.lm-marker-tip::before{border-top-color:rgba(11,32,54,0.92);}
+.leaflet-tooltip.lm-marker-tip::before{border-top-color:#fff;}
 
 @media (max-width: 1100px){
   .search-grid{grid-template-columns:1fr; }
@@ -1032,6 +1079,7 @@ async function fetchHubBatchLeads(hubs, searchParams){
       try{
         const { res, data } = await fetchLeadsForOneZip(z, searchParams);
         if(data?.geo?.lat != null) state.lastGeo = { lat:Number(data.geo.lat), lng:Number(data.geo.lng) };
+        if(data?.spcOutlook) state.lastSpcOutlook = data.spcOutlook;
         if(res.ok && data.live){
           anyLive = true;
           return data.leads || [];
@@ -1069,6 +1117,7 @@ async function fetchLeadsForSearch(searchParams){
       return SAMPLE_LEADS.filter(l => searchParams.propertyTypes.includes(l.propertyType));
     }
     state.resultsMode = "live";
+    if(data.spcOutlook) state.lastSpcOutlook = data.spcOutlook;
     return data.leads;
   } catch(err){
     state.resultsMode = "demo";
@@ -1470,6 +1519,8 @@ function searchStatusHtml(){
 function isStormDataStubbed(){
   const s = state.sourceStatus;
   if(!s || !s.stubbed) return true; // assume stub until /api/status says otherwise
+  // Live when LSR+SPC storms appear under live, or legacy LSR-only key.
+  if(s.live && (s.live["storms (NOAA LSR + SPC)"] || s.live["storms (NOAA LSR)"])) return false;
   return Boolean(s.stubbed["storms (Premier Sky pending)"]);
 }
 function stormOnlyControlHtml(sp){
@@ -1482,6 +1533,22 @@ function stormOnlyControlHtml(sp){
     </label>`;
   }
   return `<label class="checkbox-row"><input type="checkbox" id="storm-only" ${sp.stormOnly?"checked":""}/> ${st("sales.filter.stormOnly","Only storm-affected properties")}</label>`;
+}
+function refreshStormOnlyControl(){
+  const nextHtml = stormOnlyControlHtml(state.searchParams);
+  const tmp = document.createElement("div");
+  tmp.innerHTML = nextHtml;
+  const next = tmp.firstElementChild;
+  const current = document.getElementById("storm-only")?.closest("label");
+  if(next && current){
+    const wasChecked = state.searchParams.stormOnly;
+    current.replaceWith(next);
+    const el = document.getElementById("storm-only");
+    if(el && !el.disabled){
+      el.checked = wasChecked;
+      el.addEventListener("change", e=>{ state.searchParams.stormOnly = e.target.checked; render(); });
+    }
+  }
 }
 function openLeadProfile(id, fromView){
   if(!id) return;
@@ -1780,7 +1847,21 @@ const state = {
   activeLeadId:null,
   mapFocusLeadId:null, // Lead Map selection sync (list ↔ marker)
   mapColorBy:"type", // type | priority — marker fill color mode
-  mapLayers:{ office:true, radius:true, cluster:false, heat:false },
+  // Weather layers mirror Premier Sky measurement toggles (leads replace JN pins).
+  mapLayers:{
+    office:true,
+    officeCoverage:true, // 40 mi Premier radius (Sky-style)
+    radius:true,         // ZIP search radius
+    alerts:true,
+    spc:true,
+    hailReports:true,
+    hailForecast:true,
+    stormScore:true,
+    cluster:false,
+    heat:false,
+  },
+  lastSpcOutlook:null, // FeatureCollection from /api/leads or /api/spc
+  weatherCache:{}, // on-demand layer payloads (spc, hailFc, hailRep, alerts, scores)
   detailReturnView:"results", // Map | Results | Dashboard — Back from Detail
   fetchedSearchKey:null, // zip|radius|types of last successful /api/leads fetch
   resultsMode:"live", // live | demo — demo = SAMPLE_LEADS fallback (now has coords)
@@ -1806,6 +1887,30 @@ function priorityLabel(p){
 function priorityBadge(p){
   const cls = p==="Hot" ? "badge-hot" : p==="Warm" ? "badge-warm" : "badge-cold";
   return `<span class="badge ${cls}"><span class="badge-dot"></span>${priorityLabel(p)}</span>`;
+}
+const SPC_SHORT = { HIGH:"High", MDT:"Mod", ENH:"Enh", SLGT:"Slight", MRGL:"Mrgl", TSTM:"Tstm" };
+function spcChipHtml(lead){
+  const cat = lead && lead.spcCategory;
+  if(!cat) return "";
+  const label = lead.spcRisk || SPC_SHORT[cat] || cat;
+  return `<span class="spc-chip spc-${escHtml(cat)}" title="${escHtml(st("sales.storm.spcTitle","SPC Day-1 categorical risk"))}">${st("sales.storm.spcShort","SPC")} ${escHtml(SPC_SHORT[cat] || label)}</span>`;
+}
+function stormScoreChipHtml(lead){
+  const ss = lead && lead.stormScoreNearby;
+  if(!ss || ss.score == null) return "";
+  const tier = ss.tier === "campaign" ? "campaign" : ss.tier === "review" ? "review" : "";
+  const title = st("sales.storm.scoreTitle","Storm score near lead (SPC reports + outlook)");
+  return `<span class="ss-chip ${tier}" title="${escHtml(title)}">${st("sales.storm.scoreShort","Score")} ${ss.score}</span>`;
+}
+function stormSignalChipsHtml(lead){
+  return [spcChipHtml(lead), stormScoreChipHtml(lead)].filter(Boolean).join("");
+}
+function leadHasStormSignal(l){
+  if(l.stormHistory && l.stormHistory.length > 0) return true;
+  if(l.spcCategory && ["SLGT","ENH","MDT","HIGH"].includes(String(l.spcCategory).toUpperCase())) return true;
+  if(l.stormScoreNearby && Number(l.stormScoreNearby.score) >= 40) return true;
+  if(["High","Severe"].includes(l.hailWindRisk)) return true;
+  return false;
 }
 function scoreClass(p){ return p==="Hot" ? "score-hot" : p==="Warm" ? "score-warm" : "score-cold"; }
 function statusClass(s){ return "status-" + s.replace(/\s+/g,"-").replace("Not Interested","Not"); }
@@ -1859,7 +1964,7 @@ function getFilteredSortedLeads(){
   const sp = state.searchParams;
   leads = leads.filter(l => sp.propertyTypes.includes(l.propertyType));
   // Storm filter is client-side only; while storm data is stubbed, never apply it.
-  if(sp.stormOnly && !isStormDataStubbed()) leads = leads.filter(l => l.stormHistory && l.stormHistory.length > 0);
+  if(sp.stormOnly && !isStormDataStubbed()) leads = leads.filter(l => leadHasStormSignal(l));
   if(sp.minRoofSqFt > 0){
     const minRoof = Number(sp.minRoofSqFt) || 0;
     leads = leads.filter(l => {
@@ -2079,7 +2184,7 @@ function renderDashboard(){
 
   <div class="stat-grid">
     <div class="stat-card"><div class="stat-label">${st("sales.stat.found","Leads found")}</div><div class="stat-value mono">${leads.length}</div><div class="stat-foot">${zipDisplayLabel(sp.zip)} · ${sp.radius} mi · ${st("sales.stat.onMap","{n} on map", {n: coordStats.withCoords})}</div></div>
-    <div class="stat-card"><div class="stat-label">${st("sales.stat.priority","Priority")}</div><div class="stat-value mono"><span style="color:var(--hot)">${hot}</span><span style="color:var(--gray-300); font-size:18px;"> / </span><span style="color:var(--warm)">${warm}</span><span style="color:var(--gray-300); font-size:18px;"> / </span><span style="color:var(--cold)">${cold}</span></div><div class="stat-foot">${st("sales.stat.priorityFoot","Hot / Warm / Cold — hot requires storm data (pending)")}</div></div>
+    <div class="stat-card"><div class="stat-label">${st("sales.stat.priority","Priority")}</div><div class="stat-value mono"><span style="color:var(--hot)">${hot}</span><span style="color:var(--gray-300); font-size:18px;"> / </span><span style="color:var(--warm)">${warm}</span><span style="color:var(--gray-300); font-size:18px;"> / </span><span style="color:var(--cold)">${cold}</span></div><div class="stat-foot">${st("sales.stat.priorityFoot","Hot / Warm / Cold — floored by LSR, SPC outlook, and storm-score")}</div></div>
     <div class="stat-card"><div class="stat-label">${st("sales.stat.avgRoof","Average roof size")}</div><div class="stat-value mono">${fmtSqFt(avgRoof)}</div><div class="stat-foot">${st("sales.stat.stormFoot","{n} properties with storm on record", {n: stormAffected})}</div></div>
     <div class="stat-card"><div class="stat-label">${st("sales.stat.opportunity","Estimated opportunity")}</div><div class="stat-value accent mono">${fmtMoney(totalOpportunity)}</div><div class="stat-foot">${st("sales.stat.oppFoot","Modeled at ${rate}/sf, weighted by priority", {rate: OPPORTUNITY_RATE_PER_SF})}</div></div>
   </div>
@@ -2141,17 +2246,8 @@ async function loadSourceStatus(){
     }
     const el = document.getElementById("source-status");
     if(el) el.innerHTML = renderSourceStatus();
-    // Soft-refresh storm checkbox label without remounting maps.
-    const stormHost = document.querySelector(".results-filters, .lm-field-filters");
-    if(stormHost && isStormDataStubbed()){
-      const old = stormHost.querySelector(".checkbox-row, .storm-stubbed");
-      // Replace first checkbox row if present
-      const tmp = document.createElement("div");
-      tmp.innerHTML = stormOnlyControlHtml(state.searchParams);
-      const next = tmp.firstElementChild;
-      const current = document.getElementById("storm-only")?.closest("label");
-      if(next && current) current.replaceWith(next);
-    }
+    // Soft-refresh storm checkbox (enable when live, keep DEMO badge when stubbed).
+    refreshStormOnlyControl();
   } catch(e){ /* panel keeps its loading text */ }
 }
 function iconInfo(){ return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`; }
@@ -2260,7 +2356,7 @@ function renderResults(){
               <td>${fmtSqFt(l.roofSqFt)}</td>
               <td>${l.roofAge != null ? l.roofAge + st("sales.card.yrs"," yrs") : "—"}</td>
               <td>${fmtMoney(l.propertyValue)}</td>
-              <td><span class="risk-chip risk-${l.hailWindRisk}">${l.hailWindRisk}</span></td>
+              <td>${(() => { const chips = stormSignalChipsHtml(l); return `<span class="risk-chip risk-${l.hailWindRisk}">${l.hailWindRisk}</span>${chips ? ` ${chips}` : ""}`; })()}</td>
               <td><span class="score-pill ${scoreClass(l.priority)}">${l.leadScore}<span class="max">/100</span></span></td>
               <td>${priorityBadge(l.priority)}</td>
               <td><span class="status-chip ${statusClass(l.status)}">${l.status}</span></td>
@@ -2287,7 +2383,7 @@ function renderResults(){
           <div><div class="lc-metric-label">${st("sales.card.roofSize","Roof size")}</div><div class="lc-metric-value">${fmtSqFt(l.roofSqFt)}</div></div>
           <div><div class="lc-metric-label">${st("sales.card.roofAge","Roof age")}</div><div class="lc-metric-value">${l.roofAge != null ? l.roofAge + st("sales.card.yrs"," yrs") : "—"}</div></div>
           <div><div class="lc-metric-label">${st("sales.card.value","Property value")}</div><div class="lc-metric-value">${fmtMoney(l.propertyValue)}</div></div>
-          <div><div class="lc-metric-label">${st("sales.card.risk","Storm risk")}</div><div class="lc-metric-value"><span class="risk-chip risk-${l.hailWindRisk}">${l.hailWindRisk}</span></div></div>
+          <div><div class="lc-metric-label">${st("sales.card.risk","Storm risk")}</div><div class="lc-metric-value"><span class="risk-chip risk-${l.hailWindRisk}">${l.hailWindRisk}</span> ${stormSignalChipsHtml(l)}</div></div>
         </div>
         <div class="lc-reason">${l.reason}</div>
         <div class="lc-foot">
@@ -2344,13 +2440,15 @@ function renderDetail(){
       <div class="panel panel-pad section-gap">
         <div class="panel-title">${st("sales.detail.roofAnalysis","Roof opportunity analysis")}</div>
         <div class="info-row"><span class="info-label">Hail / wind risk</span><span class="info-value"><span class="risk-chip risk-${lead.hailWindRisk}">${lead.hailWindRisk}</span></span></div>
+        ${lead.spcRisk ? `<div class="info-row"><span class="info-label">${st("sales.mapView.popupSpc","SPC risk")}</span><span class="info-value">${spcChipHtml(lead)} ${escHtml(lead.spcRisk)}</span></div>` : ""}
+        ${lead.stormScoreNearby ? `<div class="info-row"><span class="info-label">${st("sales.mapView.popupStormScore","Storm score")}</span><span class="info-value">${stormScoreChipHtml(lead)} · ${lead.stormScoreNearby.distanceMiles} mi</span></div>` : ""}
         <div class="info-row"><span class="info-label">Storm events on record</span><span class="info-value">${lead.stormHistory.length}</span></div>
         <div class="info-row"><span class="info-label">Recent permits</span><span class="info-value">${lead.recentPermits.length}</span></div>
         <div class="panel-desc" style="margin-top:12px;">${st("sales.detail.stormTimeline","Storm timeline")}</div>
         <ul class="timeline">
           ${lead.stormHistory.length ? lead.stormHistory.map(s => `
             <li>
-              <div class="tl-dot" style="background:${s.type==='Hail'?'var(--blue-accent)':'var(--warm)'}"></div>
+              <div class="tl-dot" style="background:${s.type==='Hail'?'var(--blue-accent)':s.type==='Tornado'?'var(--hot)':'var(--warm)'}"></div>
               <div class="tl-date">${s.date}</div>
               <div><div class="tl-text">${s.type} event</div><div class="tl-sub">${s.detail}</div></div>
             </li>`).join("") : `<li><div class="tl-text" style="color:var(--gray-500)">${st("sales.detail.noStorm","No storm events on record for this property.")}</div></li>`}
@@ -2445,7 +2543,7 @@ function iconCheck(){ return `<svg width="13" height="13" viewBox="0 0 24 24" fi
 function leadMapListHtml(leads){
   const focusId = state.mapFocusLeadId;
   if(!state.hasSearched && !leads.length){
-    return `<div class="lm-empty"><h3>${st("sales.mapView.emptyTitle","No leads on the map yet")}</h3>${st("sales.mapView.emptyBody","Search a ZIP above to load sales leads. Markers use property type (or priority) and score size — not weather layers.")}</div>`;
+    return `<div class="lm-empty"><h3>${st("sales.mapView.emptyTitle","No leads on the map yet")}</h3>${st("sales.mapView.emptyBody","Search a ZIP above to load sales leads. Markers use property type or storm-adjusted priority; optional SPC outlook overlay.")}</div>`;
   }
   if(!leads.length){
     return `<div class="lm-empty"><h3>${st("sales.empty.noMatch","No leads match these filters")}</h3>${st("sales.empty.widen","Try widening the radius, adding property types, or clearing filters in the Dashboard.")}</div>`;
@@ -2467,6 +2565,7 @@ function leadMapListHtml(leads){
           </div>
           <div class="lm-lead-meta">
             ${priorityBadge(l.priority)}
+            ${stormSignalChipsHtml(l)}
             <span class="status-chip ${statusClass(l.status)}">${escHtml(l.status)}</span>
             ${inCrmBadge(l)}
             <div class="lm-lead-actions">
@@ -2580,38 +2679,75 @@ function renderLeadMap(){
     <div class="lead-map-layout">
       <aside class="lead-map-rail lead-map-rail-left">
         <h2>${st("sales.mapView.legendTitle","Map legend")}</h2>
-        <p class="rail-hint">${st("sales.mapView.legendHint","Sales layers only — property type or priority fill, score size, status, office, search radius, and distance on focus")}</p>
+        <p class="rail-hint">${st("sales.mapView.legendHint","Sky weather layers + sales lead pins — toggle layers below")}</p>
         <div class="lead-map-legend">
           ${state.mapColorBy === "priority" ? `
           <h4>${st("sales.mapView.priorityTitle","Priority")}</h4>
           <div class="lm-row"><span class="lm-sw round" style="background:var(--hot)"></span>${st("sales.map.hot","Hot")}</div>
           <div class="lm-row"><span class="lm-sw round" style="background:var(--warm)"></span>${st("sales.map.warm","Warm")}</div>
           <div class="lm-row"><span class="lm-sw round" style="background:var(--cold)"></span>${st("sales.map.cold","Cold")}</div>
+          <p class="rail-hint" style="margin:6px 0 0;">${st("sales.mapView.priorityStormHint","Hot: Severe LSR / SPC MDT+ / score≥70 · Warm: High LSR / SPC Slight+")}</p>
           ` : `
           <h4>${st("sales.mapView.typeTitle","Property type")}</h4>
           ${ALL_TYPES.map(t => `<div class="lm-row"><span class="lm-sw round" style="background:${propertyTypeColor(t)}"></span>${t}</div>`).join("")}
           `}
 
-          <h4>${st("sales.mapView.scoreTitle","Score bands")}</h4>
+          <h4>${st("sales.mapView.wxAlertsTitle","NWS alerts (severity)")}</h4>
+          <div class="lm-row"><span class="lm-sw nws-ext"></span>${st("sales.mapView.sevExtreme","Extreme")}</div>
+          <div class="lm-row"><span class="lm-sw nws-sev"></span>${st("sales.mapView.sevSevere","Severe")}</div>
+          <div class="lm-row"><span class="lm-sw nws-mod"></span>${st("sales.mapView.sevModerate","Moderate")}</div>
+          <div class="lm-row"><span class="lm-sw nws-min"></span>${st("sales.mapView.sevMinor","Minor")}</div>
+          <div class="lm-row"><span class="lm-sw nws-unk"></span>${st("sales.mapView.sevUnknown","Unknown")}</div>
+
+          <h4>${st("sales.mapView.spcTitle","SPC (convective risk)")}</h4>
+          <div class="lm-row"><span class="lm-sw spc-slgt"></span>${st("sales.mapView.spcSlight","Slight")}</div>
+          <div class="lm-row"><span class="lm-sw spc-enh"></span>${st("sales.mapView.spcEnh","Enhanced")}</div>
+          <div class="lm-row"><span class="lm-sw spc-mdt"></span>${st("sales.mapView.spcMdt","Moderate")}</div>
+          <div class="lm-row"><span class="lm-sw spc-high"></span>${st("sales.mapView.spcHigh","High")}</div>
+
+          <h4>${st("sales.mapView.hailRepTitle","Reported / historical hail (size)")}</h4>
+          <div class="lm-row"><span class="lm-sw hail-lt"></span>&lt; 1"</div>
+          <div class="lm-row"><span class="lm-sw hail-1"></span>1" – 1.74"</div>
+          <div class="lm-row"><span class="lm-sw hail-175"></span>1.75" – 2.49"</div>
+          <div class="lm-row"><span class="lm-sw hail-25"></span>≥ 2.5"</div>
+
+          <h4>${st("sales.mapView.hailFcTitle","Forecast hail (SPC %)")}</h4>
+          <div class="lm-row"><span class="lm-sw hailfc-5"></span>5%</div>
+          <div class="lm-row"><span class="lm-sw hailfc-15"></span>15%</div>
+          <div class="lm-row"><span class="lm-sw hailfc-30"></span>30%</div>
+          <div class="lm-row"><span class="lm-sw hailfc-45"></span>45%</div>
+          <div class="lm-row"><span class="lm-sw hailfc-60"></span>60%</div>
+
+          <h4>${st("sales.mapView.stormScoreTitle","Storm score")}</h4>
+          <div class="lm-row"><span class="lm-sw ss-high"></span>${st("sales.mapView.scoreCampaign","70+ · high priority")}</div>
+          <div class="lm-row"><span class="lm-sw ss-review"></span>${st("sales.mapView.scoreReview","40–69 · review")}</div>
+          <div class="lm-row"><span class="lm-sw ss-info"></span>${st("sales.mapView.scoreInfo","&lt; 40 · informational")}</div>
+
+          <h4>${st("sales.mapView.scoreTitle","Lead score size")}</h4>
           <div class="lm-row"><span class="lm-sw round" style="background:var(--gray-500); width:14px; height:14px;"></span>${st("sales.mapView.scoreHotSize","75–100 · larger marker")}</div>
           <div class="lm-row"><span class="lm-sw round" style="background:var(--gray-500); width:11px; height:11px;"></span>${st("sales.mapView.scoreWarmSize","45–74 · medium marker")}</div>
           <div class="lm-row"><span class="lm-sw round" style="background:var(--gray-500); width:8px; height:8px;"></span>${st("sales.mapView.scoreColdSize","0–44 · smaller marker")}</div>
 
-          <h4>${st("sales.mapView.statusTitle","Status")}</h4>
-          ${STATUS_LEGEND.map(s => `<div class="lm-row"><span class="lm-sw" style="background:${s.color}"></span>${escHtml(s.key)}</div>`).join("")}
-
           <h4>${st("sales.mapView.geoTitle","Location")}</h4>
           <div class="lm-row"><span class="lm-sw office-pin" aria-hidden="true">🏠</span>${st("sales.mapView.office","Premier office (Bloomingdale)")}</div>
+          <div class="lm-row"><span class="lm-sw" style="background:transparent;border:2px dashed #E2231A;border-radius:50%;"></span>${st("sales.mapView.officeCoverage","Office coverage (40 mi)")}</div>
           <div class="lm-row"><span class="lm-sw ring"></span>${st("sales.mapView.radius","Search ZIP radius ({n} mi)", {n: sp.radius})}</div>
-          <div class="lm-row"><span class="lm-sw" style="background:transparent;border:none;width:auto;font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--navy-800);">— mi</span>${st("sales.mapView.distLegend","Distance from office (on focus)")}</div>
         </div>
         <div class="lm-layer-toggles">
           <div class="lm-color-by">
             <span class="lm-color-by-label">${st("sales.map.colorBy","Color markers by")}</span>
             ${mapColorModeToggleHtml()}
           </div>
-          <label><input type="checkbox" id="lm-layer-office" ${layers.office?"checked":""}/> ${st("sales.mapView.toggleOffice","Show Premier office")}</label>
-          <label><input type="checkbox" id="lm-layer-radius" ${layers.radius?"checked":""}/> ${st("sales.mapView.toggleRadius","Show ZIP radius")}</label>
+          <span class="lm-color-by-label" style="margin-top:4px">${st("sales.mapView.wxLayers","Weather layers")}</span>
+          <label><input type="checkbox" id="lm-layer-office" ${layers.office?"checked":""}/> ${st("sales.mapView.toggleOffice","Premier office")}</label>
+          <label><input type="checkbox" id="lm-layer-office-cov" ${layers.officeCoverage?"checked":""}/> ${st("sales.mapView.toggleOfficeCoverage","Office 40 mi radius")}</label>
+          <label><input type="checkbox" id="lm-layer-alerts" ${layers.alerts?"checked":""}/> ${st("sales.mapView.toggleAlerts","NWS alerts")}</label>
+          <label><input type="checkbox" id="lm-layer-spc" ${layers.spc?"checked":""}/> ${st("sales.mapView.toggleSpc","SPC risk")}</label>
+          <label><input type="checkbox" id="lm-layer-hail-rep" ${layers.hailReports?"checked":""}/> ${st("sales.mapView.toggleHailReports","Reported hail")}</label>
+          <label><input type="checkbox" id="lm-layer-hail-fc" ${layers.hailForecast?"checked":""}/> ${st("sales.mapView.toggleHailForecast","Forecast hail")}</label>
+          <label><input type="checkbox" id="lm-layer-storm-score" ${layers.stormScore?"checked":""}/> ${st("sales.mapView.toggleStormScore","Storm score")}</label>
+          <span class="lm-color-by-label" style="margin-top:6px">${st("sales.mapView.salesLayers","Sales layers")}</span>
+          <label><input type="checkbox" id="lm-layer-radius" ${layers.radius?"checked":""}/> ${st("sales.mapView.toggleRadius","ZIP search radius")}</label>
           <label><input type="checkbox" id="lm-layer-cluster" ${layers.cluster?"checked":""}/> ${st("sales.mapView.toggleCluster","Cluster markers")}</label>
           <label><input type="checkbox" id="lm-layer-heat" ${layers.heat?"checked":""}/> ${st("sales.mapView.toggleHeat","Heat by lead score")}</label>
         </div>
@@ -2738,8 +2874,24 @@ function attachEvents(){
   if(mapToggle) mapToggle.addEventListener("click", ()=>{ state.showResultsMap = !state.showResultsMap; render(); });
   const lmOffice = document.getElementById("lm-layer-office");
   if(lmOffice) lmOffice.addEventListener("change", e=>{ state.mapLayers.office = e.target.checked; render(); });
+  const lmOfficeCov = document.getElementById("lm-layer-office-cov");
+  if(lmOfficeCov) lmOfficeCov.addEventListener("change", e=>{ state.mapLayers.officeCoverage = e.target.checked; render(); });
   const lmRadius = document.getElementById("lm-layer-radius");
   if(lmRadius) lmRadius.addEventListener("change", e=>{ state.mapLayers.radius = e.target.checked; render(); });
+  const softWx = (key, id) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener("change", e=>{
+      state.mapLayers[key] = e.target.checked;
+      if(window._leadMap) syncWeatherLayers(window._leadMap);
+      else render();
+    });
+  };
+  softWx("alerts", "lm-layer-alerts");
+  softWx("spc", "lm-layer-spc");
+  softWx("hailReports", "lm-layer-hail-rep");
+  softWx("hailForecast", "lm-layer-hail-fc");
+  softWx("stormScore", "lm-layer-storm-score");
   const lmCluster = document.getElementById("lm-layer-cluster");
   if(lmCluster) lmCluster.addEventListener("change", e=>{ state.mapLayers.cluster = e.target.checked; render(); });
   const lmHeat = document.getElementById("lm-layer-heat");
@@ -3006,6 +3158,8 @@ function leadMarkerPopupHtml(l){
     <div class="lm-popup-badges">
       ${l.propertyType ? `<span class="lm-popup-type" style="background:${typeColor}">${escHtml(l.propertyType)}</span>` : ""}
       ${priorityBadge(l.priority)}
+      ${stormSignalChipsHtml(l)}
+      ${l.hailWindRisk ? `<span class="risk-chip risk-${escHtml(l.hailWindRisk)}">${escHtml(l.hailWindRisk)}</span>` : ""}
       <span class="status-chip ${statusClass(l.status)}">${escHtml(l.status)}</span>
       ${inCrmBadge(l)}
     </div>
@@ -3015,6 +3169,8 @@ function leadMarkerPopupHtml(l){
       ${kv(st("sales.mapView.popupDist","From office"), dist != null ? fmtMiles(dist) : "—")}
       ${kv(st("sales.mapView.popupRoof","Roof"), l.roofSqFt != null ? fmtSqFt(l.roofSqFt) : null)}
       ${kv(st("sales.mapView.popupValue","Value"), l.propertyValue != null ? fmtMoney(l.propertyValue) : null)}
+      ${kv(st("sales.mapView.popupSpc","SPC risk"), l.spcRisk || null, true)}
+      ${kv(st("sales.mapView.popupStormScore","Storm score"), l.stormScoreNearby ? `${l.stormScoreNearby.score} · ${l.stormScoreNearby.distanceMiles} mi` : null)}
     </div>
     ${l._approxGeo ? `<div class="lm-popup-note">${st("sales.mapView.approxPin","Approximate pin")}</div>` : ""}
     <div class="lm-popup-actions">
@@ -3063,6 +3219,8 @@ function updateLeadFocusChip(lead){
     <div class="lm-focus-chip-name">${escHtml(lead.name || lead.address || "")}</div>
     <div class="lm-focus-chip-meta">
       ${type ? `${type} · ` : ""}${priorityLabel(lead.priority)} · ${escHtml(lead.status || "")}
+      ${lead.spcRisk ? ` · ${escHtml(lead.spcRisk)}` : ""}
+      ${lead.stormScoreNearby ? ` · score ${lead.stormScoreNearby.score}` : ""}
       ${dist != null ? `<br><span class="lm-focus-chip-dist">${st("sales.mapView.distFromOffice","{mi} from Premier office", { mi: fmtMiles(dist) })}</span>` : ""}
     </div>`;
 }
@@ -3298,6 +3456,298 @@ function officePopupHtml(){
   </div>`;
 }
 
+const SPC_FILL = { TSTM:"#c1e9c1", MRGL:"#66a366", SLGT:"#ffe066", ENH:"#ffa366", MDT:"#ff6666", HIGH:"#ff66ff" };
+const SEV_FILL = { Extreme:"#7c0a02", Severe:"#e63900", Moderate:"#ff9100", Minor:"#ffd000", Unknown:"#3aa0ff" };
+const HAIL_PROB_FILL = { "0.05":"#8b4726", "0.15":"#ffc800", "0.30":"#ff0000", "0.45":"#ff00ff", "0.60":"#912cee", SIGN:"#0a0a0a" };
+const WX_ZONE = "IL";
+
+function spcOutlookStyle(f){
+  const label = String((f.properties && (f.properties.LABEL || f.properties.DN)) || "").toUpperCase();
+  const c = SPC_FILL[label] || "#888";
+  return { color: c, weight: 1, fillColor: c, fillOpacity: 0.22, dashArray: "4 3", interactive: false };
+}
+function alertPolyStyle(f){
+  const sev = (f.properties && f.properties.severity) || "Unknown";
+  const c = SEV_FILL[sev] || SEV_FILL.Unknown;
+  return { color: c, weight: 2, fillColor: c, fillOpacity: 0.28, interactive: false };
+}
+function hailFcStyle(f){
+  const p = f.properties || {};
+  const label = String(p.LABEL || p.DN || "");
+  const c = p.fill || HAIL_PROB_FILL[label] || "#888";
+  const sig = label === "SIGN";
+  return { color: p.stroke || c, weight: sig ? 2 : 1, fillColor: c, fillOpacity: sig ? 0.08 : 0.28, dashArray: sig ? "3 4" : null, interactive: false };
+}
+function hailColor(inch){
+  if(inch >= 2.5) return "#e63900";
+  if(inch >= 1.75) return "#ff9100";
+  if(inch >= 1.0) return "#ffd000";
+  return "#3aa0ff";
+}
+function hailRadius(inch){ return Math.max(5, Math.min(16, 5 + inch * 3.5)); }
+function scoreTierColor(tier){
+  if(tier === "campaign") return "#c1121f";
+  if(tier === "review") return "#e85d04";
+  return "#ffd000";
+}
+
+function wxCacheGet(key){ return state.weatherCache && state.weatherCache[key]; }
+function wxCacheSet(key, value){
+  if(!state.weatherCache) state.weatherCache = {};
+  state.weatherCache[key] = value;
+  return value;
+}
+
+async function fetchWxJson(url){
+  const res = await fetch(url, { credentials:"include", headers:{ Accept:"application/geo+json, application/json" } });
+  if(!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+async function ensureSpcOutlook(){
+  if(state.lastSpcOutlook && state.lastSpcOutlook.features) return state.lastSpcOutlook;
+  const hit = wxCacheGet("spc");
+  if(hit){ state.lastSpcOutlook = hit; return hit; }
+  try{
+    const data = await fetchWxJson("/api/spc?day=1&type=cat");
+    if(data && data.features){
+      state.lastSpcOutlook = data;
+      wxCacheSet("spc", data);
+    }
+    return state.lastSpcOutlook;
+  }catch{ return null; }
+}
+
+async function ensureHailForecast(){
+  const hit = wxCacheGet("hailFc");
+  if(hit) return hit;
+  try{
+    const data = await fetchWxJson("/api/spc?day=1&type=hail");
+    if(data && data.features) return wxCacheSet("hailFc", data);
+  }catch(e){ console.warn("Hail forecast:", e.message); }
+  return null;
+}
+
+function parseHailCsv(text){
+  const out = [];
+  for(const line of String(text || "").split(/\r?\n/)){
+    if(!line || /^time\s*,/i.test(line)) continue;
+    const parts = line.split(",");
+    if(parts.length < 7) continue;
+    const lat = parseFloat(parts[5]);
+    const lon = parseFloat(parts[6]);
+    if(!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+    out.push({
+      time: parts[0],
+      sizeIn: (parseInt(parts[1], 10) || 0) / 100,
+      location: parts[2],
+      county: parts[3],
+      state: parts[4],
+      lat, lon,
+      comments: parts.slice(7).join(","),
+    });
+  }
+  return out;
+}
+
+async function ensureHailReports(){
+  const hit = wxCacheGet("hailRep");
+  if(hit) return hit;
+  try{
+    const res = await fetch("/api/spc-reports?period=today", { credentials:"include" });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    const rows = parseHailCsv(text);
+    const il = rows.filter(r => String(r.state || "").toUpperCase() === WX_ZONE);
+    return wxCacheSet("hailRep", il);
+  }catch(e){
+    console.warn("Hail reports:", e.message);
+    return wxCacheSet("hailRep", []);
+  }
+}
+
+async function ensureNwsAlerts(){
+  const hit = wxCacheGet("alerts");
+  if(hit) return hit;
+  try{
+    const data = await fetchWxJson(`https://api.weather.gov/alerts/active?area=${WX_ZONE}`);
+    return wxCacheSet("alerts", data);
+  }catch(e){
+    console.warn("NWS alerts:", e.message);
+    return null;
+  }
+}
+
+async function ensureStormScores(){
+  const hit = wxCacheGet("scores");
+  if(hit) return hit;
+  try{
+    const data = await fetchWxJson(`/api/storm-score?zone=${WX_ZONE}`);
+    return wxCacheSet("scores", data);
+  }catch(e){
+    console.warn("Storm score:", e.message);
+    return wxCacheSet("scores", { hotspots: [] });
+  }
+}
+
+function clearWxLayer(key){
+  const bag = window._lmWeather || (window._lmWeather = {});
+  const layer = bag[key];
+  const map = window._leadMap;
+  if(layer && map){
+    try { map.removeLayer(layer); } catch(e){}
+  }
+  delete bag[key];
+}
+
+function setWxLayer(key, layer){
+  const bag = window._lmWeather || (window._lmWeather = {});
+  bag[key] = layer;
+}
+
+function bringLeadsToFront(){
+  if(window._leadMapMarkerLayer && window._leadMap && window._leadMap.hasLayer(window._leadMapMarkerLayer)){
+    try { window._leadMapMarkerLayer.bringToFront(); } catch(e){}
+  }
+}
+
+async function syncSpcOutlookLayer(map){
+  clearWxLayer("spc");
+  if(!state.mapLayers.spc || !map) return;
+  const outlook = await ensureSpcOutlook();
+  if(!outlook?.features?.length || window._leadMap !== map) return;
+  try{
+    const layer = L.geoJSON(outlook, { style: spcOutlookStyle, interactive: false });
+    layer.addTo(map);
+    setWxLayer("spc", layer);
+    window._leadMapSpcLayer = layer;
+    bringLeadsToFront();
+  }catch(e){}
+}
+
+async function syncAlertsLayer(map){
+  clearWxLayer("alerts");
+  if(!state.mapLayers.alerts || !map) return;
+  const data = await ensureNwsAlerts();
+  if(!data?.features || window._leadMap !== map) return;
+  try{
+    const layer = L.geoJSON(null, {
+      style: alertPolyStyle,
+      interactive: false,
+      onEachFeature: (f, lyr) => {
+        const p = f.properties || {};
+        lyr.bindTooltip(`${p.event || "Alert"} · ${p.severity || ""}`, { sticky: true });
+      },
+    });
+    // Features with their own geometry
+    for(const f of data.features){
+      if(f.geometry) layer.addData(f);
+    }
+    layer.addTo(map);
+    setWxLayer("alerts", layer);
+    bringLeadsToFront();
+
+    // Sky parity: resolve zone geometry for alerts missing a polygon (cap concurrent fetches).
+    const needZones = data.features.filter(f => !f.geometry && Array.isArray(f.properties?.affectedZones));
+    let zoneBudget = 12;
+    for(const f of needZones){
+      if(window._leadMap !== map || !state.mapLayers.alerts) break;
+      for(const z of (f.properties.affectedZones || []).slice(0, 3)){
+        if(zoneBudget-- <= 0) break;
+        try{
+          const zres = await fetch(z, { headers:{ Accept:"application/geo+json" } });
+          if(!zres.ok) continue;
+          const zdata = await zres.json();
+          if(zdata?.geometry && window._leadMap === map && state.mapLayers.alerts){
+            layer.addData({ type:"Feature", properties:f.properties, geometry:zdata.geometry });
+          }
+        }catch(e){}
+      }
+    }
+    bringLeadsToFront();
+  }catch(e){}
+}
+
+async function syncHailForecastLayer(map){
+  clearWxLayer("hailFc");
+  if(!state.mapLayers.hailForecast || !map) return;
+  const data = await ensureHailForecast();
+  if(!data?.features?.length || window._leadMap !== map) return;
+  try{
+    const layer = L.geoJSON(data, { style: hailFcStyle, interactive: false });
+    layer.addTo(map);
+    setWxLayer("hailFc", layer);
+    bringLeadsToFront();
+  }catch(e){}
+}
+
+async function syncHailReportsLayer(map){
+  clearWxLayer("hailRep");
+  if(!state.mapLayers.hailReports || !map) return;
+  const rows = await ensureHailReports();
+  if(window._leadMap !== map) return;
+  try{
+    const layer = L.layerGroup();
+    for(const r of rows || []){
+      const m = L.circleMarker([r.lat, r.lon], {
+        radius: hailRadius(r.sizeIn),
+        color: "#111",
+        weight: 1,
+        fillColor: hailColor(r.sizeIn),
+        fillOpacity: 0.9,
+      });
+      m.bindPopup(`<div class="lm-popup"><div class="lm-popup-name">${(r.sizeIn || 0).toFixed(2)}" hail</div><div class="lm-popup-addr">${escHtml(r.location || "")} · ${escHtml(r.county || "")}</div><div class="lm-popup-sub">${escHtml(r.time || "")}</div></div>`);
+      layer.addLayer(m);
+    }
+    layer.addTo(map);
+    setWxLayer("hailRep", layer);
+    bringLeadsToFront();
+  }catch(e){}
+}
+
+async function syncStormScoreLayer(map){
+  clearWxLayer("scores");
+  if(!state.mapLayers.stormScore || !map) return;
+  const data = await ensureStormScores();
+  if(window._leadMap !== map) return;
+  try{
+    const layer = L.layerGroup();
+    for(const h of data.hotspots || []){
+      const raw = h.score;
+      const s = raw && typeof raw === "object" ? raw : {};
+      const total = s.total != null ? s.total : (typeof raw === "number" ? raw : null);
+      const tier = s.tier || (total >= 70 ? "campaign" : total >= 40 ? "review" : "none");
+      if(h.lat == null || h.lon == null) continue;
+      const m = L.circleMarker([h.lat, h.lon], {
+        radius: Math.min(18, 8 + Math.floor((Number(total) || 0) / 12)),
+        color: "#111",
+        weight: 1,
+        fillColor: scoreTierColor(tier),
+        fillOpacity: 0.88,
+      });
+      const rows = (s.breakdown || []).map(b => `<li>${escHtml(b.variable)}: +${b.points}</li>`).join("");
+      m.bindPopup(`<div class="lm-popup"><div class="lm-popup-name">Score ${total ?? "—"}</div><div class="lm-popup-sub">${escHtml(h.label || "")}</div>${rows ? `<ul style="margin:6px 0 0;padding-left:18px;font-size:12px">${rows}</ul>` : ""}</div>`);
+      layer.addLayer(m);
+    }
+    layer.addTo(map);
+    setWxLayer("scores", layer);
+    bringLeadsToFront();
+  }catch(e){}
+}
+
+/** Soft sync all Sky-style weather overlays (load on demand when enabled). */
+async function syncWeatherLayers(map){
+  if(!map || typeof L === "undefined") return;
+  await Promise.all([
+    syncAlertsLayer(map),
+    syncSpcOutlookLayer(map),
+    syncHailForecastLayer(map),
+    syncHailReportsLayer(map),
+    syncStormScoreLayer(map),
+  ]);
+  bringLeadsToFront();
+}
+
 function addSalesGeoLayers(map){
   const center = state.lastGeo || { lat: SALES_OFFICE.lat, lng: SALES_OFFICE.lng };
   if(state.mapLayers.radius){
@@ -3311,12 +3761,24 @@ function addSalesGeoLayers(map){
       interactive: false,
     }).addTo(map);
   }
+  if(state.mapLayers.officeCoverage){
+    L.circle([SALES_OFFICE.lat, SALES_OFFICE.lng], {
+      radius: milesToMeters(SALES_OFFICE.coverageMi || 40),
+      color: "#E2231A",
+      weight: 1.5,
+      dashArray: "8 6",
+      fillColor: "#E2231A",
+      fillOpacity: 0.03,
+      interactive: false,
+    }).addTo(map);
+  }
   if(state.mapLayers.office){
     L.marker([SALES_OFFICE.lat, SALES_OFFICE.lng], {
       icon: officeMarkerIcon(),
       zIndexOffset: 1000,
     }).addTo(map).bindPopup(officePopupHtml(), { maxWidth: 280 });
   }
+  syncWeatherLayers(map);
 }
 
 function setupLeadMap(){
@@ -3366,7 +3828,7 @@ function setupLeadMap(){
     const empty = document.createElement("div");
     empty.className = "map-loading-overlay";
     empty.style.pointerEvents = "none";
-    empty.innerHTML = `<div class="map-loading-card" style="background:var(--navy-800);font-weight:500;max-width:320px;text-align:center;line-height:1.45;">${
+    empty.innerHTML = `<div class="map-loading-card" style="font-weight:500;max-width:320px;text-align:center;line-height:1.45;">${
       state.results.length
         ? st("sales.map.noCoords","Leads found, but none have map coordinates yet.")
         : st("sales.map.empty","No coordinates to map. Run a search to see live leads on the map.")

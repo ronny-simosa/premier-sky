@@ -35,6 +35,7 @@ import {
   getRegridApiKey,
   getJobnimbusApiKey
 } from "../sales/server/config.js";
+import { isStormProviderLive } from "../sales/server/lib/stormLive.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
@@ -148,10 +149,11 @@ app.use("/api/crm", requireAuth, crmRouter);
 app.use("/api/lead-score", requireAuth, leadScoreRouter);
 app.use("/api/lead-overrides", requireAuth, overridesRouter);
 
-app.get("/api/status", requireAuth, (_req, res) => {
+app.get("/api/status", requireAuth, async (_req, res) => {
   const googleKey = getGoogleMapsApiKey();
   const regridKey = getRegridApiKey();
   const jnKey = getJobnimbusApiKey();
+  const stormLive = await isStormProviderLive();
   res.json({
     live: {
       "footprints-chicago": true,
@@ -161,6 +163,7 @@ app.get("/api/status", requireAuth, (_req, res) => {
       "roof-intel-satellite": true,
       geocoding: googleKey ? "google" : "free fallback",
       persistence: "sqlite",
+      ...(stormLive ? { "storms (NOAA LSR)": true } : {}),
       ...(googleKey
         ? { "google-solar": true, "business-contacts (Places)": true }
         : {})
@@ -169,7 +172,7 @@ app.get("/api/status", requireAuth, (_req, res) => {
       ...(googleKey
         ? {}
         : { "google-solar (needs key)": true, "business-contacts (needs key)": true }),
-      "storms (Premier Sky pending)": true,
+      ...(stormLive ? {} : { "storms (Premier Sky pending)": true }),
       permits: true,
       "person-contacts/email (vendor pending)": true,
       "jobnimbus-crm": !jnKey,

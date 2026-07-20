@@ -8,7 +8,9 @@
 //   DUPAGE   → ownerEntity (BILLNAME), propertyValue (REA017_FCV_TOTAL,
 //              assessed), address, parcel area, property class, municipality
 //   COOK     → buildingSqFt (footprint Shape_Area), building type
-//   stubs    → stormHistory, hailWindRisk, recentPermits, contact info
+//   stormLive → stormHistory, hailWindRisk (IEM LSR), spcCategory/spcRisk (SPC
+//               Day-1 outlook), stormScoreNearby (SPC reports hotspot score)
+//   stubs    → recentPermits, contact info (person-level)
 //
 // Every estimated/stubbed field is listed in lead._provenance so the team
 // can see what's real vs. placeholder while the remaining vendors are wired.
@@ -17,6 +19,7 @@
 import {
   scoreLeadValue,
   classificationToPriority,
+  applyStormPriorityFloor,
   assessedToTier,
   OFFICE,
   MINUTES_PER_MILE,
@@ -76,8 +79,9 @@ function estimateRoofSqFt(rec) {
 
 // --- SCORING — Lead Value Score rubric (lib/leadValueScore.js) --------------
 // Derives the rubric's inputs from what the pipeline actually knows.
-// Inputs still stubbed/estimated: storm booleans (storm stub), decision-maker
-// access (contacts stub), drive-time (straight-line estimate from HQ).
+// Storm booleans come from live IEM LSR proximity when stormLive succeeds;
+// SPC Day-1 category and storm-score hotspot proximity also feed urgency.
+// Still estimated: decision-maker access (contacts), drive-time (straight-line).
 const TWO_YEARS_MS = 2 * 365 * 24 * 60 * 60 * 1000;
 
 function deriveScoreInput({ rec, geo, roofSqFt, roofAge, storm, ownerCounts }) {
@@ -108,6 +112,8 @@ function deriveScoreInput({ rec, geo, roofSqFt, roofAge, storm, ownerCounts }) {
     recent_storm_event: recentStorm,
     historical_storm_zone: historicalZone,
     roof_age_years: roofAge,
+    spc_category: storm.spcCategory || null,
+    storm_score_nearby: storm.stormScoreNearby?.score ?? null,
     // Owner-occupied (Places business name matches county owner) → the
     // business phone reaches the decision-maker's org. Tenant → intermediary.
     decision_maker_access: rec.placeContact?.ownerMatch
@@ -120,21 +126,30 @@ function deriveScoreInput({ rec, geo, roofSqFt, roofAge, storm, ownerCounts }) {
   };
 }
 
-function narrativeFor(lead, stubbed) {
+function narrativeFor(lead, { stormStubbed } = {}) {
   const bits = [];
   if (lead.roofAge != null) bits.push(`~${lead.roofAge}-year-old roof (from year built ${lead.yearBuilt})`);
   if (lead.roofSqFt) bits.push(`~${lead.roofSqFt.toLocaleString("en-US")} sf roof area`);
   if (lead.ownerEntity) bits.push(`owner of record: ${lead.ownerEntity}`);
+  if (!stormStubbed && lead.stormHistory?.length) {
+    bits.push(`${lead.stormHistory.length} nearby storm report(s) (NOAA LSR)`);
+  }
+  if (lead.spcRisk) bits.push(`SPC ${lead.spcRisk}`);
+  if (lead.stormScoreNearby?.score != null) {
+    bits.push(`storm-score ${lead.stormScoreNearby.score} nearby`);
+  }
   const base = bits.length ? bits.join(", ") : "Property identified in the search area";
-  const caveat = stubbed
-    ? " Storm and permit signals are placeholder data until those APIs are connected."
-    : "";
+  const caveat = stormStubbed
+    ? " Storm signals are placeholder data (live LSR unavailable); permit signals still pending."
+    : " Permit signals are still pending municipal wiring.";
   return {
     reason: `${base}.${caveat}`,
     salesAngle:
       lead.roofAge != null && lead.roofAge >= 15
         ? "Roof is at or past typical mid-life — lead with a preventative condition assessment."
-        : "Introduce Premier Group and offer a complimentary baseline roof assessment.",
+        : !stormStubbed && lead.stormHistory?.length
+          ? "Recent storm reports nearby — lead with a post-storm roof condition check."
+          : "Introduce Premier Group and offer a complimentary baseline roof assessment.",
     outreachMessage:
       `Hi — we're reaching out about the property at ${lead.address || "your building"}. ` +
       `We're offering complimentary commercial roof condition assessments in the area and ` +
@@ -167,12 +182,14 @@ export function selectTopRecords(records, maxLeads = 60) {
 }
 
 /**
- * buildLeads({ geo, footprintResult, storm, maxLeads })
+ * buildLeads({ geo, footprintResult, storm, stormFor, maxLeads })
  * → array of lead records matching SAMPLE_LEADS shape, sorted by score.
+ * Prefer stormFor(lat,lng) for per-lead live proximity; storm is the batch
+ * fallback (stub) when the live provider is down.
  * footprintResult.allRecords (optional): full pre-selection record set, so
  * the portfolio signal isn't skewed when records were already top-N trimmed.
  */
-export function buildLeads({ geo, footprintResult, storm, maxLeads = 60 }) {
+export function buildLeads({ geo, footprintResult, storm, stormFor, maxLeads = 60 }) {
   const currentYear = new Date().getFullYear();
   const ranked = selectTopRecords(footprintResult.records, maxLeads);
 
@@ -190,13 +207,19 @@ export function buildLeads({ geo, footprintResult, storm, maxLeads = 60 }) {
       const roofSqFt = rec.solarRoof?.areaSqFt ?? estimateRoofSqFt(rec);
       const yearBuilt = rec.yearBuilt || null;
       const roofAge = yearBuilt ? Math.max(0, currentYear - yearBuilt) : null;
-      const stormEvents = storm.events || [];
+      const lat = rec.lat ?? geo.lat;
+      const lng = rec.lng ?? geo.lng;
+      const stormData = stormFor ? stormFor(lat, lng) : storm || { events: [], hailWindRisk: "Low", stub: true };
+      const stormEvents = stormData.events || [];
+      const stormStubbed = Boolean(stormData.stub);
       const permits = []; // permits stub returns none — wired per-municipality later
 
       const valueScore = scoreLeadValue(
-        deriveScoreInput({ rec, geo, roofSqFt, roofAge, storm, ownerCounts })
+        deriveScoreInput({ rec, geo, roofSqFt, roofAge, storm: stormData, ownerCounts })
       );
       const score = valueScore.lead_value_score;
+      const rubricPriority = classificationToPriority(valueScore.classification);
+      const priority = applyStormPriorityFloor(rubricPriority, stormData);
       const address =
         rec.address ||
         (rec.lat != null ? `(unaddressed footprint near ${rec.lat.toFixed(4)}, ${rec.lng.toFixed(4)})` : "Address pending");
@@ -222,10 +245,14 @@ export function buildLeads({ geo, footprintResult, storm, maxLeads = 60 }) {
         propertyValue: rec.assessedTotal || null, // assessed, not market — see provenance
         lastSaleDate: null,
         stormHistory: stormEvents,
-        hailWindRisk: storm.hailWindRisk || "Low",
+        hailWindRisk: stormData.hailWindRisk || "Low",
+        spcCategory: stormData.spcCategory || null,
+        spcRisk: stormData.spcRisk || null,
+        stormScoreNearby: stormData.stormScoreNearby || null,
         recentPermits: permits,
         leadScore: score,
-        priority: classificationToPriority(valueScore.classification),
+        priority,
+        priorityBeforeStormFloor: rubricPriority !== priority ? rubricPriority : undefined,
         classification: valueScore.classification, // 4-level rubric class (hot/warm/cool/low_priority)
         complianceFlag: valueScore.compliance_flag,
         recommendedAction: valueScore.recommended_action,
@@ -237,17 +264,59 @@ export function buildLeads({ geo, footprintResult, storm, maxLeads = 60 }) {
         status: "New",
       };
 
-      Object.assign(lead, narrativeFor(lead, storm.stub));
+      Object.assign(lead, narrativeFor(lead, { stormStubbed }));
+
+      const stormRealNote = stormStubbed
+        ? null
+        : [
+            `stormHistory/hailWindRisk = NOAA IEM LSR within ~5 mi (live)${stormData.nearbyCount != null ? `, ${stormData.nearbyCount} nearby report(s)` : ""}`,
+            stormData.spcCategory
+              ? `spcCategory/spcRisk = SPC Day-1 categorical outlook (${stormData.spcCategory} / ${stormData.spcRisk})`
+              : "spcCategory = not inside an active SPC categorical polygon (Day-1)",
+            stormData.stormScoreNearby
+              ? `stormScoreNearby = Sky-style score ${stormData.stormScoreNearby.score} (${stormData.stormScoreNearby.tier}) · ${stormData.stormScoreNearby.distanceMiles} mi from SPC report hotspot`
+              : null,
+            rubricPriority !== priority
+              ? `priority floored ${rubricPriority} → ${priority} by storm signals (SPC / LSR / storm-score)`
+              : null,
+          ]
+            .filter(Boolean)
+            .join("; ");
 
       lead._leadValueScore = valueScore; // full rubric breakdown (score_breakdown etc.)
       lead._provenance = {
         source: rec.source,
         sourceId: rec.sourceId,
-        real: Object.keys(lead).filter(
-          (k) => !k.startsWith("_") && lead[k] != null && !["stormHistory", "hailWindRisk", "leadScore", "priority", "reason", "salesAngle", "outreachMessage", "status", "id"].includes(k)
-        ),
+        real: [
+          ...Object.keys(lead).filter(
+            (k) =>
+              !k.startsWith("_") &&
+              lead[k] != null &&
+              ![
+                "stormHistory",
+                "hailWindRisk",
+                "spcCategory",
+                "spcRisk",
+                "stormScoreNearby",
+                "leadScore",
+                "priority",
+                "priorityBeforeStormFloor",
+                "reason",
+                "salesAngle",
+                "outreachMessage",
+                "status",
+                "id",
+              ].includes(k)
+          ),
+          ...(stormStubbed ? [] : ["stormHistory", "hailWindRisk"]),
+          ...(stormData.spcCategory ? ["spcCategory", "spcRisk"] : []),
+          ...(stormData.stormScoreNearby ? ["stormScoreNearby"] : []),
+        ],
         stubbed: [
-          "stormHistory", "hailWindRisk", "recentPermits", "manager", "contactEmail",
+          ...(stormStubbed ? ["stormHistory", "hailWindRisk"] : []),
+          "recentPermits",
+          "manager",
+          "contactEmail",
           ...(rec.placeContact ? [] : ["contactName", "contactPhone"]),
         ],
         estimated: [
@@ -269,7 +338,10 @@ export function buildLeads({ geo, footprintResult, storm, maxLeads = 60 }) {
               ]
             : []),
           "propertyValue = county assessed value, not market value",
-          "leadScore = Lead Value Score rubric — real formula, but storm inputs are stubbed, decision_maker_access=unknown, drive-time is straight-line estimate",
+          stormStubbed
+            ? "leadScore = Lead Value Score rubric — storm inputs stubbed (LSR unavailable); SPC/storm-score may still be live"
+            : "leadScore = Lead Value Score rubric — LSR + SPC + storm-score urgency; decision_maker_access may be unknown; drive-time is straight-line estimate",
+          ...(stormRealNote ? [stormRealNote] : []),
         ],
       };
       return lead;

@@ -49,6 +49,9 @@ export function scoreLeadValue(input) {
   breakdown.geography_value = geo;
 
   // --- 3. Daño y urgencia (máx 25) ---
+  // Base: recent LSR (+15) or historical zone (+5), plus roof age.
+  // SPC Day-1 outlook and nearby storm-score hotspots add urgency so Lead Map
+  // priority diverges under active severe weather (capped at 25).
   let urgency = 0;
   if (input.recent_storm_event === true) urgency += 15;
   else if (input.historical_storm_zone === true) urgency += 5;
@@ -57,6 +60,17 @@ export function scoreLeadValue(input) {
     if (age >= 15) urgency += 10;
     else if (age >= 10) urgency += 5;
   }
+  // SPC categorical (today/day1) — mirrors Sky spcCatPoints scaled into urgency.
+  const spc = String(input.spc_category || "").toUpperCase();
+  if (spc === "HIGH" || spc === "MDT") urgency += 10;
+  else if (spc === "ENH") urgency += 8;
+  else if (spc === "SLGT") urgency += 5;
+  else if (spc === "MRGL") urgency += 2;
+  // Storm-score hotspot proximity (Sky review/campaign floors).
+  const ss = Number(input.storm_score_nearby) || 0;
+  if (ss >= 70) urgency += 10;
+  else if (ss >= 40) urgency += 5;
+  urgency = Math.min(25, urgency);
   breakdown.damage_urgency = urgency;
 
   // --- 4. Específico comercial (máx 20, solo commercial) ---
@@ -103,6 +117,10 @@ export function scoreLeadValue(input) {
       : input.historical_storm_zone
         ? "zona con historial de tormentas"
         : null,
+    input.spc_category ? `SPC ${input.spc_category}` : null,
+    Number(input.storm_score_nearby) >= 40
+      ? `storm-score cercano ${input.storm_score_nearby}`
+      : null,
     Number.isFinite(age) ? `techo de ${age} años` : null,
     isCommercial && Number(input.portfolio_size) >= 2
       ? `portafolio de ${input.portfolio_size} propiedades`
@@ -127,6 +145,61 @@ export function scoreLeadValue(input) {
 /** 4-level rubric classification → the frontend's 3-level priority. */
 export function classificationToPriority(classification) {
   return classification === "hot" ? "Hot" : classification === "warm" ? "Warm" : "Cold";
+}
+
+const PRIORITY_RANK = { Cold: 0, Warm: 1, Hot: 2 };
+
+/**
+ * Storm-signal priority floors (Lead Map differentiation).
+ *
+ * Hot when:
+ *   - LSR hailWindRisk === Severe
+ *   - SPC categorical MDT or HIGH (Day-1 outlook contains the pin)
+ *   - Nearby storm-score hotspot ≥ 70 (Sky campaign tier)
+ *   - High LSR AND SPC ≥ Enhanced (ENH/MDT/HIGH)
+ *   - High LSR AND nearby storm-score ≥ 40
+ *
+ * Warm when (and not already Hot):
+ *   - LSR hailWindRisk === High
+ *   - SPC Slight or Enhanced (SLGT/ENH)
+ *   - Nearby storm-score ≥ 40 (Sky review tier)
+ *   - Moderate LSR + SPC ≥ Slight
+ *
+ * Note: High LSR + regional Slight alone stays Warm (not Hot) so a broad
+ * Day-1 SLGT polygon does not paint every High-LSR lead the same Hot color.
+ *
+ * Never lowers a rubric Hot/Warm — only elevates.
+ */
+export function applyStormPriorityFloor(priority, storm = {}) {
+  const base = PRIORITY_RANK[priority] ?? 0;
+  const risk = storm.hailWindRisk || "Low";
+  const cat = String(storm.spcCategory || "").toUpperCase();
+  const ss = Number(storm.stormScoreNearby?.score) || 0;
+  const spcStrong = ["ENH", "MDT", "HIGH"].includes(cat);
+  const spcSlightPlus = ["SLGT", "ENH", "MDT", "HIGH"].includes(cat);
+
+  let floor = 0;
+  if (
+    risk === "Severe" ||
+    cat === "HIGH" ||
+    cat === "MDT" ||
+    ss >= 70 ||
+    (risk === "High" && spcStrong) ||
+    (risk === "High" && ss >= 40)
+  ) {
+    floor = 2; // Hot
+  } else if (
+    risk === "High" ||
+    cat === "ENH" ||
+    cat === "SLGT" ||
+    ss >= 40 ||
+    (risk === "Moderate" && spcSlightPlus)
+  ) {
+    floor = 1; // Warm
+  }
+
+  const rank = Math.max(base, floor);
+  return rank >= 2 ? "Hot" : rank >= 1 ? "Warm" : "Cold";
 }
 
 // Premier HQ (Bloomingdale, IL) — used to estimate drive time for the

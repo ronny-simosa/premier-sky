@@ -1,19 +1,23 @@
 // GET /api/leads?zip=60108&radius=10&types=Commercial,Retail
 // The orchestration route: geocode → route to footprint/parcel source →
-// stub-fill storm/permits/contacts → merge pipeline → SAMPLE_LEADS-shaped
-// records. Response tells the frontend exactly what's live vs. stubbed.
+// live storm intel (IEM LSR + SPC Day-1 + storm-score lite) + stub permits →
+// merge pipeline → SAMPLE_LEADS-shaped records. Response tells the frontend
+// what's live vs stubbed.
 //
 // Quota discipline (free / metered APIs):
 //  - Full response cached ~30m (same ZIP/radius/types)
 //  - MS footprints: top LEADS_MS_TOP only (default 40)
 //  - Roof/Solar/Places: top LEADS_ENRICH_TOP only (default 12), aborted on timeout
 //  - Core parcel/owner data always returned for the full list
+//  - Storm feeds: one LSR state fetch + one SPC outlook + one SPC-reports
+//    hotspot pack per search (never N+1)
 
 import { Router } from "express";
 import { geocodeZip } from "./geocode.js";
 import { pickSource } from "../lib/routeSource.js";
-import { getStormHistory } from "../stubs/storm.js";
+import { createStormResolver, STORM_PROXIMITY_MI } from "../lib/stormLive.js";
 import { buildLeads, selectTopRecords } from "../lib/mergeLead.js";
+import { applyStormPriorityFloor } from "../lib/leadValueScore.js";
 import { enrichWithMsFootprints } from "../sources/msbuildings.js";
 import { analyzeRoofSurface } from "../lib/roofIntel.js";
 import { enrichWithSolar } from "../sources/googleSolar.js";
@@ -85,7 +89,8 @@ router.get("/", async (req, res) => {
   }
 
   const typesKey = types.slice().sort().join(",");
-    const responseKey = `leads:v3:${zip}:${radius}:${typesKey}`;
+  // v5: LSR + SPC Day-1 + storm-score lite → priority floors (bust v4 LSR-only cache).
+  const responseKey = `leads:v5:${zip}:${radius}:${typesKey}`;
   const responseTtlMs = envInt("LEADS_CACHE_MS", 30 * 60 * 1000, 0, 24 * 60 * 60 * 1000);
   if (responseTtlMs > 0) {
     const cached = cacheGet(responseKey);
@@ -97,9 +102,12 @@ router.get("/", async (req, res) => {
   try {
     const geo = await geocodeZip(zip);
     const source = pickSource(geo);
-    const [footprintResult, storm] = await Promise.all([
+    const [footprintResult, stormResolver] = await Promise.all([
       source.search(geo.lat, geo.lng, radius),
-      getStormHistory(geo.lat, geo.lng, radius), // STUB
+      createStormResolver({
+        state: geo.state || "IL",
+        radiusMiles: STORM_PROXIMITY_MI,
+      }),
     ]);
 
     if (!footprintResult.live) {
@@ -139,14 +147,36 @@ router.get("/", async (req, res) => {
     let leads = buildLeads({
       geo,
       footprintResult: { ...footprintResult, records: top, allRecords: footprintResult.records },
-      storm,
+      storm: stormResolver.storm,
+      stormFor: stormResolver.stormFor,
     });
     applyOverrides(leads);
     if (types.length) leads = leads.filter((l) => types.includes(l.propertyType));
 
     const beforeCoords = leads.filter((l) => l.lat != null && l.lng != null).length;
     const geoFill = fillMissingLeadCoords(leads, geo);
+    // Approx coords filled after merge — re-apply storm intel for those pins when live.
+    if (stormResolver.stormFor && geoFill.filled > 0) {
+      for (const lead of leads) {
+        if (!lead._approxGeo || lead.lat == null || lead.lng == null) continue;
+        const storm = stormResolver.stormFor(lead.lat, lead.lng);
+        lead.stormHistory = storm.events || [];
+        lead.hailWindRisk = storm.hailWindRisk || "Low";
+        lead.spcCategory = storm.spcCategory || null;
+        lead.spcRisk = storm.spcRisk || null;
+        lead.stormScoreNearby = storm.stormScoreNearby || null;
+        const basePri = lead.priorityBeforeStormFloor || lead.priority || "Cold";
+        const nextPri = applyStormPriorityFloor(basePri, storm);
+        if (nextPri !== lead.priority) {
+          lead.priorityBeforeStormFloor = basePri;
+          lead.priority = nextPri;
+        }
+      }
+    }
     const withCoords = leads.filter((l) => l.lat != null && l.lng != null).length;
+
+    const stubbedDomains = ["permits", "contact enrichment", "property manager"];
+    if (stormResolver.stub) stubbedDomains.unshift("storm history (LSR)");
 
     const payload = {
       leads,
@@ -154,7 +184,13 @@ router.get("/", async (req, res) => {
       geo,
       sourceUsed: footprintResult.sourceMeta.name,
       servedBy: footprintResult.servedBy || "live",
-      stubbedDomains: ["storm history", "permits", "contact enrichment", "property manager"],
+      stormSource: stormResolver.live ? "live" : "stub",
+      stormReportCount: stormResolver.reportCount ?? null,
+      spcLive: Boolean(stormResolver.spcLive),
+      stormScoreLive: Boolean(stormResolver.stormScoreLive),
+      stormScoreMeta: stormResolver.stormScoreMeta || null,
+      spcOutlook: stormResolver.spcOutlook || null,
+      stubbedDomains,
       note: footprintResult.note || null,
       enrichBudgetMs: enrichMs,
       enrichTop,

@@ -12,6 +12,8 @@ import leadsRouter from "./routes/leads.js";
 import crmRouter from "./routes/crm.js";
 import leadScoreRouter from "./routes/leadScore.js";
 import overridesRouter from "./routes/overrides.js";
+import { isStormIntelLive } from "./lib/stormLive.js";
+import weatherRouter from "./routes/weather.js";
 
 const app = express();
 app.use(express.json());
@@ -25,9 +27,12 @@ app.use("/api/leads", leadsRouter);
 app.use("/api/crm", crmRouter);
 app.use("/api/lead-score", leadScoreRouter);
 app.use("/api/lead-overrides", overridesRouter);
+// Sky-parity weather layers for Lead Map (SPC / reports / storm-score).
+app.use("/api", weatherRouter);
 
 // Health/status: which integrations are live vs. stubbed.
-app.get("/api/status", (_req, res) => {
+app.get("/api/status", async (_req, res) => {
+  const stormLive = await isStormIntelLive();
   res.json({
     live: {
       "footprints-chicago": true,
@@ -37,6 +42,7 @@ app.get("/api/status", (_req, res) => {
       "roof-intel-satellite": true,
       geocoding: GOOGLE_MAPS_API_KEY ? "google" : "free fallback",
       persistence: "sqlite",
+      ...(stormLive ? { "storms (NOAA LSR + SPC)": true } : {}),
       ...(GOOGLE_MAPS_API_KEY
         ? { "google-solar": true, "business-contacts (Places)": true }
         : {}),
@@ -45,7 +51,7 @@ app.get("/api/status", (_req, res) => {
       ...(GOOGLE_MAPS_API_KEY
         ? {}
         : { "google-solar (needs key)": true, "business-contacts (needs key)": true }),
-      "storms (Premier Sky pending)": true,
+      ...(stormLive ? {} : { "storms (Premier Sky pending)": true }),
       permits: true,
       "person-contacts/email (vendor pending)": true,
       "jobnimbus-crm": !JOBNIMBUS_API_KEY,

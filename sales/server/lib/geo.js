@@ -32,6 +32,49 @@ export function distanceMiles(lat1, lng1, lat2, lng2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
+// --- Point-in-polygon (SPC outlook / NWS polygons; same rules as Sky geo-utils) ---
+
+function pointInRing(lng, lat, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0],
+      yi = ring[i][1];
+    const xj = ring[j][0],
+      yj = ring[j][1];
+    const hit = yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi;
+    if (hit) inside = !inside;
+  }
+  return inside;
+}
+
+function pointInPolygon(lng, lat, rings) {
+  if (!rings.length || !pointInRing(lng, lat, rings[0])) return false;
+  for (let k = 1; k < rings.length; k++) {
+    if (pointInRing(lng, lat, rings[k])) return false;
+  }
+  return true;
+}
+
+/** True if WGS84 (lng, lat) falls inside a GeoJSON Polygon / MultiPolygon. */
+export function pointInGeometry(lng, lat, geom) {
+  if (!geom) return false;
+  if (geom.type === "Polygon") return pointInPolygon(lng, lat, geom.coordinates);
+  if (geom.type === "MultiPolygon") {
+    return geom.coordinates.some((poly) => pointInPolygon(lng, lat, poly));
+  }
+  return false;
+}
+
+/** First matching SPC/NWS feature label at a point (LABEL2 → LABEL → DN). */
+export function spcLabelAtPoint(lat, lng, features) {
+  for (const f of features || []) {
+    if (f.geometry && pointInGeometry(lng, lat, f.geometry)) {
+      return f.properties?.LABEL2 || f.properties?.LABEL || f.properties?.DN || null;
+    }
+  }
+  return null;
+}
+
 /**
  * Filter records (each with .lat/.lng, possibly null) from an envelope query
  * down to the true circle. Records without coordinates are kept — better to
