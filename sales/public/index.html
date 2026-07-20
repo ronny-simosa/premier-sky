@@ -274,7 +274,8 @@ a{color:inherit;}
 .view-toggle{display:flex; border:1px solid var(--gray-300); border-radius:8px; overflow:hidden;}
 .view-toggle button{padding:7px 13px; font-size:12.5px; font-weight:600; border:none; background:var(--white); color:var(--gray-500);}
 .view-toggle button.active{background:var(--navy-800); color:var(--white);}
-.sort-select{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--gray-500);}
+.sort-select{display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:12.5px; color:var(--gray-500);}
+.sort-dir-btn{min-width:72px; justify-content:center;}
 
 /* ---------- Table view ---------- */
 .lead-table{width:100%; border-collapse:collapse; font-size:13px;}
@@ -356,6 +357,19 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
 }
 .search-status.is-loading{
   color:var(--blue-accent-dark); font-weight:600;
+  display:flex; align-items:center; gap:7px;
+}
+.search-status.is-loading::before{
+  content:""; width:8px; height:8px; border-radius:50%; flex-shrink:0;
+  background:var(--blue-accent); animation:search-pulse 1s ease-in-out infinite;
+}
+@keyframes search-pulse{
+  0%,100%{ opacity:1; transform:scale(1); }
+  50%{ opacity:0.35; transform:scale(0.8); }
+}
+.zip-combo.is-search-busy .zip-combo-search,
+.radius-group.is-search-busy .radius-opt:not(.selected){
+  opacity:0.85;
 }
 .zip-combo{position:relative; width:100%; min-width:0;}
 .zip-combo-field{position:relative;}
@@ -418,9 +432,19 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
   position:absolute; inset:0; z-index:500; display:flex; align-items:center; justify-content:center;
   background:rgba(246,248,250,0.45); pointer-events:none;
 }
+.map-loading-overlay.is-soft{
+  background:rgba(11,32,54,0.18);
+  transition:opacity .15s ease;
+}
 .map-loading-card{
   background:var(--navy-900); color:var(--white); font-size:13px; font-weight:600;
   padding:10px 16px; border-radius:10px; box-shadow:var(--shadow-pop);
+  display:inline-flex; align-items:center; gap:8px;
+}
+.map-loading-overlay.is-soft .map-loading-card::before,
+.map-loading-overlay.is-fetching .map-loading-card::before{
+  content:""; width:10px; height:10px; border-radius:50%; flex-shrink:0;
+  background:var(--blue-accent); animation:search-pulse 1s ease-in-out infinite;
 }
 .map-legend{display:flex; gap:14px; align-items:center; font-size:11.5px; color:var(--gray-500); padding:10px 16px; border-top:1px solid var(--gray-100);}
 .legend-dot{width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:5px; vertical-align:middle;}
@@ -428,12 +452,23 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
 .leaflet-popup-content-wrapper{border-radius:10px;}
 
 /* ---------- Lead Map (Sky-inspired layout, Sales layers only) ---------- */
-.main.view-map .content{padding:14px 16px 16px;}
-.lead-map-page{display:flex; flex-direction:column; gap:12px; min-height:calc(100vh - 88px);}
+/* Lock map view to the viewport so legend/list scroll internally and the map stays put. */
+.main.view-map{
+  display:flex; flex-direction:column; height:100vh; min-height:0; overflow:hidden;
+}
+.main.view-map .content{
+  flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;
+  padding:14px 16px 16px;
+}
+.lead-map-page{
+  display:flex; flex-direction:column; gap:12px;
+  flex:1; min-height:0; overflow:hidden;
+}
+.lead-map-page > .data-banner{flex-shrink:0;}
 .lead-map-toolbar{
   display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px 16px;
   background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius-md);
-  padding:12px 14px; box-shadow:var(--shadow-card);
+  padding:12px 14px; box-shadow:var(--shadow-card); flex-shrink:0;
 }
 .lead-map-toolbar .lm-field{min-width:0;}
 .lead-map-toolbar .lm-field-zip{flex:1.2; min-width:200px;}
@@ -441,18 +476,20 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
 .lead-map-toolbar .lm-field-filters{display:flex; flex-wrap:wrap; align-items:center; gap:12px; flex:1; min-width:220px;}
 .lead-map-toolbar .lm-field-actions{display:flex; flex-direction:column; align-items:flex-end; gap:6px; margin-left:auto;}
 .lead-map-toolbar .lm-field-actions .search-status{padding:0; text-align:right;}
+.lead-map-toolbar .lm-field-actions .search-status.is-loading{justify-content:flex-end;}
 .lead-map-count{font-size:12.5px; color:var(--gray-500); font-family:'IBM Plex Mono',monospace; white-space:nowrap;}
 .lead-map-layout{
   display:grid; grid-template-columns:220px minmax(0,1fr) 300px; gap:12px;
-  flex:1; min-height:560px; align-items:stretch;
+  flex:1; min-height:0; overflow:hidden; align-items:stretch;
 }
 .lead-map-rail{
   background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius-lg);
   box-shadow:var(--shadow-card); padding:14px 14px 12px; display:flex; flex-direction:column;
   min-height:0; overflow:hidden;
 }
-.lead-map-rail h2{margin:0 0 2px; font-size:14px; font-weight:700; letter-spacing:-0.01em; color:var(--navy-900);}
-.lead-map-rail .rail-hint{margin:0 0 12px; font-size:11.5px; color:var(--gray-500); line-height:1.4;}
+.lead-map-rail h2{margin:0 0 2px; font-size:14px; font-weight:700; letter-spacing:-0.01em; color:var(--navy-900); flex-shrink:0;}
+.lead-map-rail .rail-hint{margin:0 0 12px; font-size:11.5px; color:var(--gray-500); line-height:1.4; flex-shrink:0;}
+.lead-map-rail-right > .sort-select{flex-shrink:0;}
 .lead-map-legend{flex:1; min-height:0; overflow-y:auto; padding-right:2px;}
 .lead-map-legend h4{
   margin:14px 0 6px; font-size:10.5px; font-weight:700; text-transform:uppercase;
@@ -464,7 +501,7 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
 .lm-sw.round{border-radius:50%;}
 .lm-sw.ring{background:transparent; border:2px solid var(--blue-accent); border-radius:50%; width:12px; height:12px; box-sizing:border-box;}
 .lm-sw.office{background:var(--navy-800); border-radius:50%; box-shadow:0 0 0 3px rgba(46,139,230,0.28);}
-.lm-layer-toggles{margin-top:12px; padding-top:12px; border-top:1px solid var(--gray-100); display:flex; flex-direction:column; gap:8px;}
+.lm-layer-toggles{margin-top:12px; padding-top:12px; border-top:1px solid var(--gray-100); display:flex; flex-direction:column; gap:8px; flex-shrink:0;}
 .lm-layer-toggles label{font-size:12.5px; color:var(--gray-700); display:flex; align-items:center; gap:8px; cursor:pointer;}
 .checkbox-row.storm-stubbed{opacity:0.72; cursor:not-allowed;}
 .checkbox-row.storm-stubbed input{cursor:not-allowed;}
@@ -486,8 +523,10 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
   background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius-lg);
   box-shadow:var(--shadow-card); overflow:hidden;
 }
-#lead-map{flex:1; min-height:520px; width:100%;}
-.lead-map-list{flex:1; min-height:0; overflow-y:auto; margin:0 -4px; padding:0 4px;}
+/* min-height guards Leaflet init — flex can report 0×0 before layout settles;
+   canvas path overlays then stay blank even after invalidateSize (tiles still show). */
+#lead-map{flex:1; min-height:240px; width:100%; height:100%; position:relative;}
+.lead-map-list{flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; margin:0 -4px; padding:0 4px;}
 .lm-lead{
   display:grid; grid-template-columns:1fr auto; gap:6px 10px; padding:10px 10px;
   border-radius:10px; border:1px solid transparent; cursor:pointer; transition:background .1s, border-color .1s;
@@ -509,12 +548,16 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
   .filter-row{grid-template-columns:1fr 1fr;}
   .detail-grid{grid-template-columns:1fr;}
   .stat-grid{grid-template-columns:repeat(2,1fr);}
-  .lead-map-layout{grid-template-columns:1fr; min-height:0;}
+  /* Stacked map: allow page scroll; list keeps its own capped scroll. */
+  .main.view-map{height:auto; overflow:visible;}
+  .main.view-map .content{overflow:visible; flex:none;}
+  .lead-map-page{flex:none; overflow:visible;}
+  .lead-map-layout{grid-template-columns:1fr; min-height:0; overflow:visible; flex:none;}
   .lead-map-center{order:1;}
   .lead-map-rail-left{order:2;}
   .lead-map-rail-right{order:3;}
   #lead-map{min-height:48vh;}
-  .lead-map-list{max-height:340px;}
+  .lead-map-list{max-height:min(340px, 50vh);}
 }
 @media (max-width: 780px){
   .sidebar{display:none;}
@@ -1006,6 +1049,19 @@ function renderZipComboList(query){
   list.innerHTML = html;
 }
 
+function searchFetchKey(sp = state.searchParams){
+  // Types are client-side only — ZIP + radius define the live fetch.
+  return `${sp.zip}|${sp.radius}`;
+}
+function isMultiAreaZip(zip = state.searchParams.zip){
+  const cat = window.IL_COVERED_ZIPS;
+  if(!cat) return false;
+  return zip === cat.ALL_VALUE || /^__ZONE:(DuPage|Cook|Chicago)__$/.test(zip || "");
+}
+
+let _autoSearchTimer = null;
+let _autoSearchSeq = 0;
+
 function setZipSelection(value, { syncSearch = true, close = true, autoSearch = true } = {}){
   const cat = window.IL_COVERED_ZIPS;
   if(cat && !cat.isValidSelection(value)) return;
@@ -1017,9 +1073,102 @@ function setZipSelection(value, { syncSearch = true, close = true, autoSearch = 
   const search = document.getElementById("zip-combo-search");
   if(search && syncSearch) search.value = zipDisplayLabel(value);
   if(close) closeZipCombo();
-  if(autoSearch && value !== prev){
-    render();
-    scheduleAutoSearch();
+  // Avoid an extra full render here — runLiveSearch soft-updates status, then remounts once.
+  if(autoSearch && value !== prev) scheduleAutoSearch();
+}
+
+function searchUpdatingMessage(){
+  return st("sales.search.updatingZip","Updating leads for {zip}…", {
+    zip: zipDisplayLabel(state.searchParams.zip)
+  });
+}
+
+/** Soft map dim + message on Dashboard (#results-map) and Lead Map (#lead-map). No Leaflet remount. */
+function setMapSearchOverlay(on){
+  const zipLabel = zipDisplayLabel(state.searchParams.zip);
+  const msg = st("sales.map.searching","Searching live leads near {zip}...", { zip: zipLabel });
+  ["results-map","lead-map"].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(getComputedStyle(el).position === "static") el.style.position = "relative";
+    let overlay = el.querySelector(":scope > .map-loading-overlay.is-soft");
+    if(on){
+      if(!overlay){
+        overlay = document.createElement("div");
+        overlay.className = "map-loading-overlay is-soft";
+        overlay.setAttribute("aria-live","polite");
+        el.appendChild(overlay);
+      }
+      overlay.innerHTML = `<div class="map-loading-card">${msg}</div>`;
+    } else if(overlay){
+      overlay.remove();
+    }
+  });
+}
+
+function setSearchStatusLoading(on){
+  const msg = on
+    ? searchUpdatingMessage()
+    : st("sales.search.liveHint","Updates when you change ZIP or radius");
+  document.querySelectorAll(".search-status").forEach(el=>{
+    el.classList.toggle("is-loading", on);
+    el.textContent = msg;
+    el.setAttribute("aria-busy", on ? "true" : "false");
+    el.setAttribute("aria-live","polite");
+  });
+  document.querySelectorAll(".zip-combo, .radius-group").forEach(el=>{
+    el.classList.toggle("is-search-busy", on);
+  });
+  setMapSearchOverlay(on);
+}
+
+/** Debounced live search: ZIP/radius changes only. Types/filters stay local. */
+function scheduleAutoSearch({ immediate = false } = {}){
+  clearTimeout(_autoSearchTimer);
+  // Immediate busy feedback during debounce — ZIP/radius changes must never feel idle.
+  state.loading = true;
+  setSearchStatusLoading(true);
+  const delay = immediate ? 0 : (isMultiAreaZip() ? 800 : 450);
+  _autoSearchTimer = setTimeout(() => { runLiveSearch(); }, delay);
+}
+
+async function runLiveSearch(){
+  commitZipFromSearchBox();
+  if(window.IL_COVERED_ZIPS) window.IL_COVERED_ZIPS.saveZip(state.searchParams.zip);
+  const key = searchFetchKey();
+  if(state.fetchedSearchKey === key && state.results.length){
+    state.hasSearched = true;
+    state.loading = false;
+    setSearchStatusLoading(false);
+    return;
+  }
+  const seq = ++_autoSearchSeq;
+  state.loading = true;
+  // Soft status + map overlay only — do not remount Leaflet twice (loading + results).
+  setSearchStatusLoading(true);
+  let ok = false;
+  try{
+    const leads = await fetchLeadsForSearch(state.searchParams);
+    if(seq !== _autoSearchSeq) return; // newer search started
+    state.results = leads;
+    state.fetchedSearchKey = key;
+    state.hasSearched = true;
+    ok = true;
+  } catch (err) {
+    if(seq === _autoSearchSeq){
+      showToast(st("sales.toast.searchFailed","Could not update leads — try again"));
+    }
+  } finally {
+    if(seq === _autoSearchSeq){
+      state.loading = false;
+      render(); // single remount when data is ready (also clears soft overlay)
+      if(ok){
+        showToast(st("sales.toast.found","{n} leads near {zip}", {
+          n: getFilteredSortedLeads().length,
+          zip: zipDisplayLabel(state.searchParams.zip)
+        }));
+      }
+    }
   }
 }
 
@@ -1114,13 +1263,13 @@ function commitZipFromSearchBox(){
   }
   const digits = raw.replace(/\D/g,"").slice(0,5);
   if(/^\d{5}$/.test(digits) && cat.find(digits)){
-    setZipSelection(digits);
+    setZipSelection(digits, { autoSearch: false });
     return;
   }
   const opts = buildZipComboOptions(raw).filter(o => !o.special || o.label.toLowerCase().includes(raw.toLowerCase()));
   const exactZip = opts.find(o => o.value === digits);
-  if(exactZip){ setZipSelection(exactZip.value); return; }
-  if(opts.length === 1){ setZipSelection(opts[0].value); return; }
+  if(exactZip){ setZipSelection(exactZip.value, { autoSearch: false }); return; }
+  if(opts.length === 1){ setZipSelection(opts[0].value, { autoSearch: false }); return; }
   closeZipCombo();
 }
 
@@ -1135,61 +1284,11 @@ function getLeadById(id){
   if(!id) return getActiveLead();
   return state.results.find(l=>l.id===id) || SAMPLE_LEADS.find(l=>l.id===id) || null;
 }
-function searchFetchKey(sp = state.searchParams){
-  // Types are client-side only — ZIP + radius define the live fetch.
-  return `${sp.zip}|${sp.radius}`;
-}
-function isMultiAreaZip(zip = state.searchParams.zip){
-  const cat = window.IL_COVERED_ZIPS;
-  if(!cat) return false;
-  return zip === cat.ALL_VALUE || /^__ZONE:(DuPage|Cook|Chicago)__$/.test(zip || "");
-}
-
-let _autoSearchTimer = null;
-let _autoSearchSeq = 0;
-
-/** Debounced live search: ZIP/radius changes only. Types/filters stay local. */
-function scheduleAutoSearch({ immediate = false } = {}){
-  clearTimeout(_autoSearchTimer);
-  const delay = immediate ? 0 : (isMultiAreaZip() ? 800 : 450);
-  _autoSearchTimer = setTimeout(() => { runLiveSearch(); }, delay);
-}
-
-async function runLiveSearch(){
-  commitZipFromSearchBox();
-  if(window.IL_COVERED_ZIPS) window.IL_COVERED_ZIPS.saveZip(state.searchParams.zip);
-  const key = searchFetchKey();
-  if(state.fetchedSearchKey === key && state.results.length && !state.loading){
-    state.hasSearched = true;
-    render();
-    return;
-  }
-  const seq = ++_autoSearchSeq;
-  state.loading = true;
-  render();
-  try{
-    const leads = await fetchLeadsForSearch(state.searchParams);
-    if(seq !== _autoSearchSeq) return; // newer search started
-    state.results = leads;
-    state.fetchedSearchKey = key;
-    state.hasSearched = true;
-  } finally {
-    if(seq === _autoSearchSeq){
-      state.loading = false;
-      render();
-      showToast(st("sales.toast.found","{n} leads near {zip}", {
-        n: getFilteredSortedLeads().length,
-        zip: zipDisplayLabel(state.searchParams.zip)
-      }));
-    }
-  }
-}
-
 function searchStatusHtml(){
   if(state.loading){
-    return `<div class="search-status is-loading" aria-live="polite">${st("sales.search.updating","Updating…")}</div>`;
+    return `<div class="search-status is-loading" aria-live="polite" aria-busy="true">${searchUpdatingMessage()}</div>`;
   }
-  return `<div class="search-status">${st("sales.search.liveHint","Updates when you change ZIP or radius")}</div>`;
+  return `<div class="search-status" aria-busy="false">${st("sales.search.liveHint","Updates when you change ZIP or radius")}</div>`;
 }
 function isStormDataStubbed(){
   const s = state.sourceStatus;
@@ -1493,6 +1592,7 @@ const state = {
   },
   resultsView:"owners", // owners | table | cards
   sortBy:"leadScore", // leadScore | roofSqFt | propertyValue | hailWindRisk
+  sortDir:"desc", // asc | desc
   activeLeadId:null,
   mapFocusLeadId:null, // Lead Map selection sync (list ↔ marker)
   mapLayers:{ office:true, radius:true, cluster:false, heat:false },
@@ -1579,11 +1679,12 @@ function getFilteredSortedLeads(){
   if(sp.priorityFilter !== "All") leads = leads.filter(l => l.priority === sp.priorityFilter);
 
   leads.sort((a,b)=>{
-    if(state.sortBy === "leadScore") return b.leadScore - a.leadScore;
-    if(state.sortBy === "roofSqFt") return b.roofSqFt - a.roofSqFt;
-    if(state.sortBy === "propertyValue") return b.propertyValue - a.propertyValue;
-    if(state.sortBy === "hailWindRisk") return RISK_ORDER[b.hailWindRisk] - RISK_ORDER[a.hailWindRisk];
-    return 0;
+    let cmp = 0;
+    if(state.sortBy === "leadScore") cmp = (a.leadScore||0) - (b.leadScore||0);
+    else if(state.sortBy === "roofSqFt") cmp = (a.roofSqFt||0) - (b.roofSqFt||0);
+    else if(state.sortBy === "propertyValue") cmp = (a.propertyValue||0) - (b.propertyValue||0);
+    else if(state.sortBy === "hailWindRisk") cmp = (RISK_ORDER[a.hailWindRisk]||0) - (RISK_ORDER[b.hailWindRisk]||0);
+    return state.sortDir === "asc" ? cmp : -cmp;
   });
   return leads;
 }
@@ -1842,16 +1943,22 @@ async function loadSourceStatus(){
   try{
     const res = await fetch("/api/status", {credentials:"include"});
     state.sourceStatus = await res.json();
-    // Clear dishonest storm filter once we know storms are stubbed.
     if(isStormDataStubbed() && state.searchParams.stormOnly){
       state.searchParams.stormOnly = false;
-      render();
-      return;
     }
     const el = document.getElementById("source-status");
     if(el) el.innerHTML = renderSourceStatus();
-    // Refresh Results/Map so the stub badge appears on the storm checkbox.
-    if(isStormDataStubbed() && (state.view === "results" || state.view === "map")) render();
+    // Soft-refresh storm checkbox label without remounting maps.
+    const stormHost = document.querySelector(".results-filters, .lm-field-filters");
+    if(stormHost && isStormDataStubbed()){
+      const old = stormHost.querySelector(".checkbox-row, .storm-stubbed");
+      // Replace first checkbox row if present
+      const tmp = document.createElement("div");
+      tmp.innerHTML = stormOnlyControlHtml(state.searchParams);
+      const next = tmp.firstElementChild;
+      const current = document.getElementById("storm-only")?.closest("label");
+      if(next && current) current.replaceWith(next);
+    }
   } catch(e){ /* panel keeps its loading text */ }
 }
 function iconInfo(){ return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`; }
@@ -1879,6 +1986,9 @@ function renderResults(){
             <option value="propertyValue" ${state.sortBy==="propertyValue"?"selected":""}>${st("sales.sort.propertyValue","Property value")}</option>
             <option value="hailWindRisk" ${state.sortBy==="hailWindRisk"?"selected":""}>${st("sales.sort.hailWindRisk","Storm risk")}</option>
           </select>
+          <button type="button" class="btn btn-sm sort-dir-btn" data-action="toggle-sort-dir" title="${st("sales.sort.toggleDir","Toggle ascending / descending")}">
+            ${state.sortDir==="asc" ? st("sales.sort.asc","Asc ↑") : st("sales.sort.desc","Desc ↓")}
+          </button>
         </div>
         <button class="btn btn-sm ${state.showResultsMap?"btn-primary":""}" data-action="toggle-results-map">${state.showResultsMap?st("sales.map.hide","Hide map"):st("sales.map.show","Show map")}</button>
         <div class="view-toggle">
@@ -2231,6 +2341,18 @@ function renderLeadMap(){
       <aside class="lead-map-rail lead-map-rail-right">
         <h2>${st("sales.mapView.listTitle","Leads on map")}</h2>
         <p class="rail-hint">${st("sales.mapView.listHint","Click a row to focus the marker · Profile opens the full lead")}</p>
+        <div class="sort-select" style="margin:0 0 10px;">
+          ${st("sales.results.sortBy","Sort by")}
+          <select class="input" id="sort-select" style="width:auto; padding:6px 10px;">
+            <option value="leadScore" ${state.sortBy==="leadScore"?"selected":""}>${st("sales.sort.leadScore","Lead score")}</option>
+            <option value="roofSqFt" ${state.sortBy==="roofSqFt"?"selected":""}>${st("sales.sort.roofSqFt","Roof size")}</option>
+            <option value="propertyValue" ${state.sortBy==="propertyValue"?"selected":""}>${st("sales.sort.propertyValue","Property value")}</option>
+            <option value="hailWindRisk" ${state.sortBy==="hailWindRisk"?"selected":""}>${st("sales.sort.hailWindRisk","Storm risk")}</option>
+          </select>
+          <button type="button" class="btn btn-sm sort-dir-btn" data-action="toggle-sort-dir" title="${st("sales.sort.toggleDir","Toggle ascending / descending")}">
+            ${state.sortDir==="asc" ? st("sales.sort.asc","Asc ↑") : st("sales.sort.desc","Desc ↓")}
+          </button>
+        </div>
         <div class="lead-map-list">${listHtml}</div>
       </aside>
     </div>
@@ -2299,7 +2421,10 @@ function attachEvents(){
       const r = parseInt(el.dataset.radius, 10);
       if(state.searchParams.radius === r) return;
       state.searchParams.radius = r;
-      render();
+      // Soft UI update — avoid remounting the map before fetch completes.
+      document.querySelectorAll("[data-radius]").forEach(b=>{
+        b.classList.toggle("selected", parseInt(b.dataset.radius, 10) === r);
+      });
       scheduleAutoSearch();
     });
   });
@@ -2335,6 +2460,11 @@ function attachEvents(){
   });
   const sortSelect = document.getElementById("sort-select");
   if(sortSelect) sortSelect.addEventListener("change", e=>{ state.sortBy = e.target.value; render(); });
+  const sortDirBtn = document.querySelector('[data-action="toggle-sort-dir"]');
+  if(sortDirBtn) sortDirBtn.addEventListener("click", ()=>{
+    state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
+    render();
+  });
 
   // Detail / map CRM actions (support multiple map-row buttons)
   document.querySelectorAll('[data-action="send-crm"]').forEach(el=>{
@@ -2415,6 +2545,105 @@ window._crmFromMap = (id, action)=>{
   if(action === "task") confirmCreateTask(id);
   else confirmSendToCrm(id);
 };
+
+function leadMarkerPopupHtml(l){
+  return `<div style="min-width:210px;">
+    <b style="font-size:13px;">${escHtml(l.name)}</b><br>
+    <span style="color:#64748B; font-size:11.5px;">${escHtml(l.address)}</span><br>
+    ${l.ownerEntity ? `<span style="color:#64748B; font-size:11px;">${escHtml(l.ownerEntity)}</span><br>` : ""}
+    <span class="mono" style="font-size:12px;">Score ${l.leadScore}/100 · ${priorityLabel(l.priority)}${l.roofSqFt ? " · " + fmtSqFt(l.roofSqFt) + " roof" : ""}</span>
+    ${l._approxGeo ? `<br><span style="color:#C97A1F;font-size:11px;">${st("sales.mapView.approxPin","Approximate pin")}</span>` : ""}
+    <br>
+    <span class="status-chip ${statusClass(l.status)}" style="margin-top:6px; display:inline-block;">${escHtml(l.status)}</span><br>
+    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
+      <a href="#" style="color:#1D6FBF; font-weight:600; font-size:12px;" onclick="window._crmFromMap('${l.id}','crm'); return false;">${st("sales.mapView.sendCrm","CRM")}</a>
+      <a href="#" style="color:#1D6FBF; font-weight:600; font-size:12px;" onclick="window._crmFromMap('${l.id}','task'); return false;">${st("sales.mapView.createTask","Task")}</a>
+      <a href="#" style="color:#1D6FBF; font-weight:600; font-size:12px;" onclick="window._openLeadFromMap('${l.id}'); return false;">${st("sales.map.viewProfile","View full profile →")}</a>
+    </div>
+  </div>`;
+}
+
+function leadMarkerStyle(lead, selected){
+  return {
+    radius: markerRadiusForScore(lead.leadScore) + (selected ? 3 : 0),
+    color: selected ? "#0B2036" : "#FFFFFF",
+    weight: selected ? 3 : 1.5,
+    fillColor: PRIORITY_COLORS[lead.priority] || "#5C7086",
+    fillOpacity: selected ? 1 : 0.92,
+  };
+}
+
+function syncLeadMarkerSelection(focusId){
+  const markers = window._leadMapMarkers || {};
+  Object.keys(markers).forEach((mid) => {
+    const m = markers[mid];
+    const lead = getLeadById(mid);
+    if(!m || !lead || typeof m.setStyle !== "function") return;
+    m.setStyle(leadMarkerStyle(lead, mid === focusId));
+    if(mid === focusId && typeof m.bringToFront === "function"){
+      try { m.bringToFront(); } catch(e){}
+    }
+  });
+}
+
+/** Soft-add a lead marker onto the live Lead Map without remounting Leaflet. */
+function softAddLeadMarker(lead){
+  const map = window._leadMap;
+  const ll = leadLatLng(lead);
+  if(!map || !ll || typeof L === "undefined") return false;
+  if(!window._leadMapMarkers) window._leadMapMarkers = {};
+  if(window._leadMapMarkers[lead.id]){
+    syncLeadMarkerSelection(state.mapFocusLeadId);
+    return true;
+  }
+
+  const selected = state.mapFocusLeadId === lead.id;
+  // Avoid pinning renderer to map.options.renderer — preferCanvas + flex-0 init
+  // leaves a blank canvas; default SVG paths redraw after invalidateSize.
+  const marker = L.circleMarker([ll.lat, ll.lng], leadMarkerStyle(lead, selected));
+  marker.bindPopup(leadMarkerPopupHtml(lead));
+  marker.on("click", ()=>{ window._focusLeadOnMap(lead.id); });
+  const layer = window._leadMapMarkerLayer;
+  if(layer && typeof layer.addLayer === "function") layer.addLayer(marker);
+  else marker.addTo(map);
+  window._leadMapMarkers[lead.id] = marker;
+
+  // Soft-clear "no pin" hint on the list row.
+  const row = document.querySelector(`.lm-lead[data-focus-lead="${CSS.escape(lead.id)}"]`);
+  if(row){
+    const addr = row.querySelector(".lm-lead-addr");
+    if(addr) addr.textContent = lead.address || "";
+  }
+  const stats = leadsCoordStats();
+  document.querySelectorAll(".lead-map-count").forEach((el) => {
+    el.textContent = `${st("sales.mapView.count","{n} leads", {n: stats.total})} · ${st("sales.stat.onMap","{n} on map", {n: stats.withCoords})}`;
+  });
+  return true;
+}
+
+function focusLeadMarker(id, lead){
+  const marker = window._leadMapMarkers && window._leadMapMarkers[id];
+  const map = window._leadMap;
+  if(!map || !marker) return false;
+  try{
+    syncLeadMarkerSelection(id);
+    const openFocused = ()=>{
+      map.setView(marker.getLatLng(), Math.max(map.getZoom(), 15));
+      try { marker.openPopup(); } catch(e){}
+    };
+    if(marker.__parent && typeof marker.__parent.zoomToShowLayer === "function"){
+      marker.__parent.zoomToShowLayer(marker, openFocused);
+    } else {
+      openFocused();
+    }
+    showToast(st("sales.mapView.focused","Focused: {name}", { name: lead.name || lead.address }), { ms: 1600 });
+    return true;
+  }catch(e){
+    showToast(st("sales.mapView.focusFail","Could not focus marker on the map"));
+    return false;
+  }
+}
+
 window._focusLeadOnMap = async (id)=>{
   state.mapFocusLeadId = id;
   // Soft-update list selection without full remount
@@ -2430,7 +2659,7 @@ window._focusLeadOnMap = async (id)=>{
     return;
   }
 
-  // If this lead has no pin yet, geocode the address once, then remount markers.
+  // If this lead has no pin yet, geocode once and soft-add the marker (no remount).
   if(!leadLatLng(lead) && lead.address && !lead._geoTried){
     lead._geoTried = true;
     showToast(st("sales.mapView.geocoding","Locating {name} on the map…", { name: lead.name || lead.address }));
@@ -2442,8 +2671,9 @@ window._focusLeadOnMap = async (id)=>{
         lead.lng = Number(data.lng);
         lead._approxGeo = true;
         lead._geoProvider = data.provider || "address";
+        if(softAddLeadMarker(lead) && focusLeadMarker(id, lead)) return;
+        // Fallback: single remount only if the live map layer is unavailable.
         render();
-        // After remount, focus again (now has coords)
         requestAnimationFrame(()=> window._focusLeadOnMap(id));
         return;
       }
@@ -2455,28 +2685,11 @@ window._focusLeadOnMap = async (id)=>{
     }
   }
 
-  const marker = window._leadMapMarkers && window._leadMapMarkers[id];
-  const map = window._leadMap;
-  if(map && marker){
-    try{
-      if(marker.__parent && typeof marker.__parent.zoomToShowLayer === "function"){
-        marker.__parent.zoomToShowLayer(marker, ()=>{
-          map.setView(marker.getLatLng(), Math.max(map.getZoom(), 15));
-          marker.openPopup();
-        });
-      } else {
-        map.setView(marker.getLatLng(), Math.max(map.getZoom(), 15));
-        marker.openPopup();
-      }
-      showToast(st("sales.mapView.focused","Focused: {name}", { name: lead.name || lead.address }), { ms: 1600 });
-    }catch(e){
-      showToast(st("sales.mapView.focusFail","Could not focus marker on the map"));
-    }
-    return;
-  }
+  if(focusLeadMarker(id, lead)) return;
 
   if(leadLatLng(lead)){
-    // Coords exist but marker layer isn't ready — remount map once.
+    // Coords exist but marker missing — soft-add when possible, else remount once.
+    if(softAddLeadMarker(lead) && focusLeadMarker(id, lead)) return;
     render();
     requestAnimationFrame(()=>{
       const m = window._leadMapMarkers && window._leadMapMarkers[id];
@@ -2533,8 +2746,9 @@ function setupLeadMap(){
   const useCluster = state.mapLayers.cluster && typeof L.markerClusterGroup === "function";
   const mapOpts = {
     scrollWheelZoom: true,
-    // MarkerCluster works more reliably with SVG DOM markers than canvas.
-    preferCanvas: !useCluster,
+    // Always SVG for Lead Map. preferCanvas + flex height (often 0 at init) leaves
+    // path overlays blank while tiles still paint — matches "Focused" toast, zero pins.
+    preferCanvas: false,
     fadeAnimation: false,
     markerZoomAnimation: false,
   };
@@ -2554,7 +2768,7 @@ function setupLeadMap(){
       addSalesGeoLayers(map);
       map.setView([center.lat, center.lng], 11);
       const overlay = document.createElement("div");
-      overlay.className = "map-loading-overlay";
+      overlay.className = "map-loading-overlay is-fetching";
       overlay.innerHTML = `<div class="map-loading-card">${st("sales.map.searching","Searching live leads near {zip}...", {zip: zipDisplayLabel(state.searchParams.zip)})}</div>`;
       el.style.position = "relative";
       el.appendChild(overlay);
@@ -2615,32 +2829,13 @@ function setupLeadMap(){
     markerLayer = L.layerGroup();
   }
   markerLayer.addTo(map);
+  window._leadMapMarkerLayer = markerLayer;
 
   mappable.forEach(row => {
     const l = row.lead;
     const selected = state.mapFocusLeadId === l.id;
-    const marker = L.circleMarker([row.lat, row.lng], {
-      radius: markerRadiusForScore(l.leadScore) + (selected ? 2 : 0),
-      color: selected ? "#0B2036" : "#FFFFFF",
-      weight: selected ? 2.5 : 1.5,
-      fillColor: PRIORITY_COLORS[l.priority] || "#5C7086",
-      fillOpacity: 0.92,
-      renderer: map.options.renderer
-    });
-    marker.bindPopup(`<div style="min-width:210px;">
-      <b style="font-size:13px;">${escHtml(l.name)}</b><br>
-      <span style="color:#64748B; font-size:11.5px;">${escHtml(l.address)}</span><br>
-      ${l.ownerEntity ? `<span style="color:#64748B; font-size:11px;">${escHtml(l.ownerEntity)}</span><br>` : ""}
-      <span class="mono" style="font-size:12px;">Score ${l.leadScore}/100 · ${priorityLabel(l.priority)}${l.roofSqFt ? " · " + fmtSqFt(l.roofSqFt) + " roof" : ""}</span>
-      ${l._approxGeo ? `<br><span style="color:#C97A1F;font-size:11px;">${st("sales.mapView.approxPin","Approximate pin")}</span>` : ""}
-      <br>
-      <span class="status-chip ${statusClass(l.status)}" style="margin-top:6px; display:inline-block;">${escHtml(l.status)}</span><br>
-      <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
-        <a href="#" style="color:#1D6FBF; font-weight:600; font-size:12px;" onclick="window._crmFromMap('${l.id}','crm'); return false;">${st("sales.mapView.sendCrm","CRM")}</a>
-        <a href="#" style="color:#1D6FBF; font-weight:600; font-size:12px;" onclick="window._crmFromMap('${l.id}','task'); return false;">${st("sales.mapView.createTask","Task")}</a>
-        <a href="#" style="color:#1D6FBF; font-weight:600; font-size:12px;" onclick="window._openLeadFromMap('${l.id}'); return false;">${st("sales.map.viewProfile","View full profile →")}</a>
-      </div>
-    </div>`);
+    const marker = L.circleMarker([row.lat, row.lng], leadMarkerStyle(l, selected));
+    marker.bindPopup(leadMarkerPopupHtml(l));
     marker.on("click", ()=>{ window._focusLeadOnMap(l.id); });
     markerLayer.addLayer(marker);
     markerById[l.id] = marker;
@@ -2653,6 +2848,7 @@ function setupLeadMap(){
     const m = markerById[state.mapFocusLeadId];
     const openFocused = ()=>{
       try {
+        syncLeadMarkerSelection(state.mapFocusLeadId);
         map.setView(m.getLatLng(), Math.max(map.getZoom(), 14));
         m.openPopup();
       } catch(e){}
@@ -2665,8 +2861,25 @@ function setupLeadMap(){
   } else {
     map.fitBounds(bounds, { padding:[36,36], maxZoom:14 });
   }
+  // Soft busy overlay when ZIP/radius search is in flight but prior markers remain.
+  if(state.loading){
+    const soft = document.createElement("div");
+    soft.className = "map-loading-overlay is-soft";
+    soft.setAttribute("aria-live","polite");
+    soft.innerHTML = `<div class="map-loading-card">${st("sales.map.searching","Searching live leads near {zip}...", {zip: zipDisplayLabel(state.searchParams.zip)})}</div>`;
+    el.appendChild(soft);
+  }
+  // Flex height settles after layout; invalidate so SVG overlays match the column size.
+  const fixSize = ()=>{
+    try {
+      map.invalidateSize({ animate: false });
+      if(map._renderer && typeof map._renderer._update === "function") map._renderer._update();
+    } catch(e){}
+  };
   requestAnimationFrame(() => {
-    try { map.invalidateSize({ animate: false }); } catch(e){}
+    fixSize();
+    setTimeout(fixSize, 80);
+    setTimeout(fixSize, 250);
   });
 }
 
@@ -2676,10 +2889,11 @@ function setupMaps(){
   window._maps = [];
   window._leadMap = null;
   window._leadMapMarkers = {};
+  window._leadMapMarkerLayer = null;
 
   const mapOpts = {
     scrollWheelZoom: false,
-    preferCanvas: true,
+    preferCanvas: false,
     fadeAnimation: false,
     markerZoomAnimation: false,
   };
@@ -2702,7 +2916,7 @@ function setupMaps(){
         const center = state.lastGeo || { lat: 41.957, lng: -88.081 }; // Bloomingdale-ish default
         map.setView([center.lat, center.lng], 11);
         const overlay = document.createElement("div");
-        overlay.className = "map-loading-overlay";
+        overlay.className = "map-loading-overlay is-fetching";
         overlay.innerHTML = `<div class="map-loading-card">${st("sales.map.searching","Searching live leads near {zip}...", {zip: zipDisplayLabel(state.searchParams.zip)})}</div>`;
         rm.style.position = "relative";
         rm.appendChild(overlay);
@@ -2720,14 +2934,13 @@ function setupMaps(){
       window._maps.push(map);
       L.control.layers(layers).addTo(map);
       const bounds = [];
-      // Canvas layer for many circle markers (faster than SVG DOM nodes)
+      // SVG circle markers (same as Lead Map — canvas can stay blank after remount)
       const markerLayer = L.layerGroup().addTo(map);
       mappable.forEach(row => {
         const l = row.lead;
         const marker = L.circleMarker([row.lat, row.lng], {
           radius:8, color:"#FFFFFF", weight:1.5,
           fillColor:PRIORITY_COLORS[l.priority] || "#5C7086", fillOpacity:0.92,
-          renderer: map.options.renderer
         }).addTo(markerLayer);
         marker.bindPopup(`<div style="min-width:190px;">
           <b style="font-size:13px;">${escHtml(l.name)}</b><br>
@@ -2738,6 +2951,13 @@ function setupMaps(){
         bounds.push([row.lat, row.lng]);
       });
       map.fitBounds(bounds, {padding:[30,30], maxZoom:15});
+      if(state.loading){
+        const soft = document.createElement("div");
+        soft.className = "map-loading-overlay is-soft";
+        soft.setAttribute("aria-live","polite");
+        soft.innerHTML = `<div class="map-loading-card">${st("sales.map.searching","Searching live leads near {zip}...", {zip: zipDisplayLabel(state.searchParams.zip)})}</div>`;
+        rm.appendChild(soft);
+      }
       // Layout can settle after SPA re-render; invalidate once so tiles aren't stuck blank.
       requestAnimationFrame(() => {
         try { map.invalidateSize({ animate: false }); } catch(e){}
