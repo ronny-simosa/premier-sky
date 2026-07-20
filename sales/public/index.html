@@ -448,22 +448,34 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
 }
 .zip-combo-list[hidden]{display:none !important;}
 .zip-opt{
-  display:flex; align-items:center; gap:8px; width:100%; text-align:left; border:1px solid transparent; background:transparent; cursor:pointer;
+  display:flex; align-items:flex-start; gap:8px; width:100%; text-align:left; border:1px solid transparent; background:transparent; cursor:pointer;
   padding:8px 10px; border-radius:8px; font-size:12.5px; color:var(--ink); line-height:1.35;
 }
 .zip-opt:hover, .zip-opt.active{background:var(--blue-soft);}
 .zip-opt.selected{
-  background:var(--blue-soft); border-color:var(--blue-accent); color:var(--blue-accent-dark); font-weight:700;
+  background:var(--blue-soft); border-color:var(--blue-accent); color:var(--blue-accent-dark);
 }
 .zip-opt.selected:hover, .zip-opt.selected.active{
   background:#CFE4FA; border-color:var(--blue-accent);
 }
-.zip-opt.special{font-weight:600; color:var(--blue-accent-dark);}
-.zip-opt.special.selected{font-weight:700;}
-.zip-opt-check{flex:0 0 auto; width:12px; font-size:12px; line-height:1; color:var(--blue-accent); font-weight:800;}
+.zip-opt.special{color:var(--blue-accent-dark);}
+.zip-opt.special .zip-opt-title{font-weight:700;}
+.zip-opt.selected .zip-opt-title{font-weight:700;}
+.zip-opt-check{flex:0 0 auto; width:12px; font-size:12px; line-height:1.2; color:var(--blue-accent); font-weight:800; margin-top:1px;}
 .zip-opt:not(.selected) .zip-opt-check{visibility:hidden;}
-.zip-opt-label{flex:1; min-width:0;}
-.zip-opt-group{font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--gray-500); padding:8px 10px 4px;}
+.zip-opt-text{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px;}
+.zip-opt-title{font-size:12.5px; font-weight:650; color:var(--navy-900); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.zip-opt-sub{font-size:11px; font-weight:500; color:var(--gray-500); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.zip-opt.selected .zip-opt-sub{color:var(--navy-700);}
+.zip-opt-group{
+  font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--gray-500);
+  padding:10px 10px 4px;
+}
+.zip-opt-group.state{
+  color:var(--navy-800); background:var(--gray-50); border-radius:8px; margin:2px 0 4px; padding:7px 10px;
+  letter-spacing:.08em;
+}
+.zip-opt-group.zone{padding-top:8px;}
 .zip-combo-empty{padding:10px; font-size:12px; color:var(--gray-500);}
 .zip-hint{font-size:11px; color:var(--gray-500); margin-top:6px; line-height:1.35;}
 .dash-main{display:grid; grid-template-columns:1.75fr 1fr; gap:16px; margin-bottom:20px;}
@@ -716,8 +728,8 @@ textarea.notes{width:100%; min-height:90px; border:1px solid var(--gray-300); bo
 <div id="app"></div>
 <div class="toast" id="toast"></div>
 
-<script src="/assets/js/i18n.js?v=44"></script>
-<script src="/sales/js/il-covered-zips.js?v=2"></script>
+<script src="/assets/js/i18n.js?v=49"></script>
+<script src="/sales/js/il-covered-zips.js?v=6"></script>
 <script>
 /* ============================================================================
    PREMIER SALES DEVELOPER MACHINE
@@ -1180,7 +1192,8 @@ function zipDisplayLabel(zip){
   const cat = window.IL_COVERED_ZIPS;
   if(!cat) return zip;
   if(zip === cat.ALL_VALUE) return st("sales.search.zipAllShort","Multi-area overview");
-  const zm = /^__ZONE:(DuPage|Cook|Chicago)__$/.exec(zip || "");
+  const zoneRe = cat.ZONE_RE || /^__ZONE:(DuPage|Cook|Chicago|Kane|DeKalb)__$/;
+  const zm = zoneRe.exec(zip || "");
   if(zm) return st("sales.search.zipZoneAllShort","All {zone}", { zone: zm[1] });
   const row = cat.find(zip);
   return row ? cat.label(row) : zip;
@@ -1203,32 +1216,59 @@ function zipSelectHtml(selectedZip){
       </div>
       <div class="zip-combo-list" id="zip-combo-list" hidden role="listbox"></div>
     </div>
-    <div class="zip-hint">${st("sales.search.zipHint","Live data: DuPage · Cook · Chicago. Type to filter · zone options use hub scans (quota-safe).")}</div>`;
+    <div class="zip-hint">${st("sales.search.zipHint","Live parcel data: DuPage · Cook · Chicago · Kane · DeKalb (Illinois). Every ZIP in this list returns real property leads.")}</div>`;
 }
 
 function buildZipComboOptions(query){
   const cat = window.IL_COVERED_ZIPS;
   if(!cat) return [];
   const q = String(query || "").trim().toLowerCase();
+  const liveLabel = st("sales.search.zipLive","Live parcel data");
+  const il = cat.stateName ? cat.stateName("IL") : "Illinois";
+  const hubCount = (cat.HUB_ZIPS || []).length || 30;
   const specials = [
-    { value: cat.ALL_VALUE, label: st("sales.search.zipAll","Multi-area overview (18 hubs)"), special: true, hay: "multi area overview all hubs covered" },
+    {
+      value: cat.ALL_VALUE,
+      title: st("sales.search.zipAll","Multi-area overview ({n} hubs)", { n: hubCount }),
+      subtitle: `${il} · ${st("sales.search.zipHubsSub","DuPage · Cook · Chicago · Kane · DeKalb hubs")} · ${liveLabel}`,
+      label: st("sales.search.zipAll","Multi-area overview ({n} hubs)", { n: hubCount }),
+      special: true,
+      state: "IL",
+      live: true,
+      hay: "multi area overview all hubs covered illinois live kane dekalb"
+    },
     ...cat.ZONES.map(zone => ({
       value: cat.zoneAllValue(zone),
+      title: st("sales.search.zipZoneAll","All {zone} (hubs)", { zone }),
+      subtitle: `${il} · ${zone} · ${liveLabel}`,
       label: st("sales.search.zipZoneAll","All {zone} (hubs)", { zone }),
       special: true,
-      hay: `all ${zone} hubs zone`.toLowerCase()
+      state: "IL",
+      live: true,
+      hay: `all ${zone} hubs zone illinois live`.toLowerCase()
     }))
   ];
-  const zips = cat.ZIPS.map(row => ({
-    value: row.zip,
-    label: cat.label(row),
-    zone: row.zone,
-    special: false,
-    hay: `${row.zip} ${row.city} ${row.zone}`.toLowerCase()
-  }));
+  const zips = cat.ZIPS.map(row => {
+    const stName = cat.stateName ? cat.stateName(row.state || "IL") : "Illinois";
+    return {
+      value: row.zip,
+      title: `${row.zip} — ${row.city}`,
+      subtitle: `${stName} · ${row.zone} · ${liveLabel}`,
+      label: cat.label(row),
+      zone: row.zone,
+      state: row.state || "IL",
+      special: false,
+      live: true,
+      hay: `${row.zip} ${row.city} ${row.zone} illinois live`.toLowerCase()
+    };
+  });
   const all = [...specials, ...zips];
   if(!q) return all;
-  return all.filter(o => o.hay.includes(q) || o.label.toLowerCase().includes(q));
+  return all.filter(o =>
+    o.hay.includes(q) ||
+    o.label.toLowerCase().includes(q) ||
+    (o.subtitle || "").toLowerCase().includes(q)
+  );
 }
 
 function zipOptButtonHtml(o, selectedZip){
@@ -1236,7 +1276,15 @@ function zipOptButtonHtml(o, selectedZip){
   const classes = ["zip-opt"];
   if(o.special) classes.push("special");
   if(isSelected) classes.push("selected");
-  return `<button type="button" class="${classes.join(" ")}" role="option" aria-selected="${isSelected?"true":"false"}" data-zip-value="${escHtml(o.value)}"><span class="zip-opt-check" aria-hidden="true">✓</span><span class="zip-opt-label">${escHtml(o.label)}</span></button>`;
+  const title = o.title || o.label || "";
+  const sub = o.subtitle || "";
+  return `<button type="button" class="${classes.join(" ")}" role="option" aria-selected="${isSelected?"true":"false"}" data-zip-value="${escHtml(o.value)}">` +
+    `<span class="zip-opt-check" aria-hidden="true">✓</span>` +
+    `<span class="zip-opt-text">` +
+      `<span class="zip-opt-title">${escHtml(title)}</span>` +
+      (sub ? `<span class="zip-opt-sub">${escHtml(sub)}</span>` : "") +
+    `</span>` +
+  `</button>`;
 }
 
 function renderZipComboList(query){
@@ -1244,25 +1292,22 @@ function renderZipComboList(query){
   if(!list) return;
   const opts = buildZipComboOptions(query);
   if(!opts.length){
-    list.innerHTML = `<div class="zip-combo-empty">${st("sales.search.zipNoMatch","No matching ZIP or area")}</div>`;
+    list.innerHTML = `<div class="zip-combo-empty">${st("sales.search.zipNoMatch","No match in live coverage (DuPage · Cook · Chicago · Kane · DeKalb). Try a city or ZIP from those areas.")}</div>`;
     return;
   }
   const selectedZip = state.searchParams.zip;
-  let html = "";
+  const cat = window.IL_COVERED_ZIPS;
+  const il = cat && cat.stateName ? cat.stateName("IL") : "Illinois";
+  let html = `<div class="zip-opt-group state">${escHtml(il)}</div>`;
   let lastZone = null;
-  let specialDone = false;
   for(const o of opts){
     if(o.special){
       html += zipOptButtonHtml(o, selectedZip);
-      specialDone = true;
       continue;
-    }
-    if(specialDone && lastZone === null){
-      // separator after specials when showing mixed results
     }
     if(o.zone && o.zone !== lastZone){
       lastZone = o.zone;
-      html += `<div class="zip-opt-group">${escHtml(o.zone)}</div>`;
+      html += `<div class="zip-opt-group zone">${escHtml(st("sales.search.zipZoneLive","{zone} · live", { zone: o.zone }))}</div>`;
     }
     html += zipOptButtonHtml(o, selectedZip);
   }
@@ -1276,7 +1321,8 @@ function searchFetchKey(sp = state.searchParams){
 function isMultiAreaZip(zip = state.searchParams.zip){
   const cat = window.IL_COVERED_ZIPS;
   if(!cat) return false;
-  return zip === cat.ALL_VALUE || /^__ZONE:(DuPage|Cook|Chicago)__$/.test(zip || "");
+  const zoneRe = cat.ZONE_RE || /^__ZONE:(DuPage|Cook|Chicago|Kane|DeKalb)__$/;
+  return zip === cat.ALL_VALUE || zoneRe.test(zip || "");
 }
 
 let _autoSearchTimer = null;

@@ -48,7 +48,8 @@ const HOA_RE = /condo|hoa|homeowner|association/i;
 function isTargetProperty(rec) {
   if (rec.ownerEntity && HOA_RE.test(rec.ownerEntity)) return true; // HOAs can sit in R/E classes
   if (rec.propClass) return Boolean(DUPAGE_CLASS_MAP[rec.propClass]);
-  return true; // no class data (Chicago/Cook) — keep, size filter applies
+  // No class (Chicago/Cook footprints, unknown DeKalb zones) — keep; size filter applies
+  return true;
 }
 
 function estimatePropertyType(rec) {
@@ -56,6 +57,14 @@ function estimatePropertyType(rec) {
   if (rec.propClass && DUPAGE_CLASS_MAP[rec.propClass]) {
     rec._classSource = "county"; // real assessor class, not a guess
     return DUPAGE_CLASS_MAP[rec.propClass];
+  }
+  if (rec.useDesc && /commercial|retail|office/i.test(rec.useDesc)) {
+    rec._classSource = "county";
+    return "Commercial";
+  }
+  if (rec.useDesc && /industr|warehouse/i.test(rec.useDesc)) {
+    rec._classSource = "county";
+    return "Industrial";
   }
   if (rec.units && rec.units >= 5) return "Multifamily";
   if (rec.buildingType && /industrial|warehouse/i.test(rec.buildingType)) return "Industrial";

@@ -68,6 +68,22 @@ export const SOURCES = {
     cost: "Free — 2008 LiDAR vintage, verify for new construction",
     kind: "building-footprints",
   },
+  KANE: {
+    key: "KANE",
+    name: "Kane County GIS — Parcels_v2025 (owner + site address + use code)",
+    endpoint:
+      "https://gistech.countyofkane.org/arcgis/rest/services/KanePINList/MapServer/0/query",
+    cost: "Free",
+    kind: "parcels-with-assessor",
+  },
+  DEKALB: {
+    key: "DEKALB",
+    name: "DeKalb County parcels (ArcGIS Online — owner + site address + zone)",
+    endpoint:
+      "https://services7.arcgis.com/hEXJrPwm89CLXBYe/arcgis/rest/services/DeKalbIL_Parcels/FeatureServer/0/query",
+    cost: "Free",
+    kind: "parcels-with-assessor",
+  },
   REGRID: {
     key: "REGRID",
     name: "Regrid Parcel API (paid fallback outside IL open-data coverage)",

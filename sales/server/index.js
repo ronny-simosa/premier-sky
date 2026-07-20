@@ -37,6 +37,8 @@ app.get("/api/status", async (_req, res) => {
     live: {
       "footprints-chicago": true,
       "parcels-assessor-dupage": true,
+      "parcels-assessor-kane": true,
+      "parcels-assessor-dekalb": true,
       "footprints-cook": "with local fallback",
       "footprints-microsoft": true,
       "roof-intel-satellite": true,

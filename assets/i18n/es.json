@@ -610,11 +610,16 @@
   "sales.mapView.openProfile": "Perfil",
   "sales.mapView.sendCrm": "CRM",
   "sales.mapView.createTask": "Tarea",
-  "sales.search.zipAll": "Vista multi-área (18 hubs)",
+  "sales.search.zipAll": "Vista multi-área ({n} hubs)",
   "sales.search.zipAllShort": "Vista multi-área",
   "sales.search.zipZoneAll": "Todo {zone} (hubs)",
   "sales.search.zipZoneAllShort": "Todo {zone}",
-  "sales.search.zipSearchPh": "Escribe ZIP, ciudad o zona…",
-  "sales.search.zipNoMatch": "Sin ZIP o zona que coincida",
-  "sales.search.zipHint": "Datos en vivo: DuPage · Cook · Chicago. Escribe para filtrar · las zonas usan hubs (cuota segura)."
+  "sales.search.zipSearchPh": "Busca ZIP o ciudad con datos en vivo…",
+  "sales.search.zipNoMatch": "Sin coincidencia en cobertura en vivo (DuPage · Cook · Chicago · Kane · DeKalb). Prueba una ciudad o ZIP de esas zonas.",
+  "sales.search.zipState": "Illinois",
+  "sales.search.zipLive": "Datos de parcelas en vivo",
+  "sales.search.zipHubsSub": "Hubs DuPage · Cook · Chicago · Kane · DeKalb",
+  "sales.search.zipZoneLive": "{zone} · en vivo",
+  "sales.search.zipZoneCounty": "Condado {zone}",
+  "sales.search.zipHint": "Datos de parcelas en vivo: DuPage · Cook · Chicago · Kane · DeKalb (Illinois). Cada ZIP de esta lista devuelve leads reales."
 }

@@ -610,11 +610,16 @@
   "sales.mapView.openProfile": "Profile",
   "sales.mapView.sendCrm": "CRM",
   "sales.mapView.createTask": "Task",
-  "sales.search.zipAll": "Multi-area overview (18 hubs)",
+  "sales.search.zipAll": "Multi-area overview ({n} hubs)",
   "sales.search.zipAllShort": "Multi-area overview",
   "sales.search.zipZoneAll": "All {zone} (hubs)",
   "sales.search.zipZoneAllShort": "All {zone}",
-  "sales.search.zipSearchPh": "Type ZIP, city, or zone…",
-  "sales.search.zipNoMatch": "No matching ZIP or area",
-  "sales.search.zipHint": "Live data: DuPage · Cook · Chicago. Type to filter · zone options use hub scans (quota-safe)."
+  "sales.search.zipSearchPh": "Search live ZIP or city…",
+  "sales.search.zipNoMatch": "No match in live coverage (DuPage · Cook · Chicago · Kane · DeKalb). Try a city or ZIP from those areas.",
+  "sales.search.zipState": "Illinois",
+  "sales.search.zipLive": "Live parcel data",
+  "sales.search.zipHubsSub": "DuPage · Cook · Chicago · Kane · DeKalb hubs",
+  "sales.search.zipZoneLive": "{zone} · live",
+  "sales.search.zipZoneCounty": "{zone} County",
+  "sales.search.zipHint": "Live parcel data: DuPage · Cook · Chicago · Kane · DeKalb (Illinois). Every ZIP in this list returns real property leads."
 }
