@@ -290,6 +290,14 @@ export function canAccessContractGenerator(email) {
   return contractGeneratorEmails().includes(normalizeEmail(email));
 }
 
+/** Contract page + JN contract APIs (not home redirects). */
+export function canUseContractTools(email) {
+  const norm = normalizeEmail(email);
+  if (!norm) return false;
+  if (canAccessContractGenerator(norm)) return true;
+  return process.env.CONTRACT_ACCESS_LOCAL === "true";
+}
+
 /** Canonical landing page after login / for role locks. */
 export function homeForEmail(email) {
   return canAccessContractGenerator(email) ? "/contract.html" : "/index.html";

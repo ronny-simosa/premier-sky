@@ -15,7 +15,7 @@ import { fetchJobsForZone, jnConfigured, jnIsReadOnly, jnFetch } from "./jn.js";
 import {
   requestLoginCode, verifyLoginCode, getSession, requireAuth,
   applySessionCookie, destroySession, pageRequiresAuth, redirectToLogin,
-  sessionDurationHours, canAccessContractGenerator, homeForEmail, resolvePostLoginPath
+  sessionDurationHours, canAccessContractGenerator, canUseContractTools, homeForEmail, resolvePostLoginPath
 } from "./auth.js";
 import { buildStormExport } from "./storm-export.js";
 import { fetchOpenMeteoForecast, fetchPrecipGrid } from "./meteo.js";
@@ -123,7 +123,7 @@ app.use((req, res, next) => {
   // Non-Sharom opening contract.html → hub (avoids blank "no access" page)
   if (p === "/contract.html") {
     if (!session) return next(); // auth middleware already sent them to login
-    if (!isContractUser) return res.redirect(302, "/index.html");
+    if (!canUseContractTools(session.email)) return res.redirect(302, "/index.html");
     return next();
   }
 
@@ -208,7 +208,7 @@ app.get("/api/jn/status", requireAuth, (req, res) => {
 });
 
 app.get("/api/jn/contract-access", requireAuth, (req, res) => {
-  if (!canAccessContractGenerator(req.user.email)) {
+  if (!canUseContractTools(req.user.email)) {
     return res.status(403).json({ error: "No autorizado" });
   }
   res.json({ ok: true });
@@ -216,7 +216,7 @@ app.get("/api/jn/contract-access", requireAuth, (req, res) => {
 
 app.get("/api/jn/query", requireAuth, async (req, res) => {
   if (!jnReadOnlyGuard(req, res)) return;
-  if (!canAccessContractGenerator(req.user.email)) {
+  if (!canUseContractTools(req.user.email)) {
     return res.status(403).json({ error: "No tienes acceso al generador de contratos." });
   }
   res.set("Access-Control-Allow-Origin", "*");

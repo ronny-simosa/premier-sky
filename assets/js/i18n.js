@@ -19,7 +19,7 @@
 
   async function loadCatalog(code) {
     if (catalogs[code]) return catalogs[code];
-    const res = await fetch(`/assets/i18n/${code}.json`, { cache: "no-cache" });
+    const res = await fetch(`/assets/i18n/${code}.json?v=47`, { cache: "no-store" });
     if (!res.ok) throw new Error(`i18n: missing ${code}.json`);
     catalogs[code] = await res.json();
     return catalogs[code];

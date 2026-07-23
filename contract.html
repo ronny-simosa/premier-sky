@@ -6,7 +6,7 @@
 <title data-i18n-title="contract.title">Premier Sky · Contract Generator PPA010</title>
 <link rel="icon" type="image/svg+xml" href="assets/img/premier-logo.svg" />
 <link rel="stylesheet" href="assets/css/styles.css?v=44" />
-<script src="assets/js/i18n.js?v=46"></script>
+<script src="assets/js/i18n.js?v=47"></script>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -196,12 +196,22 @@
   }
   .search-row button:hover { background: #fee2e2; }
   .search-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .contract-jn-block {
+    background: #fff;
+    border: none;
+    padding: 0;
+    margin: 0 0 12px 0;
+    color: #1f2937;
+  }
+  .contract-jn-block label { color: #4b5563; }
+  .contract-jn-block .help { color: #6b7280; }
   .jn-results {
     margin-top: 8px;
     max-height: 220px;
     overflow-y: auto;
     border: 1px solid #e5e7eb;
     border-radius: 8px;
+    background: #fff;
     display: none;
   }
   .jn-results.show { display: block; }
@@ -246,6 +256,7 @@
     border-radius: 8px;
     margin-bottom: 8px;
     cursor: pointer;
+    background: #fff;
     transition: background 0.1s, border-color 0.1s;
   }
   .jn-job-item:hover { background: #fef2f2; border-color: #b91c1c; }
@@ -310,7 +321,7 @@
   <form id="contractForm">
     <fieldset>
       <legend data-i18n="contract.sec.insured">Insured</legend>
-      <div class="jn-search">
+      <div class="contract-jn-block">
         <div class="field span-2">
           <label data-i18n="contract.jnSearch">Search contact (JobNimbus)</label>
           <div class="search-row">
@@ -368,16 +379,18 @@
       <div class="grid">
         <div class="field">
           <label><span data-i18n="contract.damageType">Damage type</span> <span class="req">*</span></label>
-          <input type="text" id="damageType" placeholder="e.g. storm damage" data-i18n-placeholder="contract.ph.damage" maxlength="20" required>
-          <div class="help" data-i18n="contract.help.shortField">Short field — 1–2 words</div>
+          <input type="text" id="damageType" placeholder="e.g. storm damage" data-i18n-placeholder="contract.ph.damage" required>
+          <div class="help" data-i18n="contract.help.shortField">Short field — PDF auto-shrinks font to fit</div>
         </div>
         <div class="field">
           <label><span data-i18n="contract.cause">Cause</span> <span class="req">*</span></label>
           <input type="text" id="cause" placeholder="e.g. wind, hail, fire, water" data-i18n-placeholder="contract.ph.cause" required>
+          <div class="help" data-i18n="contract.help.shortField">Short field — PDF auto-shrinks font to fit</div>
         </div>
         <div class="field">
           <label><span data-i18n="contract.date">Date</span> <span class="req">*</span></label>
-          <input type="date" id="dateOfLoss" required>
+          <input type="text" id="dateOfLoss" placeholder="03/10/2026" data-i18n-placeholder="contract.ph.dateLoss" inputmode="numeric" maxlength="10" autocomplete="off" required>
+          <div class="help" data-i18n="contract.help.dateLoss">Same format as JobNimbus (MM/DD/YYYY)</div>
         </div>
         <div class="field">
           <label data-i18n="contract.time">Approx. time</label>
@@ -389,7 +402,7 @@
         </div>
         <div class="field span-2">
           <label data-i18n="contract.services">Services description (section 2)</label>
-          <input type="text" id="services" value="Public adjusting services for the insurance claim" data-i18n-default="contract.servicesDefault">
+          <input type="text" id="services" value="Public adjusting" data-i18n-default="contract.servicesDefault">
         </div>
       </div>
     </fieldset>
@@ -409,7 +422,7 @@
         </div>
         <div class="field">
           <label data-i18n="contract.paPhone">PA phone</label>
-          <input type="tel" id="paPhone" placeholder="e.g. 630-590-9305" data-i18n-placeholder="contract.ph.paPhone">
+          <input type="tel" id="paPhone" value="(301) 919-7829" readonly aria-readonly="true">
           <div class="help" data-i18n="contract.help.paPhone">Shown in the page 2 signature</div>
         </div>
         <div class="field span-2">
@@ -469,7 +482,7 @@ const EMBEDDED_PDF_B64 = "JVBERi0xLjcNJeLjz9MNCjE5MSAwIG9iag08PC9MaW5lYXJpemVkID
 
 
 // ============= JOBNIMBUS API EN VIVO (optimizado) =============
-const JN_CONTACT_FIELDS = "display_name,first_name,last_name,email,home_phone,mobile_phone,work_phone,address_line1,address_line2,city,state_text,zip,jnid";
+const JN_CONTACT_FIELDS = "display_name,first_name,last_name,email,home_phone,mobile_phone,work_phone,address_line1,address_line2,city,state_text,zip,jnid,cf_date_1";
 const JN_JOB_FIELDS = "name,status_name,record_type_name,sales_rep_name,cf_string_6,address_line1,address_line2,city,state_text,zip,cf_string_25,cf_string_29,cf_string_51,cf_string_52,cf_string_53,cf_date_1,cf_date_7,primary";
 const JN_CACHE_TTL_MS = 90000; // 90s en memoria (solo esta pestaña, no localStorage)
 let jnLastSearchResults = [];
@@ -647,11 +660,41 @@ function formatJobAddress(job) {
   return parts.join(", ").replace(/,\s*,/g, ",");
 }
 
-function unixToDateInput(ts) {
+function jnDateFromUnix(ts) {
   if (!ts) return "";
   const d = new Date(Number(ts) * 1000);
   if (isNaN(d.getTime())) return "";
-  return d.toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+/** Premier JN: Date of Loss is on the contact (cf_date_1); job dates may differ. */
+function pickDateOfLoss(contact, job) {
+  return (
+    jnDateFromUnix(contact?.cf_date_1) ||
+    jnDateFromUnix(job?.cf_date_1) ||
+    jnDateFromUnix(job?.cf_date_7) ||
+    ""
+  );
+}
+
+function normalizeDateOfLossDisplay(value) {
+  const v = String(value || "").trim();
+  if (!v) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return formatDate(v);
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(v)) return formatDate(v);
+  return v;
+}
+
+function syncDateOfLossInput() {
+  const el = document.getElementById("dateOfLoss");
+  if (!el || !el.value) return;
+  const next = normalizeDateOfLossDisplay(el.value);
+  if (next && el.value !== next) el.value = next;
 }
 
 function renderJobPicker(contact, jobs) {
@@ -689,15 +732,14 @@ function renderJobPicker(contact, jobs) {
 function pickDamageType(job) {
   const detail = String(job.cf_string_25 || "").trim();
   const cause = String(job.cf_string_29 || "").trim();
-  if (detail) return detail.split(/[,;]/)[0].trim().slice(0, 20);
-  if (cause) return cause.slice(0, 20);
-  return "";
+  const pick = (detail || cause).split(/[,;]/)[0].trim();
+  return pick;
 }
 
 function pickCause(job) {
   const cause = String(job.cf_string_29 || "").trim();
   const detail = String(job.cf_string_25 || "").trim();
-  return (cause || detail).slice(0, 40);
+  return cause || detail;
 }
 
 function pickInsurer(job) {
@@ -720,7 +762,7 @@ function applyJnJob(job, contact) {
   const cause = pickCause(job);
   if (cause) document.getElementById("cause").value = cause;
 
-  const lossDate = unixToDateInput(job.cf_date_1 || job.cf_date_7);
+  const lossDate = pickDateOfLoss(contact, job);
   if (lossDate) document.getElementById("dateOfLoss").value = lossDate;
 
   const insurer = pickInsurer(job);
@@ -749,6 +791,8 @@ function applyJnContact(contact) {
   const phone = getContactPhone(contact);
   if (phone) document.getElementById("insuredPhone").value = phone;
   if (contact.email) document.getElementById("insuredEmail").value = contact.email;
+  const lossDate = pickDateOfLoss(contact, null);
+  if (lossDate) document.getElementById("dateOfLoss").value = lossDate;
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(collectFormData())); } catch (e) {}
 }
 
@@ -879,33 +923,189 @@ function initJobNimbusSearch() {
 }
 
 // ============= FIELD COORDINATES =============
-// Coordinates are pdfplumber-style (y=0 at top). Converted to pdf-lib coords at draw time.
-// Tamaño único para valores rellenados. 10pt desbordaba los huecos del PPA010 (~11pt alto).
+// PPA010 oficial: solo rellenar cada rayita del PDF (mismas posiciones que el formulario).
+// pdfplumber-style (y=0 arriba). maxWidth = ancho del hueco en plantilla (evita montar texto).
 const PDF_FONT_SIZE = 10;
-const PDF_Y_OFFSET = 1; // ajuste vertical fino: texto sobre la línea del formulario
+const PDF_MIN_FONT_SIZE = 6.5;
+const PDF_PAGE_WIDTH = 612;
+const PDF_RIGHT_MARGIN = 36;
+const PDF_Y_OFFSET = 1;
+
 const FIELDS = {
-  insuredName:        { page: 1, x: 434, top: 144, bottom: 155 },
-  address:            { page: 1, x: 361, top: 157, bottom: 168 },
-  insurer:            { page: 1, x: 85,  top: 169, bottom: 180 },
-  policy:             { page: 1, x: 253, top: 169, bottom: 180 },
-  claimField:         { page: 1, x: 391, top: 169, bottom: 180 },
-  paLicense:          { page: 1, x: 78,  top: 182, bottom: 193 },
-  firmLicense:        { page: 1, x: 373, top: 182, bottom: 193 },
-  damageType:         { page: 1, x: 170, top: 207, bottom: 218 },
-  cause:              { page: 1, x: 274, top: 207, bottom: 218 },
-  dateOfLoss:         { page: 1, x: 472, top: 207, bottom: 218 },
-  timeOfLoss:         { page: 1, x: 102, top: 220, bottom: 231 },
-  location:           { page: 1, x: 145, top: 220, bottom: 231 },
-  services:           { page: 1, x: 108, top: 403, bottom: 414 },
-  feePercent:         { page: 1, x: 378, top: 504, bottom: 515 },
-  referredContractor: { page: 2, x: 183, top: 92,  bottom: 103 },
-  contractorPct:      { page: 2, x: 359, top: 130, bottom: 141 },
-  contractorFee:      { page: 2, x: 202, top: 142, bottom: 153 },
-  paLicenseSig:       { page: 2, x: 254, top: 707, bottom: 718 },
-  paPhoneSig:         { page: 2, x: 400, top: 670, bottom: 681 },
+  insuredName:        { page: 1, x: 434, top: 144, bottom: 155, maxWidth: 138 },
+  address:            { page: 1, x: 361, top: 157, bottom: 168, maxWidth: 211 },
+  insurer:            { page: 1, x: 85,  top: 169, bottom: 180, maxWidth: 160 },
+  policy:             { page: 1, x: 253, top: 169, bottom: 180, maxWidth: 130 },
+  claimField:         { page: 1, x: 391, top: 169, bottom: 180, maxWidth: 181 },
+  paLicense:          { page: 1, x: 78,  top: 182, bottom: 193, maxWidth: 287 },
+  firmLicense:        { page: 1, x: 373, top: 182, bottom: 193, maxWidth: 199 },
+  timeOfLoss:         { page: 1, x: 102, top: 220, bottom: 231, maxWidth: 24 },
+  location:           { page: 1, x: 145, top: 220, bottom: 231, maxWidth: 420 },
+  services:           { page: 1, x: 108, top: 403, bottom: 414, maxWidth: 460 },
+  feePercent:         { page: 1, x: 378, top: 504, bottom: 515, maxWidth: 48 },
+  referredContractor: { page: 2, x: 183, top: 92,  bottom: 103, maxWidth: PDF_PAGE_WIDTH - 183 - PDF_RIGHT_MARGIN },
+  contractorPct:      { page: 2, x: 359, top: 130, bottom: 141, maxWidth: PDF_PAGE_WIDTH - 359 - PDF_RIGHT_MARGIN },
+  contractorFee:      { page: 2, x: 202, top: 142, bottom: 153, maxWidth: PDF_PAGE_WIDTH - 202 - PDF_RIGHT_MARGIN },
+  paLicenseSig:       { page: 2, x: 254, top: 707, bottom: 718, maxWidth: PDF_PAGE_WIDTH - 254 - PDF_RIGHT_MARGIN },
+  paPhoneSig:         { page: 2, x: 400, top: 670, bottom: 681, maxWidth: PDF_PAGE_WIDTH - 400 - PDF_RIGHT_MARGIN },
 };
 
+/** Daño / causa / fecha: tres franjas del mismo ancho en la línea “relating to…”. */
+const LOSS_LINE1_KEYS = ["damageType", "cause", "dateOfLoss"];
+const PPA_LOSS_LINE1_BAND = { x: 170, top: 203, bottom: 231, right: 578 };
+const LOSS_LINE1_LAYOUT = { startX: 173, suffixAtX: 565, baselineBottom: 218 };
+const LOSS_LINE1_BETWEEN = [" caused by ", " which occurred on "];
+const LOSS_LINE1_SUFFIX = " at";
+
+function drawLossLine1EqualFranjas(page, font, vals) {
+  const pageHeight = page.getHeight();
+  const band = PPA_LOSS_LINE1_BAND;
+  page.drawRectangle({
+    x: band.x,
+    y: pageHeight - band.bottom,
+    width: band.right - band.x,
+    height: band.bottom - band.top,
+    color: PDFLib.rgb(1, 1, 1),
+  });
+
+  const labelSize = PDF_FONT_SIZE;
+  const betweenW = LOSS_LINE1_BETWEEN.reduce((w, t) => w + font.widthOfTextAtSize(t, labelSize), 0);
+  const suffixW = font.widthOfTextAtSize(LOSS_LINE1_SUFFIX, labelSize);
+  const slotsRight = LOSS_LINE1_LAYOUT.suffixAtX;
+  const slotW = (slotsRight - LOSS_LINE1_LAYOUT.startX - betweenW - suffixW) / 3;
+  const y = pdfBaselineY(pageHeight, LOSS_LINE1_LAYOUT.baselineBottom);
+  const values = LOSS_LINE1_KEYS.map((k) => String(vals[k] || "").trim());
+
+  let x = LOSS_LINE1_LAYOUT.startX;
+  for (let i = 0; i < 3; i++) {
+    const { text: fitted, size: textSize } = fitTextToFieldWidth(
+      values[i],
+      font,
+      slotW - 3,
+      labelSize,
+      PDF_MIN_FONT_SIZE,
+    );
+    if (fitted) {
+      page.drawText(fitted, {
+        x: x + 1,
+        y,
+        size: textSize,
+        font,
+        color: PDFLib.rgb(0, 0, 0),
+      });
+    }
+    page.drawLine({
+      start: { x, y: y - 2 },
+      end: { x: x + slotW, y: y - 2 },
+      thickness: 0.5,
+      color: PDFLib.rgb(0, 0, 0),
+    });
+    x += slotW;
+    if (i < 2) {
+      const mid = LOSS_LINE1_BETWEEN[i];
+      page.drawText(mid, { x, y, size: labelSize, font, color: PDFLib.rgb(0, 0, 0) });
+      x += font.widthOfTextAtSize(mid, labelSize);
+    }
+  }
+  page.drawText(LOSS_LINE1_SUFFIX, {
+    x: slotsRight - suffixW,
+    y,
+    size: labelSize,
+    font,
+    color: PDFLib.rgb(0, 0, 0),
+  });
+}
+
+function pdfBaselineY(pageHeight, pdfPlumberBottom) {
+  return pageHeight - (pdfPlumberBottom - 2) + PDF_Y_OFFSET;
+}
+
+function fitTextToFieldWidth(text, font, maxWidth, maxSize = PDF_FONT_SIZE, minSize = PDF_MIN_FONT_SIZE) {
+  const raw = String(text || "").trim();
+  if (!raw || maxWidth <= 0) return { text: "", size: maxSize };
+  let size = maxSize;
+  while (size > minSize && font.widthOfTextAtSize(raw, size) > maxWidth) {
+    size -= 0.25;
+  }
+  if (font.widthOfTextAtSize(raw, size) <= maxWidth) {
+    return { text: raw, size };
+  }
+  let clipped = raw;
+  while (clipped.length > 1 && font.widthOfTextAtSize(`${clipped}…`, minSize) > maxWidth) {
+    clipped = clipped.slice(0, -1);
+  }
+  const ellipsized = clipped.length < raw.length ? `${clipped}…` : clipped;
+  if (font.widthOfTextAtSize(ellipsized, minSize) <= maxWidth) {
+    return { text: ellipsized, size: minSize };
+  }
+  while (clipped.length > 1 && font.widthOfTextAtSize(clipped, minSize) > maxWidth) {
+    clipped = clipped.slice(0, -1);
+  }
+  return { text: clipped.length < raw.length ? `${clipped}…` : clipped, size: minSize };
+}
+
+function drawPdfFieldValue(page, font, coords, text) {
+  const pageHeight = page.getHeight();
+  const maxWidth = coords.maxWidth || PDF_PAGE_WIDTH - coords.x - PDF_RIGHT_MARGIN;
+  const maxSize = coords.maxSize || PDF_FONT_SIZE;
+  const minSize = coords.minSize != null ? coords.minSize : PDF_MIN_FONT_SIZE;
+  const { text: fitted, size } = fitTextToFieldWidth(text, font, maxWidth, maxSize, minSize);
+  if (!fitted) return;
+
+  const yPdfLib = pdfBaselineY(pageHeight, coords.bottom);
+  page.drawText(fitted, {
+    x: coords.x,
+    y: yPdfLib,
+    size,
+    font,
+    color: PDFLib.rgb(0, 0, 0),
+  });
+}
+
 const STORAGE_KEY = "premier_ppa010_data_v1";
+/** Section 2 PDF line — fixed in code so stale i18n/cache cannot restore the long phrase. */
+const SERVICES_FIELD_DEFAULT = "Public adjusting";
+/** Page 2 signature — Public Adjuster phone # (always). */
+const PA_SIGNATURE_PHONE = "(301) 919-7829";
+
+const LEGACY_SERVICES_TEXT = [
+  "Public adjusting services for the insurance claim",
+  "Servicios de ajuste público para el reclamo de seguro",
+];
+
+function isLegacyServicesText(value) {
+  const t = String(value || "").trim().toLowerCase();
+  if (!t) return true;
+  if (LEGACY_SERVICES_TEXT.some((s) => s.toLowerCase() === t)) return true;
+  if (t.includes("insurance claim")) return true;
+  if (t.startsWith("public adjusting services")) return true;
+  if (t.startsWith("servicios de ajuste") && t.includes("reclamo")) return true;
+  return false;
+}
+
+function servicesDefaultText() {
+  return SERVICES_FIELD_DEFAULT;
+}
+
+function normalizeServices(value) {
+  const v = String(value || "").trim();
+  if (isLegacyServicesText(v)) return SERVICES_FIELD_DEFAULT;
+  return v || SERVICES_FIELD_DEFAULT;
+}
+
+function syncServicesInput() {
+  const el = document.getElementById("services");
+  if (!el) return;
+  const next = normalizeServices(el.value);
+  if (el.value !== next) el.value = next;
+  el.dataset.i18nDefaultValue = SERVICES_FIELD_DEFAULT;
+}
+
+function syncPaPhoneInput() {
+  const el = document.getElementById("paPhone");
+  if (!el) return;
+  el.value = PA_SIGNATURE_PHONE;
+}
 
 // ============= STATUS HELPERS =============
 let statusTimer;
@@ -930,6 +1130,9 @@ function applyFormData(data) {
     const el = document.getElementById(id);
     if (el) el.value = value;
   });
+  syncServicesInput();
+  syncPaPhoneInput();
+  syncDateOfLossInput();
 }
 
 function saveData() {
@@ -958,10 +1161,18 @@ function clearForm() {
   document.querySelectorAll("[data-i18n-default]").forEach((el) => {
     const key = el.getAttribute("data-i18n-default");
     if (!key || !window.I18n) return;
+    if (el.id === "services") {
+      el.value = SERVICES_FIELD_DEFAULT;
+      el.dataset.i18nDefaultValue = SERVICES_FIELD_DEFAULT;
+      return;
+    }
     const next = window.I18n.t(key);
     el.value = next;
     el.dataset.i18nDefaultValue = next;
   });
+  syncServicesInput();
+  syncPaPhoneInput();
+  syncDateOfLossInput();
   status(window.I18n ? window.I18n.t("contract.status.cleared") : "Form cleared");
 }
 
@@ -982,11 +1193,18 @@ function base64ToBytes(b64) {
   return bytes;
 }
 
-function formatDate(isoDate) {
-  // Convert YYYY-MM-DD to MM/DD/YYYY
-  if (!isoDate || !/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return isoDate || "";
-  const [y, m, d] = isoDate.split("-");
-  return `${m}/${d}/${y}`;
+function formatDate(value) {
+  const v = String(value || "").trim();
+  if (!v) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+    const [y, m, d] = v.split("-");
+    return `${m}/${d}/${y}`;
+  }
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(v)) {
+    const [m, d, y] = v.split("/");
+    return `${m.padStart(2, "0")}/${d.padStart(2, "0")}/${y}`;
+  }
+  return v;
 }
 
 function downloadBytes(bytes, filename) {
@@ -1030,34 +1248,23 @@ async function generatePDF() {
       contractorPct: formData.contractorPct,
       contractorFee: formData.contractorFee,
       paLicenseSig: formData.paLicense,
-      paPhoneSig: formData.paPhone,
+      paPhoneSig: PA_SIGNATURE_PHONE,
     };
 
     // Load PDF
     const pdfBytes = base64ToBytes(EMBEDDED_PDF_B64);
     const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
-    const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+    const font = await pdfDoc.embedFont(PDFLib.StandardFonts.TimesRoman);
     const pages = pdfDoc.getPages();
-    const pageHeight = pages[0].getHeight(); // 792
+    const page1 = pages[0];
 
-    // Draw each field
+    drawLossLine1EqualFranjas(page1, font, values);
+
     for (const [key, coords] of Object.entries(FIELDS)) {
       const text = values[key];
-      if (!text) continue; // skip empty fields
-
+      if (!text) continue;
       const page = pages[coords.page - 1];
-      // Convert pdfplumber y (top=0) to pdf-lib y (bottom=0)
-      // pdf-lib draws text with baseline at given y. Baseline ≈ bottom - 2 in pdfplumber coords.
-      const baselinePdfPlumber = coords.bottom - 2;
-      const yPdfLib = pageHeight - baselinePdfPlumber + PDF_Y_OFFSET;
-
-      page.drawText(String(text), {
-        x: coords.x,
-        y: yPdfLib,
-        size: PDF_FONT_SIZE,
-        font: font,
-        color: PDFLib.rgb(0, 0, 0),
-      });
+      drawPdfFieldValue(page, font, coords, text);
     }
 
     // Save PDF
@@ -1076,7 +1283,6 @@ async function generatePDF() {
     modal.classList.add("show");
     setTimeout(() => modal.classList.remove("show"), 2500);
 
-    // Save data after successful generation
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(formData)); } catch(e){}
 
   } catch (err) {
@@ -1119,6 +1325,10 @@ window.addEventListener("DOMContentLoaded", async () => {
       document.querySelectorAll("[data-i18n-default]").forEach((el) => {
         const key = el.getAttribute("data-i18n-default");
         if (!key) return;
+        if (el.id === "services") {
+          syncServicesInput();
+          return;
+        }
         const next = window.I18n.t(key);
         const prev = el.dataset.i18nDefaultValue || "";
         if (!el.value || !prev || el.value === prev) el.value = next;
@@ -1126,9 +1336,14 @@ window.addEventListener("DOMContentLoaded", async () => {
       });
     };
     syncDefaults();
+    syncServicesInput();
+    syncPaPhoneInput();
     window.addEventListener("premier:lang", () => {
       window.I18n.apply(document);
       syncDefaults();
+      syncServicesInput();
+      syncPaPhoneInput();
+      syncDateOfLossInput();
     });
   }
   if (!(await initContractAuth())) return;
@@ -1137,13 +1352,22 @@ window.addEventListener("DOMContentLoaded", async () => {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const data = JSON.parse(raw);
-      // Only restore if it has an insured name (so defaults don't get overwritten on first visit)
       if (data.insuredName) {
         applyFormData(data);
+        syncServicesInput();
+        syncPaPhoneInput();
+        syncDateOfLossInput();
+        const fixed = collectFormData();
+        if (data.services !== fixed.services || data.dateOfLoss !== fixed.dateOfLoss) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(fixed));
+        }
         status(window.I18n ? window.I18n.t("contract.status.loaded") : "✓ Data loaded");
       }
     }
   } catch(e) {}
+  syncServicesInput();
+  syncPaPhoneInput();
+  syncDateOfLossInput();
 });
 </script>
 </body>
