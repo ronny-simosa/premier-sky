@@ -280,31 +280,10 @@
   }
 
 
-  .contract-topnav {
-    display: flex; align-items: center; gap: 10px; justify-content: flex-end;
-    max-width: 900px; margin: 0 auto 12px; padding: 0 4px;
-  }
-  .contract-topnav .lang-switch-host { display: inline-flex; align-items: center; gap: 8px; }
-  .contract-topnav .btn-home {
-    display: inline-flex; align-items: center; padding: 8px 14px;
-    border-radius: 8px; border: 1px solid #b91c1c; background: #fff;
-    color: #b91c1c; font-size: 13px; font-weight: 600; text-decoration: none;
-  }
-  .contract-topnav .btn-home:hover { background: #fef2f2; }
-  .contract-topnav .lang-flag-btn {
-    width: 40px; height: 36px; border: 1px solid #d1d5db; border-radius: 8px;
-    background: #fff; font-size: 22px; cursor: pointer;
-    display: inline-flex; align-items: center; justify-content: center;
-  }
 </style>
 </head>
 <body>
 
-
-
-<div class="contract-topnav">
-  <div id="contractNav" class="lang-switch-host"></div>
-</div>
 <div class="container">
   <header>
     <h1 data-i18n="contract.heading">Public Adjuster Contract Generator</h1>
@@ -1315,11 +1294,6 @@ async function initContractAuth() {
 window.addEventListener("DOMContentLoaded", async () => {
   if (window.I18n) {
     await window.I18n.init();
-    const nav = document.getElementById("contractNav");
-    if (nav) {
-      nav.prepend(window.I18n.createHomeButton());
-      window.I18n.mountLangSwitch(nav);
-    }
     window.I18n.apply(document);
     const syncDefaults = () => {
       document.querySelectorAll("[data-i18n-default]").forEach((el) => {
